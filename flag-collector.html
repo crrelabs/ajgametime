@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Flag Collector — AJ GameTime</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@600;700;800&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0f172a;color:#e2e8f0;font-family:'Nunito',sans-serif;min-height:100vh;overflow-x:hidden;user-select:none;-webkit-user-select:none}
+a#back{position:fixed;top:10px;left:10px;color:#64748b;text-decoration:none;font-size:13px;font-weight:700;z-index:100}
+header{text-align:center;padding:16px 12px 8px;background:linear-gradient(135deg,#1e293b,#0f172a)}
+header h1{font-family:'Lilita One',cursive;font-size:clamp(22px,5vw,36px);background:linear-gradient(135deg,#22d3ee,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+header p{color:#64748b;font-size:12px;margin-top:2px}
+#stats{display:flex;justify-content:center;gap:16px;padding:8px;font-size:13px;font-weight:700}
+.stat{background:rgba(255,255,255,0.05);border-radius:8px;padding:5px 14px}
+.stat span{color:#fbbf24}
+nav{display:flex;justify-content:center;gap:6px;padding:8px 12px;flex-wrap:wrap}
+.nav-btn{padding:8px 16px;font-size:13px;font-weight:700;border-radius:8px;border:2px solid #334155;background:transparent;color:#94a3b8;cursor:pointer;transition:all 0.2s}
+.nav-btn.active{border-color:#22d3ee;color:#22d3ee;background:rgba(34,211,238,0.1)}
+.nav-btn:hover{border-color:#64748b;color:#e2e8f0}
+#view{padding:12px;max-width:600px;margin:0 auto}
+/* Map */
+.region-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.region-card{background:linear-gradient(135deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02));border:2px solid #1e293b;border-radius:14px;padding:16px;text-align:center;cursor:pointer;transition:all 0.2s}
+.region-card:hover{border-color:#3b82f6;transform:translateY(-2px)}
+.region-card .emoji{font-size:36px;display:block;margin-bottom:6px}
+.region-card h3{font-size:15px;color:#e2e8f0;margin-bottom:2px}
+.region-card .prog{font-size:11px;color:#64748b}
+.prog-bar{height:4px;background:#1e293b;border-radius:4px;margin-top:6px;overflow:hidden}
+.prog-fill{height:100%;border-radius:4px;transition:width 0.3s}
+/* Flag list */
+.flag-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
+.flag-item{background:rgba(255,255,255,0.04);border:2px solid #1e293b;border-radius:10px;padding:10px;text-align:center;cursor:pointer;transition:all 0.2s;position:relative}
+.flag-item:hover{border-color:#3b82f6}
+.flag-item.collected{border-color:#22c55e;background:rgba(34,197,94,0.05)}
+.flag-item.locked{opacity:0.5}
+.flag-item .flag-emoji{font-size:32px;display:block}
+.flag-item .flag-name{font-size:11px;margin-top:4px;color:#94a3b8;font-weight:700}
+.flag-item .rarity{font-size:9px;font-weight:800;border-radius:4px;padding:1px 6px;display:inline-block;margin-top:3px}
+.r-common .rarity{background:rgba(148,163,184,0.2);color:#94a3b8}
+.r-rare .rarity{background:rgba(59,130,246,0.2);color:#3b82f6}
+.r-epic .rarity{background:rgba(168,85,247,0.2);color:#a855f7}
+.r-legendary .rarity{background:rgba(251,191,36,0.2);color:#fbbf24}
+.lock-icon{position:absolute;top:4px;right:6px;font-size:12px}
+/* Quiz modal */
+#quiz-modal{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;z-index:200;background:rgba(0,0,0,0.92);padding:20px}
+#quiz-box{background:#1e293b;border-radius:16px;padding:24px;max-width:380px;width:100%;text-align:center}
+#quiz-flag{font-size:64px;margin-bottom:8px}
+#quiz-country{font-family:'Lilita One',cursive;font-size:22px;color:#22d3ee;margin-bottom:4px}
+#quiz-rarity{font-size:12px;margin-bottom:14px}
+#quiz-q{font-size:15px;color:#e2e8f0;margin-bottom:14px;line-height:1.5}
+.quiz-opts{display:flex;flex-direction:column;gap:8px}
+.quiz-opt{padding:12px;font-size:14px;font-weight:700;border-radius:10px;border:2px solid #334155;background:transparent;color:#e2e8f0;cursor:pointer;transition:all 0.15s}
+.quiz-opt:hover{border-color:#3b82f6}
+.quiz-opt.correct{border-color:#22c55e;background:rgba(34,197,94,0.15);color:#22c55e}
+.quiz-opt.wrong{border-color:#ef4444;background:rgba(239,68,68,0.1);color:#ef4444}
+#quiz-result{margin-top:14px;font-size:16px;font-weight:800;min-height:24px}
+#quiz-close{margin-top:12px;padding:10px 28px;font-family:'Lilita One',cursive;font-size:16px;color:#fff;background:linear-gradient(135deg,#3b82f6,#22d3ee);border:none;border-radius:10px;cursor:pointer;display:none}
+#quiz-fact{margin-top:10px;font-size:12px;color:#64748b;font-style:italic;display:none}
+/* Album */
+.album-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(70px,1fr));gap:8px}
+.album-flag{font-size:36px;text-align:center;padding:10px;background:rgba(255,255,255,0.03);border-radius:10px;cursor:pointer;transition:transform 0.15s}
+.album-flag:hover{transform:scale(1.15)}
+.album-empty{color:#334155;font-size:12px;text-align:center;padding:20px}
+/* Detail modal */
+#detail-modal{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;z-index:200;background:rgba(0,0,0,0.9);padding:20px}
+#detail-box{background:#1e293b;border-radius:16px;padding:24px;max-width:340px;width:100%;text-align:center}
+#detail-flag{font-size:72px}
+#detail-name{font-family:'Lilita One',cursive;font-size:24px;color:#22d3ee;margin:6px 0}
+#detail-fact{font-size:13px;color:#94a3b8;line-height:1.5;margin-bottom:8px}
+#detail-date{font-size:11px;color:#64748b}
+#detail-close{margin-top:12px;padding:8px 24px;font-size:14px;font-weight:700;color:#fff;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:8px;cursor:pointer}
+/* Achievements */
+.ach-list{display:flex;flex-direction:column;gap:8px}
+.ach-item{display:flex;align-items:center;gap:12px;padding:12px;background:rgba(255,255,255,0.03);border:2px solid #1e293b;border-radius:10px}
+.ach-item.unlocked{border-color:#fbbf24;background:rgba(251,191,36,0.05)}
+.ach-icon{font-size:28px;width:40px;text-align:center}
+.ach-info h4{font-size:14px;color:#e2e8f0}.ach-info p{font-size:11px;color:#64748b}
+.ach-item.unlocked .ach-info h4{color:#fbbf24}
+/* Leaderboard */
+#lb-section .lb-row{display:flex;justify-content:space-between;padding:8px 14px;border-bottom:1px solid rgba(255,255,255,0.06);font-size:14px;font-weight:600}
+.lb-rank{width:30px;color:#64748b}.lb-name{flex:1;margin:0 8px;color:#e2e8f0}.lb-score{color:#22d3ee}
+.lb-row:nth-child(1) .lb-rank{color:#fbbf24}.lb-row:nth-child(2) .lb-rank{color:#94a3b8}.lb-row:nth-child(3) .lb-rank{color:#b45309}
+#lb-submit-area{text-align:center;margin-top:12px}
+#lb-submit-area input{width:160px;padding:8px;font-size:14px;font-weight:700;border:2px solid #334155;border-radius:8px;background:#0f172a;color:#fff;text-align:center;outline:none;margin-right:6px}
+#lb-submit-area button{padding:8px 16px;font-size:13px;font-weight:700;color:#fff;background:linear-gradient(135deg,#f59e0b,#ef4444);border:none;border-radius:8px;cursor:pointer}
+</style>
+</head>
+<body>
+<a id="back" href="index.html">← Back</a>
+<header>
+  <h1>🌍 Flag Collector</h1>
+  <p>Collect flags from around the world!</p>
+</header>
+<div id="stats">
+  <div class="stat">🏁 <span id="s-flags">0</span> Flags</div>
+  <div class="stat">⭐ <span id="s-points">0</span> Points</div>
+  <div class="stat">🌎 <span id="s-regions">0</span>/5 Regions</div>
+</div>
+<nav>
+  <button class="nav-btn active" data-view="map">🗺️ Map</button>
+  <button class="nav-btn" data-view="album">📖 Album</button>
+  <button class="nav-btn" data-view="achievements">🏆 Awards</button>
+  <button class="nav-btn" data-view="leaderboard">📊 Ranks</button>
+</nav>
+<div id="view"></div>
+
+<div id="quiz-modal">
+  <div id="quiz-box">
+    <div id="quiz-flag"></div>
+    <div id="quiz-country"></div>
+    <div id="quiz-rarity"></div>
+    <div id="quiz-q"></div>
+    <div class="quiz-opts" id="quiz-opts"></div>
+    <div id="quiz-result"></div>
+    <div id="quiz-fact"></div>
+    <button id="quiz-close">Continue</button>
+  </div>
+</div>
+
+<div id="detail-modal">
+  <div id="detail-box">
+    <div id="detail-flag"></div>
+    <div id="detail-name"></div>
+    <div id="detail-fact"></div>
+    <div id="detail-date"></div>
+    <button id="detail-close">Close</button>
+  </div>
+</div>
+
+<script>
+// === FLAG DATA ===
+const FLAGS = [
+  // AMERICAS (20)
+  {id:'us',flag:'🇺🇸',name:'United States',region:'americas',rarity:'common',pts:5,fact:'The US has 50 states and its flag has 50 stars.',q:'How many stars are on the US flag?',opts:['13','50','45'],ans:1},
+  {id:'ca',flag:'🇨🇦',name:'Canada',region:'americas',rarity:'common',pts:5,fact:'Canada has the longest coastline of any country.',q:'What leaf is on the Canadian flag?',opts:['Oak leaf','Maple leaf','Palm leaf'],ans:1},
+  {id:'mx',flag:'🇲🇽',name:'Mexico',region:'americas',rarity:'common',pts:5,fact:'Mexico City was built on top of an ancient Aztec city.',q:'What animal is on the Mexican flag?',opts:['Jaguar','Eagle','Snake'],ans:1},
+  {id:'br',flag:'🇧🇷',name:'Brazil',region:'americas',rarity:'common',pts:5,fact:'Brazil is the largest country in South America.',q:'Which continent is Brazil in?',opts:['Europe','South America','Asia'],ans:1},
+  {id:'ar',flag:'🇦🇷',name:'Argentina',region:'americas',rarity:'rare',pts:10,fact:'Argentina is named after the Latin word for silver.',q:'What is the capital of Argentina?',opts:['Buenos Aires','Lima','Santiago'],ans:0},
+  {id:'co',flag:'🇨🇴',name:'Colombia',region:'americas',rarity:'common',pts:5,fact:'Colombia is named after Christopher Columbus.',q:'Colombia is named after which explorer?',opts:['Magellan','Columbus','Cortez'],ans:1},
+  {id:'pe',flag:'🇵🇪',name:'Peru',region:'americas',rarity:'rare',pts:10,fact:'Machu Picchu is in Peru, built by the Incas.',q:'Which ancient wonder is in Peru?',opts:['Pyramids','Machu Picchu','Colosseum'],ans:1},
+  {id:'cl',flag:'🇨🇱',name:'Chile',region:'americas',rarity:'rare',pts:10,fact:'Chile is the longest country in the world from north to south.',q:'Chile is known for being the _____ country.',opts:['Widest','Smallest','Longest'],ans:2},
+  {id:'cu',flag:'🇨🇺',name:'Cuba',region:'americas',rarity:'rare',pts:10,fact:'Cuba is the largest island in the Caribbean.',q:'Cuba is the largest island in the ___.',opts:['Pacific','Mediterranean','Caribbean'],ans:2},
+  {id:'jm',flag:'🇯🇲',name:'Jamaica',region:'americas',rarity:'epic',pts:20,fact:'Jamaica was the first Caribbean country to gain independence.',q:'What sport is Jamaica famous for in the Olympics?',opts:['Swimming','Sprinting','Skiing'],ans:1},
+  {id:'ht',flag:'🇭🇹',name:'Haiti',region:'americas',rarity:'epic',pts:20,fact:'Haiti was the first free Black republic in the world.',q:'Haiti shares an island with which country?',opts:['Cuba','Dominican Republic','Jamaica'],ans:1},
+  {id:'cr',flag:'🇨🇷',name:'Costa Rica',region:'americas',rarity:'rare',pts:10,fact:'Costa Rica means "Rich Coast" in Spanish.',q:'What does "Costa Rica" mean?',opts:['Green Land','Rich Coast','Beautiful Bay'],ans:1},
+  {id:'pa',flag:'🇵🇦',name:'Panama',region:'americas',rarity:'rare',pts:10,fact:'The Panama Canal connects the Atlantic and Pacific oceans.',q:'The Panama Canal connects which two oceans?',opts:['Atlantic & Indian','Pacific & Indian','Atlantic & Pacific'],ans:2},
+  {id:'ec',flag:'🇪🇨',name:'Ecuador',region:'americas',rarity:'rare',pts:10,fact:'Ecuador is named after the equator which runs through it.',q:'Ecuador is named after the ___.',opts:['Equator','Andes','Amazon'],ans:0},
+  {id:'uy',flag:'🇺🇾',name:'Uruguay',region:'americas',rarity:'epic',pts:20,fact:'Uruguay won the first ever FIFA World Cup in 1930.',q:'Uruguay won the first World Cup in what year?',opts:['1930','1950','1966'],ans:0},
+  {id:'py',flag:'🇵🇾',name:'Paraguay',region:'americas',rarity:'epic',pts:20,fact:'Paraguay is one of only two landlocked countries in South America.',q:'Paraguay is a ___ country.',opts:['Island','Coastal','Landlocked'],ans:2},
+  {id:'bo',flag:'🇧🇴',name:'Bolivia',region:'americas',rarity:'epic',pts:20,fact:'Bolivia has two capital cities: Sucre and La Paz.',q:'How many capital cities does Bolivia have?',opts:['1','2','3'],ans:1},
+  {id:'ve',flag:'🇻🇪',name:'Venezuela',region:'americas',rarity:'rare',pts:10,fact:'Angel Falls in Venezuela is the tallest waterfall in the world.',q:'Venezuela has the world\'s tallest ___.',opts:['Mountain','Building','Waterfall'],ans:2},
+  {id:'gt',flag:'🇬🇹',name:'Guatemala',region:'americas',rarity:'epic',pts:20,fact:'Guatemala was the center of the ancient Mayan civilization.',q:'Which civilization was centered in Guatemala?',opts:['Aztec','Maya','Inca'],ans:1},
+  {id:'tt',flag:'🇹🇹',name:'Trinidad & Tobago',region:'americas',rarity:'legendary',pts:50,fact:'Trinidad & Tobago is known as the birthplace of steelpan music.',q:'What instrument was invented in Trinidad?',opts:['Guitar','Steelpan','Bongos'],ans:1},
+
+  // EUROPE (20)
+  {id:'gb',flag:'🇬🇧',name:'United Kingdom',region:'europe',rarity:'common',pts:5,fact:'The UK includes England, Scotland, Wales, and Northern Ireland.',q:'How many countries make up the UK?',opts:['2','3','4'],ans:2},
+  {id:'fr',flag:'🇫🇷',name:'France',region:'europe',rarity:'common',pts:5,fact:'The Eiffel Tower was built in 1889 and was meant to be temporary.',q:'In which city is the Eiffel Tower?',opts:['London','Paris','Rome'],ans:1},
+  {id:'de',flag:'🇩🇪',name:'Germany',region:'europe',rarity:'common',pts:5,fact:'Germany has over 1,500 different types of beer.',q:'What are the colors of the German flag?',opts:['Red, white, blue','Black, red, gold','Green, white, red'],ans:1},
+  {id:'it',flag:'🇮🇹',name:'Italy',region:'europe',rarity:'common',pts:5,fact:'Italy is shaped like a boot.',q:'What shape is Italy?',opts:['A star','A boot','A circle'],ans:1},
+  {id:'es',flag:'🇪🇸',name:'Spain',region:'europe',rarity:'common',pts:5,fact:'Spain is famous for flamenco dancing and bullfighting.',q:'What is the capital of Spain?',opts:['Barcelona','Madrid','Lisbon'],ans:1},
+  {id:'pt',flag:'🇵🇹',name:'Portugal',region:'europe',rarity:'rare',pts:10,fact:'Portugal is the westernmost country in mainland Europe.',q:'Portugal is on which peninsula?',opts:['Iberian','Italian','Balkan'],ans:0},
+  {id:'nl',flag:'🇳🇱',name:'Netherlands',region:'europe',rarity:'rare',pts:10,fact:'About a third of the Netherlands is below sea level.',q:'The Netherlands is famous for what flower?',opts:['Roses','Tulips','Sunflowers'],ans:1},
+  {id:'se',flag:'🇸🇪',name:'Sweden',region:'europe',rarity:'rare',pts:10,fact:'Sweden has about 267,570 islands.',q:'In which region is Sweden?',opts:['Mediterranean','Scandinavia','Balkans'],ans:1},
+  {id:'no',flag:'🇳🇴',name:'Norway',region:'europe',rarity:'rare',pts:10,fact:'Norway has the longest coastline in Europe.',q:'Norway is famous for its ___.',opts:['Deserts','Fjords','Pyramids'],ans:1},
+  {id:'ch',flag:'🇨🇭',name:'Switzerland',region:'europe',rarity:'rare',pts:10,fact:'Switzerland has four official languages.',q:'How many official languages does Switzerland have?',opts:['2','3','4'],ans:2},
+  {id:'gr',flag:'🇬🇷',name:'Greece',region:'europe',rarity:'rare',pts:10,fact:'Greece is considered the birthplace of democracy.',q:'Greece is the birthplace of ___.',opts:['Pizza','Democracy','Chess'],ans:1},
+  {id:'pl',flag:'🇵🇱',name:'Poland',region:'europe',rarity:'rare',pts:10,fact:'Poland is home to 17 UNESCO World Heritage Sites.',q:'What colors are on the Polish flag?',opts:['White and red','Blue and yellow','Green and white'],ans:0},
+  {id:'is',flag:'🇮🇸',name:'Iceland',region:'europe',rarity:'epic',pts:20,fact:'Iceland has no mosquitoes!',q:'What natural feature is Iceland famous for?',opts:['Volcanoes & geysers','Rainforests','Sandy beaches'],ans:0},
+  {id:'ie',flag:'🇮🇪',name:'Ireland',region:'europe',rarity:'rare',pts:10,fact:'Ireland is known as the Emerald Isle for its green landscapes.',q:'Ireland is called the ___ Isle.',opts:['Diamond','Emerald','Ruby'],ans:1},
+  {id:'fi',flag:'🇫🇮',name:'Finland',region:'europe',rarity:'epic',pts:20,fact:'Finland has more saunas than cars.',q:'Finland has more ___ than cars.',opts:['Lakes','Saunas','Mountains'],ans:1},
+  {id:'dk',flag:'🇩🇰',name:'Denmark',region:'europe',rarity:'epic',pts:20,fact:'LEGO was invented in Denmark in 1932.',q:'What toy was invented in Denmark?',opts:['Barbie','LEGO','Hot Wheels'],ans:1},
+  {id:'at',flag:'🇦🇹',name:'Austria',region:'europe',rarity:'epic',pts:20,fact:'Mozart was born in Salzburg, Austria.',q:'Which composer was born in Austria?',opts:['Beethoven','Mozart','Bach'],ans:1},
+  {id:'mc',flag:'🇲🇨',name:'Monaco',region:'europe',rarity:'legendary',pts:50,fact:'Monaco is the second smallest country in the world.',q:'Monaco is the ___ smallest country.',opts:['First','Second','Third'],ans:1},
+  {id:'va',flag:'🇻🇦',name:'Vatican City',region:'europe',rarity:'legendary',pts:50,fact:'Vatican City is the smallest country in the world.',q:'Vatican City is the ___ country in the world.',opts:['Biggest','Oldest','Smallest'],ans:2},
+  {id:'hr',flag:'🇭🇷',name:'Croatia',region:'europe',rarity:'epic',pts:20,fact:'The necktie was invented in Croatia.',q:'What clothing item was invented in Croatia?',opts:['Top hat','Necktie','Sneakers'],ans:1},
+
+  // ASIA (20)
+  {id:'jp',flag:'🇯🇵',name:'Japan',region:'asia',rarity:'common',pts:5,fact:'Japan is made up of 6,852 islands.',q:'Japan is known as the Land of the Rising ___.',opts:['Moon','Sun','Star'],ans:1},
+  {id:'cn',flag:'🇨🇳',name:'China',region:'asia',rarity:'common',pts:5,fact:'The Great Wall of China is over 13,000 miles long.',q:'What famous wall is in China?',opts:['Berlin Wall','Great Wall','Hadrian\'s Wall'],ans:1},
+  {id:'in',flag:'🇮🇳',name:'India',region:'asia',rarity:'common',pts:5,fact:'India has the second largest population in the world.',q:'What animal is on India\'s national emblem?',opts:['Tiger','Lion','Elephant'],ans:1},
+  {id:'kr',flag:'🇰🇷',name:'South Korea',region:'asia',rarity:'common',pts:5,fact:'South Korea invented the world\'s first metal printing press.',q:'K-pop originated in which country?',opts:['Japan','South Korea','China'],ans:1},
+  {id:'th',flag:'🇹🇭',name:'Thailand',region:'asia',rarity:'rare',pts:10,fact:'Thailand is the only Southeast Asian country never colonized.',q:'Thailand was formerly known as ___.',opts:['Burma','Siam','Ceylon'],ans:1},
+  {id:'vn',flag:'🇻🇳',name:'Vietnam',region:'asia',rarity:'rare',pts:10,fact:'Vietnam is the world\'s largest exporter of cashew nuts.',q:'What shape is Vietnam?',opts:['S-shape','Circle','Triangle'],ans:0},
+  {id:'ph',flag:'🇵🇭',name:'Philippines',region:'asia',rarity:'rare',pts:10,fact:'The Philippines has over 7,600 islands.',q:'About how many islands does the Philippines have?',opts:['100','1,000','7,600'],ans:2},
+  {id:'id2',flag:'🇮🇩',name:'Indonesia',region:'asia',rarity:'rare',pts:10,fact:'Indonesia has the most active volcanoes of any country.',q:'Indonesia has the most active ___.',opts:['Rivers','Volcanoes','Deserts'],ans:1},
+  {id:'my',flag:'🇲🇾',name:'Malaysia',region:'asia',rarity:'rare',pts:10,fact:'The Petronas Towers in Malaysia were the tallest buildings until 2004.',q:'What famous towers are in Malaysia?',opts:['Twin Towers','Eiffel Towers','Petronas Towers'],ans:2},
+  {id:'sg',flag:'🇸🇬',name:'Singapore',region:'asia',rarity:'epic',pts:20,fact:'Singapore is both a city and a country.',q:'Singapore is both a city and a ___.',opts:['State','Country','Continent'],ans:1},
+  {id:'ae',flag:'🇦🇪',name:'UAE',region:'asia',rarity:'rare',pts:10,fact:'The Burj Khalifa in Dubai is the tallest building in the world.',q:'The tallest building in the world is in ___.',opts:['New York','Dubai','Tokyo'],ans:1},
+  {id:'sa',flag:'🇸🇦',name:'Saudi Arabia',region:'asia',rarity:'rare',pts:10,fact:'Saudi Arabia has no rivers.',q:'Saudi Arabia has no ___.',opts:['Mountains','Rivers','Cities'],ans:1},
+  {id:'il',flag:'🇮🇱',name:'Israel',region:'asia',rarity:'epic',pts:20,fact:'The Dead Sea in Israel is the lowest point on Earth.',q:'What sea in Israel is the lowest point on Earth?',opts:['Red Sea','Dead Sea','Black Sea'],ans:1},
+  {id:'tr',flag:'🇹🇷',name:'Turkey',region:'asia',rarity:'rare',pts:10,fact:'Turkey spans two continents: Europe and Asia.',q:'Turkey is on how many continents?',opts:['1','2','3'],ans:1},
+  {id:'mn',flag:'🇲🇳',name:'Mongolia',region:'asia',rarity:'epic',pts:20,fact:'Mongolia is the most sparsely populated country in the world.',q:'Genghis Khan was the leader of ___.',opts:['Mongolia','China','Japan'],ans:0},
+  {id:'np',flag:'🇳🇵',name:'Nepal',region:'asia',rarity:'legendary',pts:50,fact:'Nepal\'s flag is the only non-rectangular national flag.',q:'What is unique about Nepal\'s flag shape?',opts:['It\'s a circle','It\'s not rectangular','It\'s a star'],ans:1},
+  {id:'bt',flag:'🇧🇹',name:'Bhutan',region:'asia',rarity:'legendary',pts:50,fact:'Bhutan measures Gross National Happiness instead of GDP.',q:'Bhutan measures ___ instead of GDP.',opts:['Height','Happiness','Strength'],ans:1},
+  {id:'mm',flag:'🇲🇲',name:'Myanmar',region:'asia',rarity:'epic',pts:20,fact:'Myanmar was formerly known as Burma.',q:'Myanmar was formerly called ___.',opts:['Siam','Ceylon','Burma'],ans:2},
+  {id:'kz',flag:'🇰🇿',name:'Kazakhstan',region:'asia',rarity:'epic',pts:20,fact:'Kazakhstan is the largest landlocked country in the world.',q:'Kazakhstan is the largest ___ country.',opts:['Island','Landlocked','Coastal'],ans:1},
+  {id:'lk',flag:'🇱🇰',name:'Sri Lanka',region:'asia',rarity:'epic',pts:20,fact:'Sri Lanka was formerly known as Ceylon.',q:'Sri Lanka is an island near which country?',opts:['China','India','Japan'],ans:1},
+
+  // AFRICA (20)
+  {id:'za',flag:'🇿🇦',name:'South Africa',region:'africa',rarity:'common',pts:5,fact:'South Africa has 11 official languages.',q:'How many official languages does South Africa have?',opts:['3','7','11'],ans:2},
+  {id:'eg',flag:'🇪🇬',name:'Egypt',region:'africa',rarity:'common',pts:5,fact:'The pyramids of Giza are over 4,500 years old.',q:'The pyramids are in which country?',opts:['Morocco','Egypt','Nigeria'],ans:1},
+  {id:'ng',flag:'🇳🇬',name:'Nigeria',region:'africa',rarity:'common',pts:5,fact:'Nigeria is the most populated country in Africa.',q:'Nigeria is in which continent?',opts:['Asia','Europe','Africa'],ans:2},
+  {id:'ke',flag:'🇰🇪',name:'Kenya',region:'africa',rarity:'common',pts:5,fact:'Kenya is named after Mount Kenya, Africa\'s second-highest peak.',q:'Kenya is famous for its wildlife ___.',opts:['Safaris','Skiing','Surfing'],ans:0},
+  {id:'gh',flag:'🇬🇭',name:'Ghana',region:'africa',rarity:'rare',pts:10,fact:'Ghana was the first sub-Saharan African country to gain independence.',q:'Ghana was the first sub-Saharan country to gain ___.',opts:['Gold','Independence','A railroad'],ans:1},
+  {id:'et',flag:'🇪🇹',name:'Ethiopia',region:'africa',rarity:'rare',pts:10,fact:'Ethiopia is the birthplace of coffee.',q:'What drink was discovered in Ethiopia?',opts:['Tea','Coffee','Cocoa'],ans:1},
+  {id:'tz',flag:'🇹🇿',name:'Tanzania',region:'africa',rarity:'rare',pts:10,fact:'Mount Kilimanjaro, Africa\'s tallest mountain, is in Tanzania.',q:'Africa\'s tallest mountain is in ___.',opts:['Kenya','Tanzania','Congo'],ans:1},
+  {id:'ma',flag:'🇲🇦',name:'Morocco',region:'africa',rarity:'rare',pts:10,fact:'Morocco is only 9 miles from Europe across the Strait of Gibraltar.',q:'Morocco is near which strait?',opts:['Suez','Gibraltar','Hormuz'],ans:1},
+  {id:'sn',flag:'🇸🇳',name:'Senegal',region:'africa',rarity:'rare',pts:10,fact:'Senegal is the westernmost country on mainland Africa.',q:'Senegal is the ___ country on mainland Africa.',opts:['Easternmost','Northernmost','Westernmost'],ans:2},
+  {id:'mg',flag:'🇲🇬',name:'Madagascar',region:'africa',rarity:'epic',pts:20,fact:'Madagascar is the 4th largest island in the world.',q:'Madagascar is famous for its unique ___.',opts:['Volcanoes','Wildlife','Glaciers'],ans:1},
+  {id:'cd',flag:'🇨🇩',name:'DR Congo',region:'africa',rarity:'rare',pts:10,fact:'The Congo River is the deepest river in the world.',q:'The Congo River is the ___ in the world.',opts:['Longest','Deepest','Widest'],ans:1},
+  {id:'cm',flag:'🇨🇲',name:'Cameroon',region:'africa',rarity:'rare',pts:10,fact:'Cameroon is called "Africa in miniature" for its diverse landscapes.',q:'Cameroon is called Africa in ___.',opts:['Miniature','Paradise','Color'],ans:0},
+  {id:'rw',flag:'🇷🇼',name:'Rwanda',region:'africa',rarity:'epic',pts:20,fact:'Rwanda is known as the Land of a Thousand Hills.',q:'Rwanda is called the Land of a Thousand ___.',opts:['Lakes','Hills','Stars'],ans:1},
+  {id:'ci',flag:'🇨🇮',name:'Ivory Coast',region:'africa',rarity:'epic',pts:20,fact:'Ivory Coast is the world\'s largest producer of cocoa.',q:'Ivory Coast produces the most ___ in the world.',opts:['Coffee','Cocoa','Rice'],ans:1},
+  {id:'mu',flag:'🇲🇺',name:'Mauritius',region:'africa',rarity:'legendary',pts:50,fact:'The dodo bird was native to Mauritius before going extinct.',q:'What extinct bird was from Mauritius?',opts:['Dodo','Phoenix','Roc'],ans:0},
+  {id:'sc',flag:'🇸🇨',name:'Seychelles',region:'africa',rarity:'legendary',pts:50,fact:'Seychelles has the most colorful flag — it has 5 colors.',q:'How many colors are on the Seychelles flag?',opts:['3','4','5'],ans:2},
+  {id:'dz',flag:'🇩🇿',name:'Algeria',region:'africa',rarity:'rare',pts:10,fact:'Algeria is the largest country in Africa.',q:'Algeria is the ___ country in Africa.',opts:['Smallest','Largest','Oldest'],ans:1},
+  {id:'ug',flag:'🇺🇬',name:'Uganda',region:'africa',rarity:'epic',pts:20,fact:'Uganda is home to half the world\'s mountain gorillas.',q:'Uganda is home to mountain ___.',opts:['Lions','Gorillas','Eagles'],ans:1},
+  {id:'mz',flag:'🇲🇿',name:'Mozambique',region:'africa',rarity:'epic',pts:20,fact:'Mozambique\'s flag has an AK-47 on it.',q:'What weapon is on Mozambique\'s flag?',opts:['Sword','AK-47','Bow'],ans:1},
+  {id:'bw',flag:'🇧🇼',name:'Botswana',region:'africa',rarity:'epic',pts:20,fact:'Botswana has one of the largest elephant populations in Africa.',q:'Botswana is famous for its large ___ population.',opts:['Elephant','Penguin','Bear'],ans:0},
+
+  // OCEANIA (10)
+  {id:'au',flag:'🇦🇺',name:'Australia',region:'oceania',rarity:'common',pts:5,fact:'Australia is both a country and a continent.',q:'Australia is both a country and a ___.',opts:['City','Continent','State'],ans:1},
+  {id:'nz',flag:'🇳🇿',name:'New Zealand',region:'oceania',rarity:'common',pts:5,fact:'New Zealand has more sheep than people.',q:'New Zealand has more ___ than people.',opts:['Cars','Sheep','Houses'],ans:1},
+  {id:'fj',flag:'🇫🇯',name:'Fiji',region:'oceania',rarity:'rare',pts:10,fact:'Fiji has over 330 islands.',q:'About how many islands does Fiji have?',opts:['30','330','3,000'],ans:1},
+  {id:'pg',flag:'🇵🇬',name:'Papua New Guinea',region:'oceania',rarity:'epic',pts:20,fact:'Papua New Guinea has over 800 languages — the most in the world.',q:'PNG has the most ___ of any country.',opts:['Islands','Languages','Mountains'],ans:1},
+  {id:'ws',flag:'🇼🇸',name:'Samoa',region:'oceania',rarity:'epic',pts:20,fact:'Samoa was the first country to see the sunrise each day.',q:'Samoa is the first country to see the ___ each day.',opts:['Sunset','Sunrise','Moon'],ans:1},
+  {id:'to',flag:'🇹🇴',name:'Tonga',region:'oceania',rarity:'epic',pts:20,fact:'Tonga is the only monarchy in the Pacific.',q:'Tonga is the only ___ in the Pacific.',opts:['Republic','Democracy','Monarchy'],ans:2},
+  {id:'vu',flag:'🇻🇺',name:'Vanuatu',region:'oceania',rarity:'legendary',pts:50,fact:'Vanuatu is one of the happiest countries in the world.',q:'Vanuatu is known as one of the ___ countries.',opts:['Richest','Happiest','Largest'],ans:1},
+  {id:'pw',flag:'🇵🇼',name:'Palau',region:'oceania',rarity:'legendary',pts:50,fact:'Palau has a lake full of jellyfish that don\'t sting.',q:'Palau is famous for its ___ lake.',opts:['Jellyfish','Crocodile','Lava'],ans:0},
+  {id:'ki',flag:'🇰🇮',name:'Kiribati',region:'oceania',rarity:'epic',pts:20,fact:'Kiribati is the only country in all four hemispheres.',q:'Kiribati is in how many hemispheres?',opts:['2','3','4'],ans:2},
+  {id:'tv2',flag:'🇹🇻',name:'Tuvalu',region:'oceania',rarity:'legendary',pts:50,fact:'Tuvalu makes money from its internet domain .tv!',q:'Tuvalu earns money from its ___ domain.',opts:['.tv','.tu','.is'],ans:0},
+];
+
+const REGIONS = [
+  {id:'americas',name:'Americas',emoji:'🌎',color:'#22c55e'},
+  {id:'europe',name:'Europe',emoji:'🏰',color:'#3b82f6'},
+  {id:'asia',name:'Asia',emoji:'🏯',color:'#ef4444'},
+  {id:'africa',name:'Africa',emoji:'🌍',color:'#f59e0b'},
+  {id:'oceania',name:'Oceania',emoji:'🏝️',color:'#06b6d4'},
+];
+
+const ACHIEVEMENTS = [
+  {id:'first',name:'First Flag!',desc:'Collect your first flag',icon:'🎉',check:c=>c.length>=1},
+  {id:'five',name:'Getting Started',desc:'Collect 5 flags',icon:'🌱',check:c=>c.length>=5},
+  {id:'ten',name:'World Traveler',desc:'Collect 10 flags',icon:'✈️',check:c=>c.length>=10},
+  {id:'twentyfive',name:'Explorer',desc:'Collect 25 flags',icon:'🧭',check:c=>c.length>=25},
+  {id:'fifty',name:'Globetrotter',desc:'Collect 50 flags',icon:'🌐',check:c=>c.length>=50},
+  {id:'all',name:'Flag Master',desc:'Collect ALL flags',icon:'👑',check:c=>c.length>=FLAGS.length},
+  {id:'allreg',name:'Continental',desc:'Collect a flag from every continent',icon:'🗺️',check:c=>{const r=new Set(c.map(id=>FLAGS.find(f=>f.id===id)?.region));return REGIONS.every(reg=>r.has(reg.id));}},
+  {id:'rare5',name:'Rare Finder',desc:'Collect 5 rare flags',icon:'💎',check:c=>c.filter(id=>{const f=FLAGS.find(x=>x.id===id);return f&&f.rarity==='rare';}).length>=5},
+  {id:'epic3',name:'Epic Hunter',desc:'Collect 3 epic flags',icon:'🔮',check:c=>c.filter(id=>{const f=FLAGS.find(x=>x.id===id);return f&&f.rarity==='epic';}).length>=3},
+  {id:'legend1',name:'Legend',desc:'Collect a legendary flag',icon:'⚡',check:c=>c.some(id=>{const f=FLAGS.find(x=>x.id===id);return f&&f.rarity==='legendary';})},
+  {id:'americas_all',name:'Americas Complete',desc:'Collect all Americas flags',icon:'🦅',check:c=>FLAGS.filter(f=>f.region==='americas').every(f=>c.includes(f.id))},
+  {id:'europe_all',name:'Europe Complete',desc:'Collect all Europe flags',icon:'👸',check:c=>FLAGS.filter(f=>f.region==='europe').every(f=>c.includes(f.id))},
+];
+
+// State
+let collected = JSON.parse(localStorage.getItem('fc_collected') || '[]');
+let currentView = 'map';
+let currentRegion = null;
+
+function save() {
+  localStorage.setItem('fc_collected', JSON.stringify(collected));
+}
+
+function getPoints() {
+  return collected.reduce((sum, id) => {
+    const f = FLAGS.find(x => x.id === id);
+    return sum + (f ? f.pts : 0);
+  }, 0);
+}
+
+function getRegionsComplete() {
+  return REGIONS.filter(r => {
+    const regionFlags = FLAGS.filter(f => f.region === r.id);
+    return regionFlags.some(f => collected.includes(f.id));
+  }).length;
+}
+
+function updateStats() {
+  document.getElementById('s-flags').textContent = collected.length;
+  document.getElementById('s-points').textContent = getPoints();
+  document.getElementById('s-regions').textContent = getRegionsComplete();
+}
+
+// Nav
+document.querySelectorAll('.nav-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentView = btn.dataset.view;
+    currentRegion = null;
+    render();
+  });
+});
+
+function render() {
+  updateStats();
+  const view = document.getElementById('view');
+  if (currentView === 'map' && !currentRegion) renderMap(view);
+  else if (currentView === 'map' && currentRegion) renderRegion(view);
+  else if (currentView === 'album') renderAlbum(view);
+  else if (currentView === 'achievements') renderAchievements(view);
+  else if (currentView === 'leaderboard') renderLeaderboard(view);
+}
+
+function renderMap(el) {
+  let html = '<div class="region-grid">';
+  REGIONS.forEach(r => {
+    const total = FLAGS.filter(f => f.region === r.id).length;
+    const got = FLAGS.filter(f => f.region === r.id && collected.includes(f.id)).length;
+    const pct = Math.round(got / total * 100);
+    html += `<div class="region-card" onclick="openRegion('${r.id}')">
+      <span class="emoji">${r.emoji}</span>
+      <h3>${r.name}</h3>
+      <div class="prog">${got}/${total} flags</div>
+      <div class="prog-bar"><div class="prog-fill" style="width:${pct}%;background:${r.color}"></div></div>
+    </div>`;
+  });
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+function openRegion(id) {
+  currentRegion = id;
+  render();
+}
+
+function renderRegion(el) {
+  const reg = REGIONS.find(r => r.id === currentRegion);
+  const flags = FLAGS.filter(f => f.region === currentRegion);
+  let html = `<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;cursor:pointer" onclick="currentRegion=null;render()">
+    <span style="color:#64748b;font-size:18px">←</span>
+    <span style="font-size:24px">${reg.emoji}</span>
+    <h2 style="font-size:18px">${reg.name}</h2>
+  </div>`;
+  html += '<div class="flag-list">';
+  flags.forEach(f => {
+    const got = collected.includes(f.id);
+    const rClass = 'r-' + f.rarity;
+    html += `<div class="flag-item ${got ? 'collected' : 'locked'} ${rClass}" onclick="${got ? `showDetail('${f.id}')` : `startQuiz('${f.id}')`}">
+      ${got ? '' : '<span class="lock-icon">🔒</span>'}
+      <span class="flag-emoji">${f.flag}</span>
+      <div class="flag-name">${f.name}</div>
+      <span class="rarity">${f.rarity.toUpperCase()}</span>
+    </div>`;
+  });
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+function renderAlbum(el) {
+  if (collected.length === 0) {
+    el.innerHTML = '<div class="album-empty"><p style="font-size:40px;margin-bottom:12px">📖</p><p>Your flag album is empty!</p><p style="margin-top:6px">Go to the 🗺️ Map to collect flags.</p></div>';
+    return;
+  }
+  let html = '<h3 style="text-align:center;margin-bottom:12px;font-size:16px;color:#94a3b8">Your Flags (' + collected.length + '/' + FLAGS.length + ')</h3>';
+  html += '<div class="album-grid">';
+  collected.forEach(id => {
+    const f = FLAGS.find(x => x.id === id);
+    if (f) html += `<div class="album-flag" onclick="showDetail('${f.id}')" title="${f.name}">${f.flag}</div>`;
+  });
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+function renderAchievements(el) {
+  let html = '<div class="ach-list">';
+  ACHIEVEMENTS.forEach(a => {
+    const unlocked = a.check(collected);
+    html += `<div class="ach-item ${unlocked ? 'unlocked' : ''}">
+      <div class="ach-icon">${unlocked ? a.icon : '🔒'}</div>
+      <div class="ach-info"><h4>${a.name}</h4><p>${a.desc}</p></div>
+    </div>`;
+  });
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+async function renderLeaderboard(el) {
+  let html = '<div id="lb-section">';
+  html += '<h3 style="text-align:center;margin-bottom:12px;font-size:16px;color:#f59e0b">🏆 Top Collectors</h3>';
+  html += '<div id="lb-rows"><div style="color:#64748b;text-align:center;padding:20px">Loading...</div></div>';
+  html += '<div id="lb-submit-area"><input type="text" id="lb-name" placeholder="Your name" maxlength="16" value="' + (localStorage.getItem('ajgt_name') || '') + '"><button onclick="submitLB()">Submit Score</button></div>';
+  html += '</div>';
+  el.innerHTML = html;
+  // Fetch
+  try {
+    const r = await fetch(_LB_URL + '/rest/v1/ajgametime_leaderboard?game=eq.flag-collector&order=score.desc&limit=10', {
+      headers: { 'apikey': _LB_KEY, 'Authorization': 'Bearer ' + _LB_KEY }
+    });
+    const data = await r.json();
+    const rows = document.getElementById('lb-rows');
+    if (!data.length) { rows.innerHTML = '<div style="color:#64748b;text-align:center;padding:20px">No scores yet! Be the first!</div>'; return; }
+    rows.innerHTML = data.map((d, i) => `<div class="lb-row"><span class="lb-rank">#${i + 1}</span><span class="lb-name">${d.player_name}</span><span class="lb-score">${d.score} pts</span></div>`).join('');
+  } catch (e) {
+    document.getElementById('lb-rows').innerHTML = '<div style="color:#ef4444;text-align:center;padding:20px">Could not load leaderboard</div>';
+  }
+}
+
+async function submitLB() {
+  const name = document.getElementById('lb-name').value.trim() || 'Anonymous';
+  localStorage.setItem('ajgt_name', name);
+  const pts = getPoints();
+  try {
+    await fetch(_LB_URL + '/rest/v1/ajgametime_leaderboard', {
+      method: 'POST',
+      headers: { 'apikey': _LB_KEY, 'Authorization': 'Bearer ' + _LB_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+      body: JSON.stringify({ game: 'flag-collector', player_name: name, score: pts, wave: collected.length })
+    });
+    renderLeaderboard(document.getElementById('view'));
+  } catch (e) {}
+}
+
+// Quiz
+function startQuiz(id) {
+  const f = FLAGS.find(x => x.id === id);
+  if (!f || collected.includes(f.id)) return;
+
+  const modal = document.getElementById('quiz-modal');
+  document.getElementById('quiz-flag').textContent = f.flag;
+  document.getElementById('quiz-country').textContent = f.name;
+  document.getElementById('quiz-rarity').innerHTML = `<span class="rarity" style="background:${rarityBg(f.rarity)};color:${rarityColor(f.rarity)};padding:3px 10px;border-radius:6px;font-size:12px;font-weight:800">${f.rarity.toUpperCase()} · ${f.pts} pts</span>`;
+  document.getElementById('quiz-q').textContent = f.q;
+  document.getElementById('quiz-result').textContent = '';
+  document.getElementById('quiz-fact').style.display = 'none';
+  document.getElementById('quiz-close').style.display = 'none';
+
+  const optsEl = document.getElementById('quiz-opts');
+  optsEl.innerHTML = '';
+  f.opts.forEach((opt, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'quiz-opt';
+    btn.textContent = opt;
+    btn.onclick = () => answerQuiz(f, i, btn);
+    optsEl.appendChild(btn);
+  });
+
+  modal.style.display = 'flex';
+}
+
+function answerQuiz(f, chosen, btn) {
+  const opts = document.querySelectorAll('.quiz-opt');
+  opts.forEach((o, i) => {
+    o.style.pointerEvents = 'none';
+    if (i === f.ans) o.classList.add('correct');
+    if (i === chosen && chosen !== f.ans) o.classList.add('wrong');
+  });
+
+  const result = document.getElementById('quiz-result');
+  if (chosen === f.ans) {
+    result.textContent = '✅ Correct! +' + f.pts + ' pts';
+    result.style.color = '#22c55e';
+    collected.push(f.id);
+    save();
+    updateStats();
+    document.getElementById('quiz-fact').textContent = '💡 ' + f.fact;
+    document.getElementById('quiz-fact').style.display = 'block';
+    checkNewAchievements();
+  } else {
+    result.textContent = '❌ Wrong! The answer was: ' + f.opts[f.ans];
+    result.style.color = '#ef4444';
+  }
+  document.getElementById('quiz-close').style.display = 'inline-block';
+}
+
+document.getElementById('quiz-close').addEventListener('click', () => {
+  document.getElementById('quiz-modal').style.display = 'none';
+  render();
+});
+
+// Detail modal
+function showDetail(id) {
+  const f = FLAGS.find(x => x.id === id);
+  if (!f) return;
+  document.getElementById('detail-flag').textContent = f.flag;
+  document.getElementById('detail-name').textContent = f.name;
+  document.getElementById('detail-fact').textContent = '💡 ' + f.fact;
+  document.getElementById('detail-date').textContent = '⭐ ' + f.rarity.toUpperCase() + ' · ' + f.pts + ' points';
+  document.getElementById('detail-modal').style.display = 'flex';
+}
+document.getElementById('detail-close').addEventListener('click', () => {
+  document.getElementById('detail-modal').style.display = 'none';
+});
+
+function checkNewAchievements() {
+  ACHIEVEMENTS.forEach(a => {
+    const key = 'fc_ach_' + a.id;
+    if (!localStorage.getItem(key) && a.check(collected)) {
+      localStorage.setItem(key, '1');
+      // Show toast
+      const toast = document.createElement('div');
+      toast.style.cssText = 'position:fixed;top:60px;left:50%;transform:translateX(-50%);background:#1e293b;border:2px solid #fbbf24;border-radius:12px;padding:12px 20px;z-index:300;display:flex;align-items:center;gap:10px;animation:slideDown 0.3s;font-weight:700;';
+      toast.innerHTML = `<span style="font-size:24px">${a.icon}</span><div><div style="color:#fbbf24;font-size:14px">Achievement Unlocked!</div><div style="color:#e2e8f0;font-size:12px">${a.name}</div></div>`;
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 3000);
+    }
+  });
+}
+
+function rarityBg(r) { return r === 'common' ? 'rgba(148,163,184,0.2)' : r === 'rare' ? 'rgba(59,130,246,0.2)' : r === 'epic' ? 'rgba(168,85,247,0.2)' : 'rgba(251,191,36,0.2)'; }
+function rarityColor(r) { return r === 'common' ? '#94a3b8' : r === 'rare' ? '#3b82f6' : r === 'epic' ? '#a855f7' : '#fbbf24'; }
+
+// Leaderboard config
+const _LB_URL = 'https://adudgrfxwildzwpcvyil.supabase.co';
+const _LB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFkdWRncmZ4d2lsZHp3cGN2eWlsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyOTkzODUsImV4cCI6MjA4Nzg3NTM4NX0.-JYXn5r9QUjxbpwckwDMSvCm8w1xRXOp5lP2TWNOC_E';
+
+render();
+</script>
+</body>
+</html>
