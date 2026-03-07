@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ghost Catcher — AJ GameTime</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { min-height: 100vh; display: flex; flex-direction: column; align-items: center; font-family: -apple-system, sans-serif; background: #0a0a12; color: #e2e8f0; overflow: hidden; user-select: none; }
+#header { width: 100%; padding: 0.75rem 1.5rem; display: flex; justify-content: space-between; align-items: center; z-index: 10; position: fixed; top: 0; }
+#header a { color: #64748b; text-decoration: none; font-size: 0.85rem; }
+#hud { display: flex; gap: 1.2rem; align-items: center; }
+.stat { text-align: center; }
+.stat-val { font-size: 1.3rem; font-weight: 800; }
+.stat-label { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.1em; color: #64748b; }
+#scoreVal { color: #a78bfa; }
+#ghostsVal { color: #22d3ee; }
+#livesVal { color: #22c55e; }
+#powerVal { color: #fbbf24; font-size: 0.9rem; }
+canvas { display: block; cursor: crosshair; touch-action: none; }
+
+#startScreen, #gameOver {
+  position: fixed; inset: 0; background: rgba(10,10,18,0.95);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 30;
+}
+#startScreen.hidden, #gameOver.hidden { display: none; }
+#startScreen h1, #gameOver h2 { font-size: 2.5rem; margin-bottom: 0.5rem; }
+#startScreen .emoji, #gameOver .emoji { font-size: 5rem; margin-bottom: 1rem; }
+#startScreen p, #gameOver p { color: #94a3b8; margin-bottom: 0.5rem; font-size: 0.95rem; text-align: center; max-width: 350px; }
+.controls-hint { color: #64748b !important; font-size: 0.8rem !important; margin-top: 0.5rem; }
+button.play-btn {
+  margin-top: 1.5rem; padding: 1rem 2.5rem; font-size: 1.1rem; font-weight: 700;
+  background: linear-gradient(135deg, #22d3ee, #a78bfa); color: #0a0a12;
+  border: none; border-radius: 12px; cursor: pointer; transition: 0.2s;
+}
+button.play-btn:hover { transform: scale(1.05); filter: brightness(1.1); }
+#finalScore { font-size: 3.5rem; font-weight: 900; color: #a78bfa; }
+#finalGhosts { color: #22d3ee; font-size: 1.1rem; font-weight: 700; }
+</style>
+</head>
+<body>
+
+<div id="startScreen">
+  <div class="emoji">👻</div>
+  <h1>Ghost Catcher!</h1>
+  <p>You're trapped in a haunted house! Use your ghost catcher beam to zap ghosts before they reach you. Collect power-ups for special abilities!</p>
+  <p class="controls-hint">🖱️ Click/tap to shoot your ghost beam<br>Move cursor to aim · Ghosts come from all directions!</p>
+  <p class="controls-hint" style="margin-top: 0.25rem;">⚡ Rapid Fire · ❄️ Freeze All · 💣 Nuke · 🛡️ Shield</p>
+  <button class="play-btn" onclick="startGame()">Enter the Haunted House! 👻</button>
+</div>
+
+<div id="gameOver" class="hidden">
+  <div class="emoji">💀</div>
+  <h2>Haunted!</h2>
+  <div id="finalScore">0</div>
+  <p id="finalGhosts">0 ghosts caught</p>
+  <button class="play-btn" onclick="startGame()">Try Again 👻</button>
+</div>
+
+<div id="header">
+  <a href="/">← AJ GameTime</a>
+  <div id="hud">
+    <div class="stat"><div class="stat-val" id="scoreVal">0</div><div class="stat-label">Score</div></div>
+    <div class="stat"><div class="stat-val" id="ghostsVal">0 👻</div><div class="stat-label">Caught</div></div>
+    <div class="stat"><div class="stat-val" id="livesVal">❤️❤️❤️</div><div class="stat-label">Lives</div></div>
+    <div class="stat"><div class="stat-val" id="powerVal">—</div><div class="stat-label">Power-Up</div></div>
+  </div>
+</div>
+
+<canvas id="c"></canvas>
+
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+let W, H;
+let gameRunning = false, animFrame;
+
+function resize() { W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; }
+window.addEventListener('resize', resize);
+resize();
+
+let player, ghosts, beams, powerups, particles, dustMotes;
+let score, ghostsCaught, lives, wave, waveTimer, gameTime;
+let activePower, powerTimer;
+let mouseX, mouseY;
+let shootCooldown = 0;
+
+// Haunted house decorations
+let wallDecor = [];
+
+function initDecor() {
+  wallDecor = [];
+  // Windows
+  for (let i = 0; i < 3; i++) {
+    wallDecor.push({
+      type: 'window',
+      x: 80 + Math.random() * (W - 160),
+      y: 60 + Math.random() * 80,
+      w: 40 + Math.random() * 20,
+      h: 50 + Math.random() * 20
+    });
+  }
+  // Portraits
+  for (let i = 0; i < 2; i++) {
+    wallDecor.push({
+      type: 'portrait',
+      x: 100 + Math.random() * (W - 200),
+      y: 60 + Math.random() * 60,
+      w: 30, h: 40
+    });
+  }
+  // Candles
+  for (let i = 0; i < 5; i++) {
+    wallDecor.push({
+      type: 'candle',
+      x: 40 + Math.random() * (W - 80),
+      y: H - 60 - Math.random() * 100,
+      flicker: Math.random() * Math.PI * 2
+    });
+  }
+  // Dust motes
+  dustMotes = [];
+  for (let i = 0; i < 30; i++) {
+    dustMotes.push({
+      x: Math.random() * W,
+      y: Math.random() * H,
+      vx: (Math.random() - 0.5) * 0.3,
+      vy: -0.1 - Math.random() * 0.2,
+      size: 1 + Math.random() * 2,
+      alpha: 0.1 + Math.random() * 0.2
+    });
+  }
+}
+
+function drawHauntedHouse() {
+  // Floor - dark wood planks
+  ctx.fillStyle = '#1a1520';
+  ctx.fillRect(0, 0, W, H);
+
+  // Wall (upper portion)
+  const wallGrad = ctx.createLinearGradient(0, 0, 0, H);
+  wallGrad.addColorStop(0, '#1c1028');
+  wallGrad.addColorStop(0.5, '#150e1e');
+  wallGrad.addColorStop(1, '#0f0a16');
+  ctx.fillStyle = wallGrad;
+  ctx.fillRect(0, 0, W, H);
+
+  // Wood floor
+  ctx.fillStyle = '#1a1210';
+  ctx.fillRect(0, H * 0.7, W, H * 0.3);
+  // Floorboard lines
+  ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+  ctx.lineWidth = 1;
+  for (let y = H * 0.7; y < H; y += 25) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+  }
+  for (let x = 0; x < W; x += 80) {
+    ctx.beginPath(); ctx.moveTo(x, H * 0.7); ctx.lineTo(x, H); ctx.stroke();
+  }
+
+  // Wainscoting
+  ctx.fillStyle = '#1f1520';
+  ctx.fillRect(0, H * 0.65, W, 15);
+
+  // Wallpaper pattern (subtle)
+  ctx.globalAlpha = 0.03;
+  ctx.fillStyle = '#a78bfa';
+  for (let x = 0; x < W; x += 40) {
+    for (let y = 50; y < H * 0.65; y += 40) {
+      ctx.beginPath();
+      ctx.arc(x, y, 5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+  ctx.globalAlpha = 1;
+
+  // Decorations
+  wallDecor.forEach(d => {
+    if (d.type === 'window') {
+      ctx.fillStyle = '#0a0818';
+      ctx.fillRect(d.x, d.y, d.w, d.h);
+      // Moonlight
+      ctx.fillStyle = 'rgba(100,150,255,0.06)';
+      ctx.fillRect(d.x, d.y, d.w, d.h);
+      // Frame
+      ctx.strokeStyle = '#2a2035';
+      ctx.lineWidth = 3;
+      ctx.strokeRect(d.x, d.y, d.w, d.h);
+      // Cross
+      ctx.beginPath();
+      ctx.moveTo(d.x + d.w/2, d.y); ctx.lineTo(d.x + d.w/2, d.y + d.h);
+      ctx.moveTo(d.x, d.y + d.h/2); ctx.lineTo(d.x + d.w, d.y + d.h/2);
+      ctx.stroke();
+      // Lightning flash occasionally
+      if (Math.random() < 0.001) {
+        ctx.fillStyle = 'rgba(200,200,255,0.3)';
+        ctx.fillRect(0, 0, W, H);
+      }
+    } else if (d.type === 'portrait') {
+      ctx.fillStyle = '#1a1220';
+      ctx.fillRect(d.x - 2, d.y - 2, d.w + 4, d.h + 4);
+      ctx.strokeStyle = '#3a2a40';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(d.x - 2, d.y - 2, d.w + 4, d.h + 4);
+      // Spooky face
+      ctx.fillStyle = '#2a1a30';
+      ctx.fillRect(d.x, d.y, d.w, d.h);
+      ctx.fillStyle = '#fff';
+      ctx.globalAlpha = 0.15;
+      ctx.beginPath();
+      ctx.arc(d.x + d.w * 0.35, d.y + d.h * 0.4, 3, 0, Math.PI * 2);
+      ctx.arc(d.x + d.w * 0.65, d.y + d.h * 0.4, 3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    } else if (d.type === 'candle') {
+      d.flicker += 0.1;
+      const fl = Math.sin(d.flicker) * 2;
+      // Holder
+      ctx.fillStyle = '#4a3a30';
+      ctx.fillRect(d.x - 3, d.y, 6, 15);
+      // Wax
+      ctx.fillStyle = '#f5e6d3';
+      ctx.fillRect(d.x - 2, d.y - 12, 4, 14);
+      // Flame
+      ctx.fillStyle = '#fbbf24';
+      ctx.shadowColor = '#fbbf24';
+      ctx.shadowBlur = 15 + fl * 2;
+      ctx.beginPath();
+      ctx.ellipse(d.x, d.y - 16 + fl * 0.3, 3 + fl * 0.2, 6 + fl * 0.3, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.beginPath();
+      ctx.ellipse(d.x, d.y - 15 + fl * 0.3, 1, 3, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      // Light pool
+      ctx.fillStyle = `rgba(251,191,36,0.03)`;
+      ctx.beginPath();
+      ctx.arc(d.x, d.y, 60 + fl * 5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  });
+
+  // Dust motes
+  dustMotes.forEach(m => {
+    m.x += m.vx; m.y += m.vy;
+    if (m.y < 0) { m.y = H; m.x = Math.random() * W; }
+    if (m.x < 0) m.x = W; if (m.x > W) m.x = 0;
+    ctx.globalAlpha = m.alpha;
+    ctx.fillStyle = '#a78bfa';
+    ctx.beginPath();
+    ctx.arc(m.x, m.y, m.size, 0, Math.PI * 2);
+    ctx.fill();
+  });
+  ctx.globalAlpha = 1;
+
+  // Fog at bottom
+  const fogGrad = ctx.createLinearGradient(0, H - 80, 0, H);
+  fogGrad.addColorStop(0, 'rgba(100,80,120,0)');
+  fogGrad.addColorStop(1, 'rgba(100,80,120,0.08)');
+  ctx.fillStyle = fogGrad;
+  ctx.fillRect(0, H - 80, W, 80);
+}
+
+class Player {
+  constructor() {
+    this.x = W / 2;
+    this.y = H - 100;
+    this.r = 20;
+    this.angle = 0;
+    this.shielded = false;
+  }
+  update() {
+    this.angle = Math.atan2(mouseY - this.y, mouseX - this.x);
+  }
+  draw() {
+    ctx.save();
+    ctx.translate(this.x, this.y);
+
+    // Shield effect
+    if (this.shielded) {
+      ctx.strokeStyle = '#22d3ee';
+      ctx.lineWidth = 3;
+      ctx.shadowColor = '#22d3ee';
+      ctx.shadowBlur = 15;
+      ctx.globalAlpha = 0.4 + Math.sin(gameTime * 0.1) * 0.2;
+      ctx.beginPath();
+      ctx.arc(0, 0, 35, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+      ctx.shadowBlur = 0;
+    }
+
+    // Body
+    ctx.fillStyle = '#4a3060';
+    ctx.beginPath();
+    ctx.arc(0, 0, 16, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Face
+    ctx.fillStyle = '#fcd34d';
+    ctx.beginPath();
+    ctx.arc(0, -2, 10, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Eyes
+    ctx.fillStyle = '#111';
+    ctx.beginPath();
+    ctx.arc(-3, -4, 2, 0, Math.PI * 2);
+    ctx.arc(3, -4, 2, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Determined mouth
+    ctx.strokeStyle = '#111';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(-4, 2); ctx.lineTo(4, 2);
+    ctx.stroke();
+
+    // Ghost catcher gun (pointing toward cursor)
+    ctx.rotate(this.angle);
+    ctx.fillStyle = '#6b7280';
+    ctx.beginPath();
+    ctx.roundRect(12, -4, 22, 8, 2);
+    ctx.fill();
+    // Barrel glow
+    ctx.fillStyle = activePower === 'rapid' ? '#ef4444' : '#22d3ee';
+    ctx.shadowColor = activePower === 'rapid' ? '#ef4444' : '#22d3ee';
+    ctx.shadowBlur = 8;
+    ctx.beginPath();
+    ctx.arc(34, 0, 4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    // Handle
+    ctx.fillStyle = '#4b5563';
+    ctx.fillRect(14, 4, 6, 8);
+
+    ctx.restore();
+  }
+}
+
+const GHOST_TYPES = [
+  { name: 'normal', color: 'rgba(200,200,255,0.6)', speed: 1.2, hp: 1, size: 20, score: 10 },
+  { name: 'fast', color: 'rgba(255,150,150,0.6)', speed: 2.5, hp: 1, size: 16, score: 20 },
+  { name: 'tank', color: 'rgba(150,255,150,0.5)', speed: 0.7, hp: 3, size: 28, score: 30 },
+  { name: 'shadow', color: 'rgba(80,60,120,0.7)', speed: 1.5, hp: 2, size: 22, score: 25 },
+];
+
+class Ghost {
+  constructor(type) {
+    const t = type || GHOST_TYPES[Math.min(Math.floor(Math.random() * (1 + wave * 0.3)), GHOST_TYPES.length - 1)];
+    Object.assign(this, t);
+    this.hp = t.hp;
+    this.maxHp = t.hp;
+    // Spawn from edges
+    const side = Math.floor(Math.random() * 4);
+    if (side === 0) { this.x = -30; this.y = Math.random() * H; }
+    else if (side === 1) { this.x = W + 30; this.y = Math.random() * H; }
+    else if (side === 2) { this.x = Math.random() * W; this.y = -30; }
+    else { this.x = Math.random() * W; this.y = H + 30; }
+    this.frame = Math.random() * Math.PI * 2;
+    this.frozen = false;
+    this.frozenTimer = 0;
+  }
+  update() {
+    this.frame += 0.05;
+    if (this.frozen) { this.frozenTimer--; if (this.frozenTimer <= 0) this.frozen = false; return; }
+    const dx = player.x - this.x;
+    const dy = player.y - this.y;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    if (dist > 5) {
+      const wobble = Math.sin(this.frame * 3) * 0.5;
+      this.x += (dx / dist) * this.speed + wobble;
+      this.y += (dy / dist) * this.speed;
+    }
+  }
+  draw() {
+    ctx.save();
+    ctx.translate(this.x, this.y);
+
+    const bob = Math.sin(this.frame * 2) * 3;
+    const s = this.size;
+
+    // Glow
+    ctx.shadowColor = this.frozen ? '#22d3ee' : this.color;
+    ctx.shadowBlur = 20;
+
+    // Ghost body
+    ctx.fillStyle = this.frozen ? 'rgba(100,200,255,0.5)' : this.color;
+    ctx.beginPath();
+    ctx.moveTo(-s, s + bob);
+    // Wavy bottom
+    for (let i = 0; i <= 4; i++) {
+      const wx = -s + (s * 2 / 4) * i;
+      const wy = s + bob + ((i % 2) ? -5 : 3);
+      ctx.lineTo(wx, wy);
+    }
+    ctx.lineTo(s, -s * 0.3 + bob);
+    ctx.arc(0, -s * 0.3 + bob, s, 0, Math.PI, true);
+    ctx.closePath();
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    // Eyes
+    ctx.fillStyle = this.name === 'shadow' ? '#a78bfa' : 'white';
+    ctx.beginPath();
+    ctx.ellipse(-s * 0.3, -s * 0.1 + bob, s * 0.22, s * 0.28, 0, 0, Math.PI * 2);
+    ctx.ellipse(s * 0.3, -s * 0.1 + bob, s * 0.22, s * 0.28, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Pupils (look at player)
+    const pAngle = Math.atan2(player.y - this.y, player.x - this.x);
+    const pd = s * 0.08;
+    ctx.fillStyle = this.name === 'shadow' ? '#4c1d95' : '#111';
+    ctx.beginPath();
+    ctx.arc(-s * 0.3 + Math.cos(pAngle) * pd, -s * 0.1 + bob + Math.sin(pAngle) * pd, s * 0.12, 0, Math.PI * 2);
+    ctx.arc(s * 0.3 + Math.cos(pAngle) * pd, -s * 0.1 + bob + Math.sin(pAngle) * pd, s * 0.12, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Mouth
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    ctx.beginPath();
+    ctx.ellipse(0, s * 0.3 + bob, s * 0.2, s * 0.15 + Math.sin(this.frame) * 2, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // HP bar for tanks
+    if (this.maxHp > 1) {
+      ctx.fillStyle = 'rgba(0,0,0,0.5)';
+      ctx.fillRect(-s, -s - 8 + bob, s * 2, 4);
+      ctx.fillStyle = this.hp > 1 ? '#22c55e' : '#ef4444';
+      ctx.fillRect(-s, -s - 8 + bob, s * 2 * (this.hp / this.maxHp), 4);
+    }
+
+    // Frozen indicator
+    if (this.frozen) {
+      ctx.fillStyle = '#22d3ee';
+      ctx.font = `${s * 0.6}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.fillText('❄️', 0, -s - 10 + bob);
+    }
+
+    ctx.restore();
+  }
+}
+
+class Beam {
+  constructor(x, y, angle) {
+    this.x = x; this.y = y;
+    this.vx = Math.cos(angle) * 10;
+    this.vy = Math.sin(angle) * 10;
+    this.life = 1;
+    this.r = activePower === 'rapid' ? 4 : 6;
+  }
+  update() {
+    this.x += this.vx; this.y += this.vy;
+    this.life -= 0.015;
+  }
+  draw() {
+    ctx.globalAlpha = this.life;
+    ctx.fillStyle = activePower === 'rapid' ? '#ef4444' : '#22d3ee';
+    ctx.shadowColor = activePower === 'rapid' ? '#ef4444' : '#22d3ee';
+    ctx.shadowBlur = 12;
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+    ctx.fill();
+    // Trail
+    ctx.globalAlpha = this.life * 0.3;
+    ctx.beginPath();
+    ctx.arc(this.x - this.vx * 0.5, this.y - this.vy * 0.5, this.r * 0.7, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.globalAlpha = 1;
+  }
+}
+
+const POWER_TYPES = [
+  { type: 'rapid', emoji: '⚡', label: '⚡ Rapid Fire', color: '#ef4444', duration: 300 },
+  { type: 'freeze', emoji: '❄️', label: '❄️ Freeze All', color: '#22d3ee', duration: 1 },
+  { type: 'nuke', emoji: '💣', label: '💣 Ghost Nuke', color: '#f97316', duration: 1 },
+  { type: 'shield', emoji: '🛡️', label: '🛡️ Shield', color: '#22c55e', duration: 360 },
+];
+
+class PowerUp {
+  constructor() {
+    this.x = 60 + Math.random() * (W - 120);
+    this.y = 80 + Math.random() * (H - 200);
+    this.type = POWER_TYPES[Math.floor(Math.random() * POWER_TYPES.length)];
+    this.r = 16;
+    this.bob = Math.random() * Math.PI * 2;
+    this.collected = false;
+  }
+  update() { this.bob += 0.05; }
+  draw() {
+    if (this.collected) return;
+    ctx.save();
+    ctx.translate(this.x, this.y + Math.sin(this.bob) * 4);
+    // Glow ring
+    ctx.strokeStyle = this.type.color;
+    ctx.shadowColor = this.type.color;
+    ctx.shadowBlur = 15;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(0, 0, this.r + 4, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+    // BG
+    ctx.fillStyle = 'rgba(0,0,0,0.6)';
+    ctx.beginPath();
+    ctx.arc(0, 0, this.r, 0, Math.PI * 2);
+    ctx.fill();
+    // Emoji
+    ctx.font = '18px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(this.type.emoji, 0, 1);
+    ctx.restore();
+  }
+}
+
+class Particle {
+  constructor(x, y, color) {
+    this.x = x; this.y = y;
+    this.vx = (Math.random()-0.5) * 6;
+    this.vy = (Math.random()-0.5) * 6;
+    this.life = 1;
+    this.color = color;
+    this.size = 2 + Math.random() * 4;
+  }
+  update() { this.x += this.vx; this.y += this.vy; this.life -= 0.03; this.vx *= 0.97; this.vy *= 0.97; }
+  draw() {
+    ctx.globalAlpha = this.life;
+    ctx.fillStyle = this.color;
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+}
+
+function shoot() {
+  if (!gameRunning) return;
+  const cooldown = activePower === 'rapid' ? 5 : 15;
+  if (shootCooldown > 0) return;
+  shootCooldown = cooldown;
+  const angle = Math.atan2(mouseY - player.y, mouseX - player.x);
+  const bx = player.x + Math.cos(angle) * 34;
+  const by = player.y + Math.sin(angle) * 34;
+  beams.push(new Beam(bx, by, angle));
+}
+
+function activatePower(p) {
+  p.collected = true;
+  const t = p.type;
+  if (t.type === 'freeze') {
+    ghosts.forEach(g => { g.frozen = true; g.frozenTimer = 180; });
+    for (let i = 0; i < 20; i++) particles.push(new Particle(p.x, p.y, '#22d3ee'));
+  } else if (t.type === 'nuke') {
+    const caught = ghosts.length;
+    ghosts.forEach(g => {
+      for (let i = 0; i < 8; i++) particles.push(new Particle(g.x, g.y, '#f97316'));
+      score += g.score;
+      ghostsCaught++;
+    });
+    ghosts = [];
+    // Screen flash
+    particles.push(new Particle(W/2, H/2, '#f97316'));
+    for (let i = 0; i < 30; i++) particles.push(new Particle(p.x, p.y, ['#f97316','#fbbf24','#ef4444'][Math.floor(Math.random()*3)]));
+  } else if (t.type === 'rapid') {
+    activePower = 'rapid';
+    powerTimer = t.duration;
+  } else if (t.type === 'shield') {
+    activePower = 'shield';
+    powerTimer = t.duration;
+    player.shielded = true;
+  }
+  document.getElementById('powerVal').textContent = t.label;
+}
+
+function hit() {
+  if (player.shielded) {
+    player.shielded = false;
+    activePower = null;
+    powerTimer = 0;
+    document.getElementById('powerVal').textContent = '—';
+    for (let i = 0; i < 10; i++) particles.push(new Particle(player.x, player.y, '#22d3ee'));
+    return;
+  }
+  lives--;
+  for (let i = 0; i < 15; i++) particles.push(new Particle(player.x, player.y, '#ef4444'));
+  if (lives <= 0) endGame();
+  updateHUD();
+}
+
+function updateHUD() {
+  document.getElementById('scoreVal').textContent = score;
+  document.getElementById('ghostsVal').textContent = ghostsCaught + ' 👻';
+  let hearts = '';
+  for (let i = 0; i < lives; i++) hearts += '❤️';
+  document.getElementById('livesVal').textContent = hearts || '💀';
+}
+
+function loop() {
+  if (!gameRunning) return;
+  ctx.clearRect(0, 0, W, H);
+  gameTime++;
+  if (shootCooldown > 0) shootCooldown--;
+
+  // Wave management
+  waveTimer--;
+  if (waveTimer <= 0) {
+    wave++;
+    waveTimer = Math.max(120, 300 - wave * 10);
+    const count = Math.min(2 + wave, 8);
+    for (let i = 0; i < count; i++) {
+      setTimeout(() => { if (gameRunning) ghosts.push(new Ghost()); }, i * 200);
+    }
+  }
+
+  // Spawn powerup every ~8 seconds
+  if (gameTime % 480 === 0 && powerups.filter(p => !p.collected).length < 2) {
+    powerups.push(new PowerUp());
+  }
+
+  // Power timer
+  if (activePower && powerTimer > 0) {
+    powerTimer--;
+    const secs = Math.ceil(powerTimer / 60);
+    document.getElementById('powerVal').textContent = (activePower === 'rapid' ? '⚡ Rapid ' : '🛡️ Shield ') + secs + 's';
+    if (powerTimer <= 0) {
+      activePower = null;
+      player.shielded = false;
+      document.getElementById('powerVal').textContent = '—';
+    }
+  }
+
+  drawHauntedHouse();
+
+  // Update
+  player.update();
+  ghosts.forEach(g => g.update());
+  beams.forEach(b => b.update());
+  powerups.forEach(p => p.update());
+  particles.forEach(p => p.update());
+  particles = particles.filter(p => p.life > 0);
+  beams = beams.filter(b => b.life > 0 && b.x > -20 && b.x < W + 20 && b.y > -20 && b.y < H + 20);
+
+  // Beam-ghost collisions
+  beams.forEach(b => {
+    ghosts.forEach(g => {
+      const dist = Math.hypot(b.x - g.x, b.y - g.y);
+      if (dist < g.size + b.r) {
+        g.hp--;
+        b.life = 0;
+        for (let i = 0; i < 5; i++) particles.push(new Particle(g.x, g.y, g.color));
+        if (g.hp <= 0) {
+          score += g.score;
+          ghostsCaught++;
+          for (let i = 0; i < 10; i++) particles.push(new Particle(g.x, g.y, ['#a78bfa','#22d3ee','white'][Math.floor(Math.random()*3)]));
+          g.size = 0; // mark dead
+        }
+      }
+    });
+  });
+  ghosts = ghosts.filter(g => g.size > 0);
+
+  // Ghost touches player
+  ghosts.forEach(g => {
+    if (g.frozen) return;
+    const dist = Math.hypot(g.x - player.x, g.y - player.y);
+    if (dist < g.size + 18) {
+      hit();
+      g.size = 0; // remove ghost that hit
+    }
+  });
+  ghosts = ghosts.filter(g => g.size > 0);
+
+  // Powerup pickup
+  powerups.forEach(p => {
+    if (p.collected) return;
+    const dist = Math.hypot(p.x - player.x, p.y - player.y);
+    if (dist < p.r + 20) activatePower(p);
+  });
+  powerups = powerups.filter(p => !p.collected);
+
+  // Draw
+  powerups.forEach(p => p.draw());
+  ghosts.forEach(g => g.draw());
+  beams.forEach(b => b.draw());
+  player.draw();
+  particles.forEach(p => p.draw());
+
+  // Wave indicator
+  ctx.fillStyle = 'rgba(167,139,250,0.3)';
+  ctx.font = 'bold 14px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('Wave ' + wave, W/2, H - 15);
+
+  updateHUD();
+  animFrame = requestAnimationFrame(loop);
+}
+
+function startGame() {
+  document.getElementById('startScreen').classList.add('hidden');
+  document.getElementById('gameOver').classList.add('hidden');
+  player = new Player();
+  ghosts = []; beams = []; powerups = []; particles = [];
+  score = 0; ghostsCaught = 0; lives = 3; wave = 0; waveTimer = 60; gameTime = 0;
+  activePower = null; powerTimer = 0; shootCooldown = 0;
+  mouseX = W / 2; mouseY = H / 2;
+  player.shielded = false;
+  initDecor();
+  document.getElementById('powerVal').textContent = '—';
+  gameRunning = true;
+  updateHUD();
+  loop();
+}
+
+function endGame() {
+  gameRunning = false;
+  cancelAnimationFrame(animFrame);
+  document.getElementById('finalScore').textContent = score;
+  document.getElementById('finalGhosts').textContent = ghostsCaught + ' ghosts caught';
+  document.getElementById('gameOver').classList.remove('hidden');
+}
+
+// Input
+canvas.addEventListener('mousemove', e => { mouseX = e.clientX; mouseY = e.clientY; });
+canvas.addEventListener('mousedown', e => { e.preventDefault(); shoot(); });
+canvas.addEventListener('touchstart', e => {
+  e.preventDefault();
+  const t = e.touches[0];
+  mouseX = t.clientX; mouseY = t.clientY;
+  shoot();
+}, { passive: false });
+canvas.addEventListener('touchmove', e => {
+  e.preventDefault();
+  const t = e.touches[0];
+  mouseX = t.clientX; mouseY = t.clientY;
+}, { passive: false });
+
+// Auto-fire on hold
+let holdInterval;
+canvas.addEventListener('mousedown', () => { holdInterval = setInterval(shoot, 80); });
+canvas.addEventListener('mouseup', () => clearInterval(holdInterval));
+canvas.addEventListener('mouseleave', () => clearInterval(holdInterval));
+canvas.addEventListener('touchstart', () => { holdInterval = setInterval(shoot, 80); }, { passive: true });
+canvas.addEventListener('touchend', () => clearInterval(holdInterval));
+</script>
+</body>
+</html>
