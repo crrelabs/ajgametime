@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AJ GameTime — Games by AJ Rovira</title>
-<meta name="description" content="AJ GameTime — fun browser games designed by AJ Rovira. Play now, no downloads needed!">
+<title>AJ GameTime — Games by AJ & Ignacio Rovira</title>
+<meta name="description" content="AJ GameTime — fun browser games designed by AJ & Ignacio Rovira. Play now, no downloads needed!">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@400;600;700;800&display=swap');
 
@@ -29,18 +29,12 @@ body {
   overflow-x: hidden;
 }
 
-/* Animated gradient background */
 .bg-glow {
-  position: fixed;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
+  position: fixed; top: -50%; left: -50%; width: 200%; height: 200%;
   background: radial-gradient(circle at 30% 40%, rgba(124,58,237,0.15) 0%, transparent 50%),
               radial-gradient(circle at 70% 60%, rgba(59,130,246,0.1) 0%, transparent 50%),
               radial-gradient(circle at 50% 80%, rgba(236,72,153,0.08) 0%, transparent 50%);
-  animation: bgFloat 20s ease-in-out infinite;
-  z-index: 0;
+  animation: bgFloat 20s ease-in-out infinite; z-index: 0;
 }
 @keyframes bgFloat {
   0%, 100% { transform: translate(0,0); }
@@ -51,193 +45,128 @@ body {
 .container { position: relative; z-index: 1; max-width: 900px; margin: 0 auto; padding: 0 1.5rem; }
 
 /* Hero */
-.hero {
-  text-align: center;
-  padding: 5rem 0 3rem;
-}
-.hero-emoji {
-  font-size: 4rem;
-  display: inline-block;
-  animation: bounce 2s ease-in-out infinite;
-}
-@keyframes bounce {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-15px); }
-}
+.hero { text-align: center; padding: 5rem 0 2rem; }
+.hero-emoji { font-size: 4rem; display: inline-block; animation: bounce 2s ease-in-out infinite; }
+@keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-15px); } }
 .hero h1 {
   font-family: 'Lilita One', cursive;
   font-size: clamp(2.5rem, 8vw, 4.5rem);
   background: linear-gradient(135deg, var(--purple), var(--blue), var(--cyan), var(--pink));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  margin: 1rem 0 0.5rem;
-  line-height: 1.1;
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text; margin: 1rem 0 0.5rem; line-height: 1.1;
 }
-.hero .tagline {
-  font-size: 1.2rem;
-  color: #94a3b8;
-  font-weight: 600;
+.hero .tagline { font-size: 1.2rem; color: #94a3b8; font-weight: 600; }
+.hero .creator { margin-top: 1rem; font-size: 0.9rem; color: #64748b; }
+.hero .creator span { color: var(--orange); font-weight: 800; }
+
+/* Search & Filters */
+.controls { margin: 0 0 1.5rem; display: flex; flex-direction: column; gap: 0.75rem; }
+.search-bar {
+  display: flex; align-items: center; gap: 0.75rem;
+  background: rgba(22,19,42,0.8); border: 2px solid rgba(124,58,237,0.2);
+  border-radius: 16px; padding: 0.5rem 1rem; transition: border-color 0.2s;
 }
-.hero .creator {
-  margin-top: 1rem;
-  font-size: 0.9rem;
-  color: #64748b;
+.search-bar:focus-within { border-color: var(--purple); }
+.search-bar .icon { font-size: 1.3rem; opacity: 0.5; }
+.search-bar input {
+  flex: 1; background: none; border: none; outline: none;
+  color: #e2e8f0; font-family: 'Nunito', sans-serif; font-size: 1rem;
 }
-.hero .creator span {
-  color: var(--orange);
-  font-weight: 800;
+.search-bar input::placeholder { color: #4a4560; }
+.search-bar .clear-btn {
+  background: none; border: none; color: #64748b; font-size: 1.2rem; cursor: pointer;
+  display: none; padding: 0 0.25rem;
 }
+.search-bar .clear-btn.visible { display: block; }
+.search-bar .count { font-size: 0.8rem; color: #4a4560; white-space: nowrap; }
+
+.filter-row { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
+.filter-label { font-size: 0.75rem; color: #4a4560; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 800; margin-right: 0.25rem; }
+.filter-btn {
+  padding: 0.35rem 0.85rem; border-radius: 50px; border: 1.5px solid rgba(124,58,237,0.2);
+  background: rgba(22,19,42,0.6); color: #94a3b8; font-size: 0.78rem; font-weight: 700;
+  cursor: pointer; transition: all 0.15s; font-family: 'Nunito', sans-serif;
+}
+.filter-btn:hover { border-color: var(--purple); color: #e2e8f0; }
+.filter-btn.active { background: var(--purple); border-color: var(--purple); color: white; }
+
+.sort-row { display: flex; gap: 0.5rem; align-items: center; }
+.sort-btn {
+  padding: 0.3rem 0.75rem; border-radius: 50px; border: 1.5px solid rgba(124,58,237,0.15);
+  background: rgba(22,19,42,0.4); color: #64748b; font-size: 0.75rem; font-weight: 700;
+  cursor: pointer; transition: all 0.15s; font-family: 'Nunito', sans-serif;
+}
+.sort-btn:hover { color: #94a3b8; border-color: rgba(124,58,237,0.3); }
+.sort-btn.active { color: var(--cyan); border-color: var(--cyan); }
 
 /* Games Grid */
-.section-title {
-  font-family: 'Lilita One', cursive;
-  font-size: 1.8rem;
-  text-align: center;
-  margin: 3rem 0 2rem;
-  color: #e2e8f0;
-}
+.section-title { font-family: 'Lilita One', cursive; font-size: 1.8rem; text-align: center; margin: 2rem 0 1.5rem; color: #e2e8f0; }
 .section-title .emoji { margin-right: 0.5rem; }
 
 .games-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 1.5rem;
-  padding-bottom: 2rem;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1.5rem; padding-bottom: 2rem;
 }
 
 .game-card {
-  background: var(--card);
-  border: 2px solid rgba(124,58,237,0.15);
-  border-radius: 20px;
-  overflow: hidden;
-  text-decoration: none;
-  transition: all 0.3s;
-  position: relative;
+  background: var(--card); border: 2px solid rgba(124,58,237,0.15);
+  border-radius: 20px; overflow: hidden; text-decoration: none;
+  transition: all 0.3s; position: relative;
 }
-.game-card:hover {
-  border-color: var(--purple);
-  transform: translateY(-8px);
-  box-shadow: 0 20px 60px rgba(124,58,237,0.2);
-}
-.game-card:nth-child(2):hover {
-  border-color: var(--orange);
-  box-shadow: 0 20px 60px rgba(249,115,22,0.2);
-}
+.game-card:hover { border-color: var(--purple); transform: translateY(-8px); box-shadow: 0 20px 60px rgba(124,58,237,0.2); }
+.game-card.hidden { display: none; }
 
 .card-preview {
-  height: 160px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 4rem;
-  position: relative;
-  overflow: hidden;
+  height: 160px; display: flex; align-items: center; justify-content: center;
+  font-size: 4rem; position: relative; overflow: hidden;
 }
-.card-preview.ttt { background: linear-gradient(135deg, #1e1b4b, #312e81); }
-.card-preview.hoops { background: linear-gradient(135deg, #431407, #7c2d12); }
-
-.card-body {
-  padding: 1.25rem;
-}
-.card-body h3 {
-  font-family: 'Lilita One', cursive;
-  font-size: 1.3rem;
-  color: #e2e8f0;
-  margin-bottom: 0.25rem;
-}
-.card-body p {
-  color: #64748b;
-  font-size: 0.85rem;
-  line-height: 1.4;
-}
+.card-body { padding: 1.25rem; }
+.card-body h3 { font-family: 'Lilita One', cursive; font-size: 1.3rem; color: #e2e8f0; margin-bottom: 0.25rem; }
+.card-body p { color: #64748b; font-size: 0.85rem; line-height: 1.4; }
 .card-tag {
-  display: inline-block;
-  margin-top: 0.75rem;
-  padding: 0.25rem 0.75rem;
-  border-radius: 50px;
-  font-size: 0.7rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  display: inline-block; margin-top: 0.75rem; padding: 0.25rem 0.75rem;
+  border-radius: 50px; font-size: 0.7rem; font-weight: 800;
+  text-transform: uppercase; letter-spacing: 0.05em;
 }
-.tag-strategy { background: rgba(124,58,237,0.2); color: #a78bfa; }
-.tag-action { background: rgba(249,115,22,0.2); color: #fb923c; }
-
 .play-btn {
-  display: block;
-  margin: 0.75rem 1.25rem 1.25rem;
-  padding: 0.6rem;
-  text-align: center;
-  border-radius: 12px;
-  font-weight: 800;
-  font-size: 0.85rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  transition: all 0.2s;
-}
-.game-card:first-child .play-btn {
-  background: linear-gradient(135deg, var(--purple), var(--blue));
-  color: white;
-}
-.game-card:nth-child(2) .play-btn {
-  background: linear-gradient(135deg, var(--orange), #ef4444);
-  color: white;
+  display: block; margin: 0.75rem 1.25rem 1.25rem; padding: 0.6rem;
+  text-align: center; border-radius: 12px; font-weight: 800;
+  font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em;
+  transition: all 0.2s; color: white;
 }
 .play-btn:hover { filter: brightness(1.15); transform: scale(1.02); }
 
+.no-results {
+  text-align: center; padding: 3rem 0; color: #4a4560;
+  font-size: 1.1rem; display: none;
+}
+.no-results.visible { display: block; }
+.no-results .emoji { font-size: 2.5rem; display: block; margin-bottom: 0.75rem; }
+
 /* Coming soon */
 .coming-soon {
-  text-align: center;
-  padding: 3rem 0;
-  margin: 2rem 0;
-  border: 2px dashed rgba(124,58,237,0.2);
-  border-radius: 20px;
+  text-align: center; padding: 3rem 0; margin: 2rem 0;
+  border: 2px dashed rgba(124,58,237,0.2); border-radius: 20px;
 }
 .coming-soon .emoji { font-size: 2.5rem; margin-bottom: 0.75rem; }
-.coming-soon h3 {
-  font-family: 'Lilita One', cursive;
-  font-size: 1.3rem;
-  color: #94a3b8;
-}
+.coming-soon h3 { font-family: 'Lilita One', cursive; font-size: 1.3rem; color: #94a3b8; }
 .coming-soon p { color: #475569; font-size: 0.85rem; margin-top: 0.5rem; }
 
-/* Footer */
-footer {
-  text-align: center;
-  padding: 2rem 0 3rem;
-  color: #334155;
-  font-size: 0.75rem;
-}
+footer { text-align: center; padding: 2rem 0 3rem; color: #334155; font-size: 0.75rem; }
 footer a { color: #475569; text-decoration: none; }
 footer a:hover { color: #94a3b8; }
 
-/* Floating particles */
 .particles { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
-.particle {
-  position: absolute;
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  opacity: 0.3;
-  animation: float linear infinite;
-}
-@keyframes float {
-  0% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
-  10% { opacity: 0.3; }
-  90% { opacity: 0.3; }
-  100% { transform: translateY(-10vh) rotate(720deg); opacity: 0; }
-}
+.particle { position: absolute; width: 4px; height: 4px; border-radius: 50%; opacity: 0.3; animation: float linear infinite; }
+@keyframes float { 0% { transform: translateY(100vh) rotate(0deg); opacity: 0; } 10% { opacity: 0.3; } 90% { opacity: 0.3; } 100% { transform: translateY(-10vh) rotate(720deg); opacity: 0; } }
 </style>
 </head>
 <body>
 
 <div class="bg-glow"></div>
-
 <div class="particles" id="particles"></div>
 
 <div class="container">
-  <!-- Hero -->
   <section class="hero">
     <div class="hero-emoji">🎮</div>
     <h1>AJ GameTime</h1>
@@ -245,131 +174,37 @@ footer a:hover { color: #94a3b8; }
     <p class="creator">Designed by <span>AJ & Ignacio Rovira</span></p>
   </section>
 
-  <!-- Games -->
   <h2 class="section-title"><span class="emoji">🕹️</span>Games</h2>
-  <div class="games-grid">
-    <a href="tictactoe.html" class="game-card">
-      <div class="card-preview ttt">❌⭕</div>
-      <div class="card-body">
-        <h3>Tic Tac Toe</h3>
-        <p>The classic strategy game. Challenge a friend and prove you're the master!</p>
-        <span class="card-tag tag-strategy">Strategy</span>
-      </div>
-      <div class="play-btn">▶ Play Now</div>
-    </a>
-    <a href="hoops.html" class="game-card">
-      <div class="card-preview hoops">🏀</div>
-      <div class="card-body">
-        <h3>Shooting Hoops</h3>
-        <p>30 seconds on the clock — how many baskets can you drain? Build streaks for bonus points!</p>
-        <span class="card-tag tag-action">Action</span>
-      </div>
-      <div class="play-btn">▶ Play Now</div>
-    </a>
-    <a href="taco-run.html" class="game-card">
-      <div class="card-preview" style="background: linear-gradient(135deg, #7c2d12, #d97706);">🌮🌶️</div>
-      <div class="card-body">
-        <h3>Taco Run!</h3>
-        <p>Run through the desert as a taco, collect peppers and dodge cacti! How far can you go?</p>
-        <span class="card-tag tag-action">Action</span>
-      </div>
-      <div class="play-btn" style="background: linear-gradient(135deg, #d97706, #ef4444);">▶ Play Now</div>
-    </a>
-    <a href="road-racer.html" class="game-card">
-      <div class="card-preview" style="background: linear-gradient(135deg, #1e293b, #334155);">🏎️💨</div>
-      <div class="card-body">
-        <h3>Road Racer</h3>
-        <p>Dodge traffic, collect coins, and floor it down the highway! How far can you drive?</p>
-        <span class="card-tag" style="background: rgba(59,130,246,0.2); color: #60a5fa;">Racing</span>
-      </div>
-      <div class="play-btn" style="background: linear-gradient(135deg, #3b82f6, #8b5cf6);">▶ Play Now</div>
-    </a>
-    <a href="mouse-chase.html" class="game-card">
-      <div class="card-preview" style="background: linear-gradient(135deg, #2a2230, #3d2f4a);">🐭🧀</div>
-      <div class="card-body">
-        <h3>Mouse Chase!</h3>
-        <p>You're a mouse on the run! Collect moldy cheese while dodging traps, cats, and an angry human with a broom!</p>
-        <span class="card-tag" style="background: rgba(167,139,250,0.2); color: #c4b5fd;">Adventure</span>
-      </div>
-      <div class="play-btn" style="background: linear-gradient(135deg, #a78bfa, #ec4899);">▶ Play Now</div>
-    </a>
-    <a href="lava-leap.html" class="game-card">
-      <div class="card-preview" style="background: linear-gradient(135deg, #1a0a0a, #ef4444);">🌋🔥</div>
-      <div class="card-body">
-        <h3>Lava Leap</h3>
-        <p>The floor is LAVA! Jump from platform to platform as molten lava rises below you. How high can you climb?</p>
-        <span class="card-tag" style="background: rgba(239,68,68,0.2); color: #ef4444;">Platformer</span>
-      </div>
-      <div class="play-btn" style="background: linear-gradient(135deg, #f97316, #ef4444);">▶ Play Now</div>
-    </a>
 
-    <a href="haunted-hotel.html" class="game-card">
-      <div class="card-preview" style="background: linear-gradient(135deg, #0a0a12, #2a1a30);">👻🏨</div>
-      <div class="card-body">
-        <h3>Haunted Hotel</h3>
-        <p>You're the night guard at a haunted hotel! Explore dark hallways, collect keys, and run from ghosts!</p>
-        <span class="card-tag" style="background: rgba(167,139,250,0.2); color: #a78bfa;">Horror</span>
-      </div>
-      <div class="play-btn" style="background: linear-gradient(135deg, #7c3aed, #ef4444);">▶ Play Now</div>
-    </a>
-
-    <a href="crab-dash.html" class="game-card">
-      <div class="card-preview" style="background: linear-gradient(135deg, #f0d68a, #1e90ff);">🦀🌊</div>
-      <div class="card-body">
-        <h3>Crab Dash</h3>
-        <p>Race across the beach as a crab! Dodge seagulls, turtles, and trash — and don't get washed away by the tide!</p>
-        <span class="card-tag" style="background: rgba(239,68,68,0.2); color: #ef4444;">Runner</span>
-      </div>
-      <div class="play-btn" style="background: linear-gradient(135deg, #ef4444, #f97316);">▶ Play Now</div>
-    </a>
-
-    <a href="skeleton-brawl.html" class="game-card">
-      <div class="card-preview" style="background: linear-gradient(135deg, #0a0a20, #1a0e08);">☠️⚔️</div>
-      <div class="card-body">
-        <h3>Skeleton Brawl</h3>
-        <p>Fight waves of pirate skeletons on a haunted ghost ship at night! Punch, kick, and block your way to victory!</p>
-        <span class="card-tag" style="background: rgba(245,158,11,0.2); color: #fbbf24;">Fighting</span>
-      </div>
-      <div class="play-btn" style="background: linear-gradient(135deg, #f59e0b, #ef4444);">▶ Play Now</div>
-    </a>
-    <a href="ghost-catcher.html" class="game-card">
-      <div class="card-preview" style="background: linear-gradient(135deg, #0a0a12, #1c1028);">👻🔫</div>
-      <div class="card-body">
-        <h3>Ghost Catcher!</h3>
-        <p>Trapped in a haunted house! Zap ghosts with your ghost catcher beam and grab power-ups to survive the waves!</p>
-        <span class="card-tag" style="background: rgba(34,211,238,0.2); color: #22d3ee;">Shooter</span>
-      </div>
-      <div class="play-btn" style="background: linear-gradient(135deg, #22d3ee, #a78bfa);">▶ Play Now</div>
-    </a>
+  <!-- Search, Filter, Sort -->
+  <div class="controls">
+    <div class="search-bar">
+      <span class="icon">🔍</span>
+      <input type="text" id="searchInput" placeholder="Search games..." autocomplete="off">
+      <button class="clear-btn" id="clearBtn" onclick="clearSearch()">✕</button>
+      <span class="count" id="gameCount"></span>
+    </div>
+    <div class="filter-row">
+      <span class="filter-label">Filter:</span>
+      <button class="filter-btn active" data-cat="all" onclick="setFilter('all')">All</button>
+      <div id="filterBtns"></div>
+    </div>
+    <div class="sort-row">
+      <span class="filter-label">Sort:</span>
+      <button class="sort-btn active" data-sort="newest" onclick="setSort('newest')">⏰ Newest</button>
+      <button class="sort-btn" data-sort="oldest" onclick="setSort('oldest')">📅 Oldest</button>
+      <button class="sort-btn" data-sort="az" onclick="setSort('az')">A→Z</button>
+      <button class="sort-btn" data-sort="za" onclick="setSort('za')">Z→A</button>
+    </div>
   </div>
 
-    <a href="oregon-trail.html" class="game-card">
-      <div class="card-preview" style="background: linear-gradient(135deg, #0a1a0a, #1a3a1a);">🐂🏕️</div>
-      <div class="card-body">
-        <h3>Oregon Trail</h3>
-        <p>Travel 2,170 miles from Missouri to Oregon in 1848! Hunt for food, cross rivers, and try to keep your party alive!</p>
-        <span class="card-tag" style="background: rgba(51,255,51,0.15); color: #33ff33;">Survival</span>
-      </div>
-      <div class="play-btn" style="background: linear-gradient(135deg, #22c55e, #15803d);">▶ Play Now</div>
-    </a>
-  </div>
+  <div class="games-grid" id="gamesGrid"></div>
+  <div class="no-results" id="noResults"><span class="emoji">🤔</span>No games match your search. Try a different keyword!</div>
 
-    <a href="number-munchers.html" class="game-card">
-      <div class="card-preview" style="background: linear-gradient(135deg, #1a1a4a, #2222aa);">🟢🔢</div>
-      <div class="card-body">
-        <h3>Number Munchers</h3>
-        <p>Munch the right numbers on the grid! Multiples, primes, factors — watch out for Troggles!</p>
-        <span class="card-tag" style="background: rgba(51,255,51,0.15); color: #33ff33;">Math</span>
-      </div>
-      <div class="play-btn" style="background: linear-gradient(135deg, #2222aa, #4444cc);">▶ Play Now</div>
-    </a>
-  </div>
-
-  <!-- Coming Soon -->
   <div class="coming-soon">
     <div class="emoji">🚀</div>
     <h3>More Games Coming Soon!</h3>
-    <p>AJ is cooking up new games. Check back soon.</p>
+    <p>AJ & Ignacio are cooking up new games. Check back soon.</p>
   </div>
 </div>
 
@@ -378,8 +213,198 @@ footer a:hover { color: #94a3b8; }
 </footer>
 
 <script>
+// Game data — all in one place for easy updates
+const GAMES = [
+  {
+    id: 'tictactoe', name: 'Tic Tac Toe', href: 'tictactoe.html',
+    desc: 'The classic strategy game. Challenge a friend and prove you\'re the master!',
+    category: 'Strategy', emoji: '❌⭕',
+    bg: 'linear-gradient(135deg, #1e1b4b, #312e81)',
+    tagBg: 'rgba(124,58,237,0.2)', tagColor: '#a78bfa',
+    btnBg: 'linear-gradient(135deg, #7c3aed, #3b82f6)',
+    added: 1
+  },
+  {
+    id: 'hoops', name: 'Shooting Hoops', href: 'hoops.html',
+    desc: '30 seconds on the clock — how many baskets can you drain? Build streaks for bonus points!',
+    category: 'Action', emoji: '🏀',
+    bg: 'linear-gradient(135deg, #431407, #7c2d12)',
+    tagBg: 'rgba(249,115,22,0.2)', tagColor: '#fb923c',
+    btnBg: 'linear-gradient(135deg, #f97316, #ef4444)',
+    added: 2
+  },
+  {
+    id: 'tacorun', name: 'Taco Run!', href: 'taco-run.html',
+    desc: 'Run through the desert as a taco, collect peppers and dodge cacti! How far can you go?',
+    category: 'Action', emoji: '🌮🌶️',
+    bg: 'linear-gradient(135deg, #7c2d12, #d97706)',
+    tagBg: 'rgba(249,115,22,0.2)', tagColor: '#fb923c',
+    btnBg: 'linear-gradient(135deg, #d97706, #ef4444)',
+    added: 3
+  },
+  {
+    id: 'roadracer', name: 'Road Racer', href: 'road-racer.html',
+    desc: 'Dodge traffic, collect coins, and floor it down the highway! How far can you drive?',
+    category: 'Racing', emoji: '🏎️💨',
+    bg: 'linear-gradient(135deg, #1e293b, #334155)',
+    tagBg: 'rgba(59,130,246,0.2)', tagColor: '#60a5fa',
+    btnBg: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
+    added: 4
+  },
+  {
+    id: 'mousechase', name: 'Mouse Chase!', href: 'mouse-chase.html',
+    desc: 'You\'re a mouse on the run! Collect moldy cheese while dodging traps, cats, and an angry human with a broom!',
+    category: 'Adventure', emoji: '🐭🧀',
+    bg: 'linear-gradient(135deg, #2a2230, #3d2f4a)',
+    tagBg: 'rgba(167,139,250,0.2)', tagColor: '#c4b5fd',
+    btnBg: 'linear-gradient(135deg, #a78bfa, #ec4899)',
+    added: 5
+  },
+  {
+    id: 'lavaleap', name: 'Lava Leap', href: 'lava-leap.html',
+    desc: 'The floor is LAVA! Jump from platform to platform as molten lava rises below you. How high can you climb?',
+    category: 'Platformer', emoji: '🌋🔥',
+    bg: 'linear-gradient(135deg, #1a0a0a, #ef4444)',
+    tagBg: 'rgba(239,68,68,0.2)', tagColor: '#ef4444',
+    btnBg: 'linear-gradient(135deg, #f97316, #ef4444)',
+    added: 6
+  },
+  {
+    id: 'hauntedhotel', name: 'Haunted Hotel', href: 'haunted-hotel.html',
+    desc: 'You\'re the night guard at a haunted hotel! Explore dark hallways, collect keys, and run from ghosts!',
+    category: 'Horror', emoji: '👻🏨',
+    bg: 'linear-gradient(135deg, #0a0a12, #2a1a30)',
+    tagBg: 'rgba(167,139,250,0.2)', tagColor: '#a78bfa',
+    btnBg: 'linear-gradient(135deg, #7c3aed, #ef4444)',
+    added: 7
+  },
+  {
+    id: 'crabdash', name: 'Crab Dash', href: 'crab-dash.html',
+    desc: 'Race across the beach as a crab! Dodge seagulls, turtles, and trash — and don\'t get washed away by the tide!',
+    category: 'Runner', emoji: '🦀🌊',
+    bg: 'linear-gradient(135deg, #f0d68a, #1e90ff)',
+    tagBg: 'rgba(239,68,68,0.2)', tagColor: '#ef4444',
+    btnBg: 'linear-gradient(135deg, #ef4444, #f97316)',
+    added: 8
+  },
+  {
+    id: 'skeletonbrawl', name: 'Skeleton Brawl', href: 'skeleton-brawl.html',
+    desc: 'Fight waves of pirate skeletons on a haunted ghost ship at night! Punch, kick, and block your way to victory!',
+    category: 'Fighting', emoji: '☠️⚔️',
+    bg: 'linear-gradient(135deg, #0a0a20, #1a0e08)',
+    tagBg: 'rgba(245,158,11,0.2)', tagColor: '#fbbf24',
+    btnBg: 'linear-gradient(135deg, #f59e0b, #ef4444)',
+    added: 9
+  },
+  {
+    id: 'ghostcatcher', name: 'Ghost Catcher!', href: 'ghost-catcher.html',
+    desc: 'Trapped in a haunted house! Zap ghosts with your ghost catcher beam and grab power-ups to survive the waves!',
+    category: 'Shooter', emoji: '👻🔫',
+    bg: 'linear-gradient(135deg, #0a0a12, #1c1028)',
+    tagBg: 'rgba(34,211,238,0.2)', tagColor: '#22d3ee',
+    btnBg: 'linear-gradient(135deg, #22d3ee, #a78bfa)',
+    added: 10
+  },
+  {
+    id: 'oregontrail', name: 'Oregon Trail', href: 'oregon-trail.html',
+    desc: 'Travel 2,170 miles from Missouri to Oregon in 1848! Hunt for food, cross rivers, and try to keep your party alive!',
+    category: 'Survival', emoji: '🐂🏕️',
+    bg: 'linear-gradient(135deg, #0a1a0a, #1a3a1a)',
+    tagBg: 'rgba(51,255,51,0.15)', tagColor: '#33ff33',
+    btnBg: 'linear-gradient(135deg, #22c55e, #15803d)',
+    added: 11
+  },
+  {
+    id: 'numbermunchers', name: 'Number Munchers', href: 'number-munchers.html',
+    desc: 'Munch the right numbers on the grid! Multiples, primes, factors — watch out for Troggles!',
+    category: 'Math', emoji: '🟢🔢',
+    bg: 'linear-gradient(135deg, #1a1a4a, #2222aa)',
+    tagBg: 'rgba(51,255,51,0.15)', tagColor: '#33ff33',
+    btnBg: 'linear-gradient(135deg, #2222aa, #4444cc)',
+    added: 12
+  },
+];
+
+let currentFilter = 'all';
+let currentSort = 'newest';
+
+// Build unique categories for filter buttons
+const categories = [...new Set(GAMES.map(g => g.category))].sort();
+
+function init() {
+  // Build filter buttons
+  const filterContainer = document.getElementById('filterBtns');
+  filterContainer.innerHTML = categories.map(cat =>
+    `<button class="filter-btn" data-cat="${cat}" onclick="setFilter('${cat}')">${cat}</button>`
+  ).join('');
+
+  renderGames();
+
+  // Search input
+  document.getElementById('searchInput').addEventListener('input', renderGames);
+}
+
+function clearSearch() {
+  document.getElementById('searchInput').value = '';
+  renderGames();
+}
+
+function setFilter(cat) {
+  currentFilter = cat;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.cat === cat));
+  renderGames();
+}
+
+function setSort(sort) {
+  currentSort = sort;
+  document.querySelectorAll('.sort-btn').forEach(b => b.classList.toggle('active', b.dataset.sort === sort));
+  renderGames();
+}
+
+function renderGames() {
+  const query = document.getElementById('searchInput').value.toLowerCase().trim();
+  const clearBtn = document.getElementById('clearBtn');
+  clearBtn.classList.toggle('visible', query.length > 0);
+
+  // Filter
+  let games = GAMES.filter(g => {
+    if (currentFilter !== 'all' && g.category !== currentFilter) return false;
+    if (query) {
+      const haystack = (g.name + ' ' + g.desc + ' ' + g.category).toLowerCase();
+      return haystack.includes(query);
+    }
+    return true;
+  });
+
+  // Sort
+  if (currentSort === 'newest') games.sort((a, b) => b.added - a.added);
+  else if (currentSort === 'oldest') games.sort((a, b) => a.added - b.added);
+  else if (currentSort === 'az') games.sort((a, b) => a.name.localeCompare(b.name));
+  else if (currentSort === 'za') games.sort((a, b) => b.name.localeCompare(a.name));
+
+  // Update count
+  document.getElementById('gameCount').textContent = `${games.length} game${games.length !== 1 ? 's' : ''}`;
+
+  // Render
+  const grid = document.getElementById('gamesGrid');
+  grid.innerHTML = games.map(g => `
+    <a href="${g.href}" class="game-card" data-id="${g.id}">
+      <div class="card-preview" style="background: ${g.bg};">${g.emoji}</div>
+      <div class="card-body">
+        <h3>${g.name}</h3>
+        <p>${g.desc}</p>
+        <span class="card-tag" style="background: ${g.tagBg}; color: ${g.tagColor};">${g.category}</span>
+      </div>
+      <div class="play-btn" style="background: ${g.btnBg};">▶ Play Now</div>
+    </a>
+  `).join('');
+
+  // No results
+  document.getElementById('noResults').classList.toggle('visible', games.length === 0);
+}
+
 // Floating particles
-const container = document.getElementById('particles');
+const pContainer = document.getElementById('particles');
 const colors = ['#7c3aed','#3b82f6','#06b6d4','#ec4899','#f97316','#22c55e'];
 for (let i = 0; i < 20; i++) {
   const p = document.createElement('div');
@@ -389,8 +414,10 @@ for (let i = 0; i < 20; i++) {
   p.style.animationDuration = (8 + Math.random() * 12) + 's';
   p.style.animationDelay = Math.random() * 10 + 's';
   p.style.width = p.style.height = (3 + Math.random() * 4) + 'px';
-  container.appendChild(p);
+  pContainer.appendChild(p);
 }
+
+init();
 </script>
 </body>
 </html>
