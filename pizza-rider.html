@@ -50,15 +50,12 @@ canvas{display:block}
 
 <div id="controls">
   <div class="ctrl-side">
-    <div class="steer-row">
-      <div class="btn btn-left" data-action="left">◀</div>
-      <div class="btn btn-right" data-action="right">▶</div>
-    </div>
-    <div class="btn btn-brake" data-action="brake">⬇</div>
+    <div class="btn btn-left" data-action="left" style="width:70px;height:70px">◀</div>
+    <div class="btn btn-right" data-action="right" style="width:70px;height:70px">▶</div>
   </div>
   <div class="ctrl-side">
     <div class="btn btn-deliver" data-action="deliver">🍕</div>
-    <div class="btn btn-gas" data-action="gas">▲</div>
+    <div class="btn btn-brake" data-action="brake" style="margin-top:4px">⬇</div>
   </div>
 </div>
 
@@ -66,7 +63,7 @@ canvas{display:block}
   <h1>🍕 Pizza Rider</h1>
   <h2>First-Person Delivery!</h2>
   <p>Race through the city on your motorcycle! Pick up pizzas from the shop and deliver to houses marked with 📍. Earn tips for fast deliveries!</p>
-  <p style="color:#64748b;font-size:12px">◀▶ Steer · ▲ Gas · ⬇ Brake · 🍕 Pick up / Deliver</p>
+  <p style="color:#64748b;font-size:12px">◀▶ Steer · ⬇ Brake · 🍕 Pick up / Deliver<br>You auto-drive forward!</p>
   <button id="play-btn">🏍️ Let's Ride!</button>
 </div>
 
@@ -331,11 +328,10 @@ function update(dt) {
     currentOrder.timeBonus = Math.max(0, currentOrder.timeBonus - dt * 15);
   }
 
-  // Speed
-  if (actions.gas) speed += accel * dt;
-  else if (actions.brake) speed -= brakeForce * dt;
-  else speed -= friction * dt;
-  speed = Math.max(0, Math.min(maxSpeed, speed));
+  // Speed — always accelerating (auto-gas), brake to slow down
+  if (actions.brake) speed -= brakeForce * dt;
+  else speed += accel * dt;
+  speed = Math.max(20, Math.min(maxSpeed, speed));
 
   // Steering
   const steerAmount = 2.5 * dt * (speed / maxSpeed);
@@ -723,7 +719,7 @@ document.getElementById('play-btn').addEventListener('click', () => {
   overlay.style.display = 'none';
   playing = true;
   score = 0; timeLeft = 120; frame = 0; deliveries = 0;
-  speed = 0; posX = 0; playerZ = 0;
+  speed = 50; posX = 0; playerZ = 0;
   pizzasHeld = 0; currentOrder = null;
   buildRoad();
   overlay.querySelector('h1').textContent = '🍕 Pizza Rider';
