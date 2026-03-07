@@ -48,6 +48,16 @@ canvas{display:block}
 #name-submit{pointer-events:auto;margin-top:12px;padding:10px 30px;font-size:18px;font-weight:700;color:#fff;background:linear-gradient(135deg,#7c3aed,#ec4899);border:none;border-radius:10px;cursor:pointer}
 #name-skip{pointer-events:auto;margin-top:8px;color:#64748b;background:none;border:none;font-size:13px;cursor:pointer}
 @media(min-width:600px){.btn{width:68px;height:68px;font-size:28px}.btn-flash{width:80px;height:80px}}
+
+/* Joystick */
+#joystick-zone{position:fixed;bottom:10px;left:10px;width:140px;height:140px;z-index:10;pointer-events:auto;touch-action:none}
+#joystick-base{position:absolute;bottom:0;left:0;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,0.08);border:2px solid rgba(255,255,255,0.15)}
+#joystick-knob{position:absolute;width:50px;height:50px;border-radius:50%;background:rgba(255,255,255,0.25);border:2px solid rgba(255,255,255,0.4);transform:translate(-50%,-50%);left:60px;bottom:60px;transition:none}
+
+@media(pointer:coarse){
+  .ctrl-side:first-child .btn-up,.ctrl-side:first-child .btn-down,.ctrl-side:first-child .btn-left,.ctrl-side:first-child .btn-right,.ctrl-side:first-child .dpad-row,.ctrl-side:first-child .btn[data-action="up"],.ctrl-side:first-child .btn[data-action="down"],.ctrl-side:first-child .btn[data-action="left"],.ctrl-side:first-child .btn[data-action="right"]{display:none!important}
+  .ctrl-side:first-child{display:none!important}
+}
 </style>
 </head>
 <body>
@@ -67,6 +77,12 @@ canvas{display:block}
       <div id="sanity-wrap"><div id="sanity-bar"></div></div>
     </div>
   </div>
+</div>
+
+
+<div id="joystick-zone">
+  <div id="joystick-base"></div>
+  <div id="joystick-knob"></div>
 </div>
 
 <div id="controls">
@@ -778,6 +794,35 @@ document.getElementById('name-skip').addEventListener('click',()=>document.getEl
 document.getElementById('name-input').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('name-submit').click();});
 let _lbPendingScore=0;
 function _lbGameOver(sc){_lbPendingScore=sc;document.getElementById('nm-score-text').textContent='Score: '+sc;document.getElementById('name-input').value=localStorage.getItem('ajgt_name')||'';document.getElementById('name-modal').style.display='flex';document.getElementById('name-input').focus();}
+
+
+// === VIRTUAL JOYSTICK ===
+(function(){
+  const zone=document.getElementById('joystick-zone');
+  const base=document.getElementById('joystick-base');
+  const knob=document.getElementById('joystick-knob');
+  if(!zone||!base||!knob)return;
+  const RADIUS=60,DEAD=0.2;
+  let active=false,touchId=null;
+  function getCenter(){const r=base.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2};}
+  function handle(cx,cy){
+    const c=getCenter();
+    let dx=cx-c.x,dy=cy-c.y;
+    const dist=Math.sqrt(dx*dx+dy*dy);
+    if(dist>RADIUS){dx=dx/dist*RADIUS;dy=dy/dist*RADIUS;}
+    knob.style.left=(60+dx)+'px';
+    knob.style.bottom=(60-dy)+'px';
+    const nx=dx/RADIUS,ny=-dy/RADIUS;
+    actions.left=nx<-DEAD;actions.right=nx>DEAD;
+    actions.up=ny<-DEAD;actions.down=ny>DEAD;
+  }
+  function reset(){knob.style.left='60px';knob.style.bottom='60px';actions.left=false;actions.right=false;actions.up=false;actions.down=false;active=false;touchId=null;}
+  zone.addEventListener('touchstart',function(e){e.preventDefault();e.stopPropagation();if(active)return;const t=e.changedTouches[0];touchId=t.identifier;active=true;handle(t.clientX,t.clientY);},{passive:false});
+  zone.addEventListener('touchmove',function(e){e.preventDefault();e.stopPropagation();for(let i=0;i<e.changedTouches.length;i++){if(e.changedTouches[i].identifier===touchId){handle(e.changedTouches[i].clientX,e.changedTouches[i].clientY);break;}}},{passive:false});
+  zone.addEventListener('touchend',function(e){e.preventDefault();for(let i=0;i<e.changedTouches.length;i++){if(e.changedTouches[i].identifier===touchId){reset();break;}}},{passive:false});
+  zone.addEventListener('touchcancel',function(e){e.preventDefault();reset();},{passive:false});
+})();
+
 </script>
 </body>
 </html>
