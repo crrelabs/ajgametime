@@ -48,6 +48,16 @@ canvas{display:block}
 #name-submit{pointer-events:auto;margin-top:12px;padding:10px 30px;font-size:18px;font-weight:700;color:#fff;background:linear-gradient(135deg,#7c3aed,#ec4899);border:none;border-radius:10px;cursor:pointer}
 #name-skip{pointer-events:auto;margin-top:8px;color:#64748b;background:none;border:none;font-size:13px;cursor:pointer}
 @media(min-width:600px){.btn{width:68px;height:68px;font-size:28px}.btn-flash{width:80px;height:80px}}
+
+#death-screen{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;z-index:200;background:rgba(0,0,0,0.92)}
+#death-screen h1{font-family:'Lilita One',cursive;font-size:36px;color:#ef4444;margin-bottom:6px}
+#death-screen p{color:#94a3b8;font-size:16px;margin-bottom:12px}
+#death-score{color:#fbbf24;font-size:20px;font-weight:900;margin-bottom:16px}
+#death-name{width:200px;padding:10px;font-size:16px;font-weight:700;border:2px solid #7c3aed;border-radius:10px;background:#1a1a2e;color:#fff;text-align:center;outline:none;margin-bottom:10px}
+.death-btn{padding:12px 30px;font-family:'Lilita One',cursive;font-size:18px;color:#fff;border:none;border-radius:12px;cursor:pointer;margin:4px}
+#death-submit{background:linear-gradient(135deg,#7c3aed,#ec4899)}
+#death-retry{background:linear-gradient(135deg,#22c55e,#3b82f6)}
+#death-lb{background:linear-gradient(135deg,#f59e0b,#ef4444)}
 </style>
 </head>
 <body>
@@ -740,7 +750,12 @@ function draw() {
 
 function gameOver() {
   playing = false;
-  _lbGameOver(score);
+  // Show death screen with score, retry, and leaderboard
+  var d = document.getElementById('death-screen');
+  document.getElementById('death-score').textContent = 'Score: ' + score + ' · Floor ' + floor;
+  document.getElementById('death-name').value = localStorage.getItem('ajgt_name') || '';
+  d.style.display = 'flex';
+  document.getElementById('death-name').focus();
 }
 
 function showRetryOverlay() {
@@ -781,6 +796,39 @@ document.getElementById('name-skip').addEventListener('click',()=>{document.getE
 document.getElementById('name-input').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('name-submit').click();});
 let _lbPendingScore=0;
 function _lbGameOver(sc){_lbPendingScore=sc;document.getElementById('nm-score-text').textContent='Score: '+sc;document.getElementById('name-input').value=localStorage.getItem('ajgt_name')||'';document.getElementById('name-modal').style.display='flex';document.getElementById('name-input').focus();}
+
+// Death screen handlers
+document.getElementById('death-submit').addEventListener('click', async function(){
+  var n = document.getElementById('death-name').value.trim() || 'Anonymous';
+  localStorage.setItem('ajgt_name', n);
+  await _lbSubmit(n, score);
+  this.textContent = '✅ Submitted!';
+  this.disabled = true;
+});
+document.getElementById('death-retry').addEventListener('click', function(){
+  document.getElementById('death-screen').style.display = 'none';
+  document.getElementById('death-submit').textContent = '📤 Submit Score';
+  document.getElementById('death-submit').disabled = false;
+  playing = true;
+  resetGame();
+});
+document.getElementById('death-lb').addEventListener('click', function(){
+  _lbShow();
+});
+document.getElementById('death-name').addEventListener('keydown', function(e){
+  if(e.key==='Enter') document.getElementById('death-submit').click();
+});
+
 </script>
+
+<div id="death-screen">
+  <h1>👻 Shift Over!</h1>
+  <div id="death-score">Score: 0</div>
+  <p>Enter your name for the leaderboard:</p>
+  <input type="text" id="death-name" placeholder="Your name" maxlength="16" autocomplete="off">
+  <button class="death-btn" id="death-submit">📤 Submit Score</button>
+  <button class="death-btn" id="death-retry">🏨 Try Again</button>
+  <button class="death-btn" id="death-lb">🏆 Leaderboard</button>
+</div>
 </body>
 </html>
