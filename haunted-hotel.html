@@ -102,6 +102,16 @@ canvas{display:block}
 <div id="lb-overlay"><h2>🏆 Leaderboard</h2><div id="lb-list"></div><button id="lb-close-btn">Close</button></div>
 
 
+<div id="death-screen">
+  <h1>👻 Shift Over!</h1>
+  <div id="death-score">Score: 0</div>
+  <p>Enter your name for the leaderboard:</p>
+  <input type="text" id="death-name" placeholder="Your name" maxlength="16" autocomplete="off">
+  <button class="death-btn" id="death-submit">📤 Submit Score</button>
+  <button class="death-btn" id="death-retry">🏨 Try Again</button>
+  <button class="death-btn" id="death-lb">🏆 Leaderboard</button>
+</div>
+
 <script>
 const C = document.getElementById('game');
 const X = C.getContext('2d');
@@ -788,8 +798,6 @@ async function _lbFetch(){try{const r=await fetch(_LB_URL+'/rest/v1/ajgametime_l
 async function _lbSubmit(name,sc){try{await fetch(_LB_URL+'/rest/v1/ajgametime_leaderboard',{method:'POST',headers:{'apikey':_LB_KEY,'Authorization':'Bearer '+_LB_KEY,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({game:_LB_GAME,player_name:name,score:sc,wave:1})});}catch(e){}}
 async function _lbShow(){const lb=document.getElementById('lb-overlay');const list=document.getElementById('lb-list');list.innerHTML='<div style="color:#64748b;text-align:center;padding:20px">Loading...</div>';lb.style.display='flex';const data=await _lbFetch();if(!data.length){list.innerHTML='<div style="color:#64748b;text-align:center;padding:20px">No scores yet!</div>';return;}list.innerHTML=data.map((d,i)=>'<div class="lb-row"><span class="lb-rank">#'+(i+1)+'</span><span class="lb-name">'+d.player_name+'</span><span class="lb-score">'+d.score+'</span></div>').join('');}
 document.getElementById('lb-close-btn').addEventListener('click',()=>{document.getElementById('lb-overlay').style.display='none';});
-showRetryOverlay();});
-});
 let _lbPendingScore=0;
 function _lbGameOver(sc){}
 
@@ -817,14 +825,5 @@ document.getElementById('death-name').addEventListener('keydown', function(e){
 
 </script>
 
-<div id="death-screen">
-  <h1>👻 Shift Over!</h1>
-  <div id="death-score">Score: 0</div>
-  <p>Enter your name for the leaderboard:</p>
-  <input type="text" id="death-name" placeholder="Your name" maxlength="16" autocomplete="off">
-  <button class="death-btn" id="death-submit">📤 Submit Score</button>
-  <button class="death-btn" id="death-retry">🏨 Try Again</button>
-  <button class="death-btn" id="death-lb">🏆 Leaderboard</button>
-</div>
 </body>
 </html>
