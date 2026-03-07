@@ -51,8 +51,8 @@ button.play-btn:hover { transform: scale(1.05); filter: brightness(1.1); }
 .mobile-btn:active { background: rgba(255,255,255,0.2); transform: scale(0.9); }
 .mobile-btn.jump { width: 90px; height: 90px; font-size: 2.2rem; }
 
-@media (pointer: coarse), (max-width: 768px) {
-  #mobileControls { display: flex; }
+@media (pointer: coarse), (max-width: 768px), (hover: none) {
+  #mobileControls { display: flex !important; }
 }
 </style>
 </head>
@@ -568,6 +568,11 @@ function bindMobile(id, key) {
 bindMobile('btnLeft', 'left');
 bindMobile('btnRight', 'right');
 bindMobile('btnJump', 'jump');
+
+// Force show mobile controls on any touch device
+if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+  document.getElementById('mobileControls').style.display = 'flex';
+}
 </script>
 </body>
 </html>
