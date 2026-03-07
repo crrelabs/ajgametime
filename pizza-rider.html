@@ -537,7 +537,7 @@ function render() {
       X.fillStyle = 'rgba(0,0,0,0.5)';
       X.beginPath();
       const ax = W/2, ay = H * 0.35;
-      X.roundRect(ax - 60, ay - 14, 120, 28, 8);
+      X.fillRect(ax - 60, ay - 14, 120, 28);
       X.fill();
       X.fillStyle = '#fff';
       X.font = 'bold 13px Nunito';
@@ -552,7 +552,7 @@ function render() {
   // Speedometer
   X.fillStyle = 'rgba(0,0,0,0.4)';
   X.beginPath();
-  X.roundRect(W/2 - 40, H - 95, 80, 24, 8);
+  X.fillRect(W/2 - 40, H - 95, 80, 24);
   X.fill();
   const mph = Math.floor(speed * 0.6);
   X.fillStyle = speed > maxSpeed * 0.8 ? '#ef4444' : '#fff';
@@ -648,6 +648,7 @@ function drawBike() {
 
   // Shadow
   X.fillStyle = 'rgba(0,0,0,0.2)';
+  X.beginPath();
   X.ellipse(0, 5, 20, 5, 0, 0, Math.PI * 2);
   X.fill();
 
@@ -728,6 +729,9 @@ document.getElementById('play-btn').addEventListener('click', () => {
   overlay.querySelector('h1').textContent = '🍕 Pizza Rider';
   overlay.querySelector('h2').textContent = 'First-Person Delivery!';
 });
+
+// Pre-build road so it renders on start screen
+buildRoad();
 
 function loop(ts) {
   const dt = Math.min(0.05, (ts - lastTime) / 1000);
