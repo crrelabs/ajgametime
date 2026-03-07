@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AJ GameTime — Games by AJ Rovira</title>
+<meta name="description" content="AJ GameTime — fun browser games designed by AJ Rovira. Play now, no downloads needed!">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@400;600;700;800&display=swap');
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --purple: #7c3aed;
+  --blue: #3b82f6;
+  --cyan: #06b6d4;
+  --pink: #ec4899;
+  --orange: #f97316;
+  --green: #22c55e;
+  --dark: #0c0a1a;
+  --card: #16132a;
+}
+
+body {
+  font-family: 'Nunito', sans-serif;
+  background: var(--dark);
+  color: #e2e8f0;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Animated gradient background */
+.bg-glow {
+  position: fixed;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle at 30% 40%, rgba(124,58,237,0.15) 0%, transparent 50%),
+              radial-gradient(circle at 70% 60%, rgba(59,130,246,0.1) 0%, transparent 50%),
+              radial-gradient(circle at 50% 80%, rgba(236,72,153,0.08) 0%, transparent 50%);
+  animation: bgFloat 20s ease-in-out infinite;
+  z-index: 0;
+}
+@keyframes bgFloat {
+  0%, 100% { transform: translate(0,0); }
+  33% { transform: translate(-2%,1%); }
+  66% { transform: translate(1%,-2%); }
+}
+
+.container { position: relative; z-index: 1; max-width: 900px; margin: 0 auto; padding: 0 1.5rem; }
+
+/* Hero */
+.hero {
+  text-align: center;
+  padding: 5rem 0 3rem;
+}
+.hero-emoji {
+  font-size: 4rem;
+  display: inline-block;
+  animation: bounce 2s ease-in-out infinite;
+}
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-15px); }
+}
+.hero h1 {
+  font-family: 'Lilita One', cursive;
+  font-size: clamp(2.5rem, 8vw, 4.5rem);
+  background: linear-gradient(135deg, var(--purple), var(--blue), var(--cyan), var(--pink));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 1rem 0 0.5rem;
+  line-height: 1.1;
+}
+.hero .tagline {
+  font-size: 1.2rem;
+  color: #94a3b8;
+  font-weight: 600;
+}
+.hero .creator {
+  margin-top: 1rem;
+  font-size: 0.9rem;
+  color: #64748b;
+}
+.hero .creator span {
+  color: var(--orange);
+  font-weight: 800;
+}
+
+/* Games Grid */
+.section-title {
+  font-family: 'Lilita One', cursive;
+  font-size: 1.8rem;
+  text-align: center;
+  margin: 3rem 0 2rem;
+  color: #e2e8f0;
+}
+.section-title .emoji { margin-right: 0.5rem; }
+
+.games-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1.5rem;
+  padding-bottom: 2rem;
+}
+
+.game-card {
+  background: var(--card);
+  border: 2px solid rgba(124,58,237,0.15);
+  border-radius: 20px;
+  overflow: hidden;
+  text-decoration: none;
+  transition: all 0.3s;
+  position: relative;
+}
+.game-card:hover {
+  border-color: var(--purple);
+  transform: translateY(-8px);
+  box-shadow: 0 20px 60px rgba(124,58,237,0.2);
+}
+.game-card:nth-child(2):hover {
+  border-color: var(--orange);
+  box-shadow: 0 20px 60px rgba(249,115,22,0.2);
+}
+
+.card-preview {
+  height: 160px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 4rem;
+  position: relative;
+  overflow: hidden;
+}
+.card-preview.ttt { background: linear-gradient(135deg, #1e1b4b, #312e81); }
+.card-preview.hoops { background: linear-gradient(135deg, #431407, #7c2d12); }
+
+.card-body {
+  padding: 1.25rem;
+}
+.card-body h3 {
+  font-family: 'Lilita One', cursive;
+  font-size: 1.3rem;
+  color: #e2e8f0;
+  margin-bottom: 0.25rem;
+}
+.card-body p {
+  color: #64748b;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+.card-tag {
+  display: inline-block;
+  margin-top: 0.75rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 50px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.tag-strategy { background: rgba(124,58,237,0.2); color: #a78bfa; }
+.tag-action { background: rgba(249,115,22,0.2); color: #fb923c; }
+
+.play-btn {
+  display: block;
+  margin: 0.75rem 1.25rem 1.25rem;
+  padding: 0.6rem;
+  text-align: center;
+  border-radius: 12px;
+  font-weight: 800;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  transition: all 0.2s;
+}
+.game-card:first-child .play-btn {
+  background: linear-gradient(135deg, var(--purple), var(--blue));
+  color: white;
+}
+.game-card:nth-child(2) .play-btn {
+  background: linear-gradient(135deg, var(--orange), #ef4444);
+  color: white;
+}
+.play-btn:hover { filter: brightness(1.15); transform: scale(1.02); }
+
+/* Coming soon */
+.coming-soon {
+  text-align: center;
+  padding: 3rem 0;
+  margin: 2rem 0;
+  border: 2px dashed rgba(124,58,237,0.2);
+  border-radius: 20px;
+}
+.coming-soon .emoji { font-size: 2.5rem; margin-bottom: 0.75rem; }
+.coming-soon h3 {
+  font-family: 'Lilita One', cursive;
+  font-size: 1.3rem;
+  color: #94a3b8;
+}
+.coming-soon p { color: #475569; font-size: 0.85rem; margin-top: 0.5rem; }
+
+/* Footer */
+footer {
+  text-align: center;
+  padding: 2rem 0 3rem;
+  color: #334155;
+  font-size: 0.75rem;
+}
+footer a { color: #475569; text-decoration: none; }
+footer a:hover { color: #94a3b8; }
+
+/* Floating particles */
+.particles { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+.particle {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  opacity: 0.3;
+  animation: float linear infinite;
+}
+@keyframes float {
+  0% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+  10% { opacity: 0.3; }
+  90% { opacity: 0.3; }
+  100% { transform: translateY(-10vh) rotate(720deg); opacity: 0; }
+}
+</style>
+</head>
+<body>
+
+<div class="bg-glow"></div>
+
+<div class="particles" id="particles"></div>
+
+<div class="container">
+  <!-- Hero -->
+  <section class="hero">
+    <div class="hero-emoji">🎮</div>
+    <h1>AJ GameTime</h1>
+    <p class="tagline">Free browser games — no downloads, just play!</p>
+    <p class="creator">Designed by <span>AJ Rovira</span></p>
+  </section>
+
+  <!-- Games -->
+  <h2 class="section-title"><span class="emoji">🕹️</span>Games</h2>
+  <div class="games-grid">
+    <a href="tictactoe.html" class="game-card">
+      <div class="card-preview ttt">❌⭕</div>
+      <div class="card-body">
+        <h3>Tic Tac Toe</h3>
+        <p>The classic strategy game. Challenge a friend and prove you're the master!</p>
+        <span class="card-tag tag-strategy">Strategy</span>
+      </div>
+      <div class="play-btn">▶ Play Now</div>
+    </a>
+    <a href="hoops.html" class="game-card">
+      <div class="card-preview hoops">🏀</div>
+      <div class="card-body">
+        <h3>Shooting Hoops</h3>
+        <p>30 seconds on the clock — how many baskets can you drain? Build streaks for bonus points!</p>
+        <span class="card-tag tag-action">Action</span>
+      </div>
+      <div class="play-btn">▶ Play Now</div>
+    </a>
+  </div>
+
+  <!-- Coming Soon -->
+  <div class="coming-soon">
+    <div class="emoji">🚀</div>
+    <h3>More Games Coming Soon!</h3>
+    <p>AJ is cooking up new games. Check back soon.</p>
+  </div>
+</div>
+
+<footer>
+  <p>© 2026 AJ GameTime · Built by <a href="https://crrelabs.com">CRRE Labs</a></p>
+</footer>
+
+<script>
+// Floating particles
+const container = document.getElementById('particles');
+const colors = ['#7c3aed','#3b82f6','#06b6d4','#ec4899','#f97316','#22c55e'];
+for (let i = 0; i < 20; i++) {
+  const p = document.createElement('div');
+  p.className = 'particle';
+  p.style.left = Math.random() * 100 + '%';
+  p.style.background = colors[Math.floor(Math.random() * colors.length)];
+  p.style.animationDuration = (8 + Math.random() * 12) + 's';
+  p.style.animationDelay = Math.random() * 10 + 's';
+  p.style.width = p.style.height = (3 + Math.random() * 4) + 'px';
+  container.appendChild(p);
+}
+</script>
+</body>
+</html>

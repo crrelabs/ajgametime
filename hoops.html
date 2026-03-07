@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shooting Hoops — CRRE Labs Games</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { min-height: 100vh; display: flex; flex-direction: column; align-items: center; font-family: -apple-system, sans-serif; background: #0f172a; color: #e2e8f0; overflow: hidden; }
+#header { width: 100%; padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center; z-index: 10; }
+#header a { color: #64748b; text-decoration: none; font-size: 0.85rem; }
+#header a:hover { color: #e2e8f0; }
+#hud { display: flex; gap: 2rem; align-items: center; }
+.stat { text-align: center; }
+.stat-val { font-size: 1.8rem; font-weight: 800; color: #f97316; }
+.stat-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.1em; color: #64748b; }
+#timer.warning { color: #ef4444; animation: pulse 0.5s infinite; }
+canvas { display: block; cursor: crosshair; touch-action: none; }
+#overlay { position: fixed; inset: 0; background: rgba(15,23,42,0.9); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 20; }
+#overlay.hidden { display: none; }
+#overlay h2 { font-size: 2.5rem; margin-bottom: 0.5rem; }
+#overlay .final { font-size: 4rem; font-weight: 800; color: #f97316; margin-bottom: 1rem; }
+#overlay p { color: #94a3b8; margin-bottom: 2rem; }
+#overlay button, #startBtn { padding: 1rem 2.5rem; font-size: 1.1rem; font-weight: 700; background: #f97316; color: #0f172a; border: none; border-radius: 12px; cursor: pointer; transition: 0.2s; }
+#overlay button:hover, #startBtn:hover { background: #fb923c; transform: scale(1.05); }
+#startScreen { position: fixed; inset: 0; background: #0f172a; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 30; }
+#startScreen.hidden { display: none; }
+#startScreen h1 { font-size: 3rem; margin-bottom: 0.5rem; }
+#startScreen .emoji { font-size: 5rem; margin-bottom: 1rem; }
+#startScreen p { color: #64748b; margin-bottom: 2rem; font-size: 1rem; }
+.streak { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); font-size: 3rem; font-weight: 900; color: #f97316; pointer-events: none; z-index: 15; animation: streakPop 0.8s forwards; }
+@keyframes streakPop { 0% { opacity:1; transform:translate(-50%,-50%) scale(0.5); } 50% { transform:translate(-50%,-50%) scale(1.3); } 100% { opacity:0; transform:translate(-50%,-80%) scale(1); } }
+@keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.5; } }
+#made { position: fixed; top: 40%; left: 50%; transform: translate(-50%,-50%); font-size: 2rem; font-weight: 800; color: #22c55e; pointer-events: none; z-index: 15; animation: fadeUp 0.6s forwards; }
+#missed { position: fixed; top: 40%; left: 50%; transform: translate(-50%,-50%); font-size: 1.5rem; font-weight: 700; color: #ef4444; pointer-events: none; z-index: 15; animation: fadeUp 0.6s forwards; }
+@keyframes fadeUp { 0% { opacity:1; transform:translate(-50%,-50%) translateY(0); } 100% { opacity:0; transform:translate(-50%,-50%) translateY(-40px); } }
+</style>
+</head>
+<body>
+
+<!-- Start Screen -->
+<div id="startScreen">
+  <div class="emoji">🏀</div>
+  <h1>Shooting Hoops</h1>
+  <p>Click/tap and drag to shoot. Make as many baskets as you can in 30 seconds!</p>
+  <button id="startBtn" onclick="startGame()">Play Ball!</button>
+</div>
+
+<!-- Game Over -->
+<div id="overlay" class="hidden">
+  <h2>Game Over!</h2>
+  <div class="final" id="finalScore">0</div>
+  <p id="finalStats">0/0 shots</p>
+  <button onclick="startGame()">Play Again</button>
+</div>
+
+<!-- HUD -->
+<div id="header">
+  <a href="/">← Games</a>
+  <div id="hud">
+    <div class="stat"><div class="stat-val" id="score">0</div><div class="stat-label">Score</div></div>
+    <div class="stat"><div class="stat-val" id="timer">30</div><div class="stat-label">Seconds</div></div>
+    <div class="stat"><div class="stat-val" id="streakDisplay">0</div><div class="stat-label">Streak</div></div>
+  </div>
+</div>
+
+<canvas id="c"></canvas>
+
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+let W, H;
+let balls = [];
+let score = 0, shots = 0, makes = 0, streak = 0, bestStreak = 0;
+let timeLeft = 30;
+let gameRunning = false;
+let timer = null;
+let dragging = false, dragStart = null, dragEnd = null;
+
+// Hoop position
+let hoopX, hoopY, hoopW, rimRadius;
+
+function resize() {
+  W = canvas.width = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+  hoopX = W / 2;
+  hoopY = H * 0.22;
+  hoopW = Math.min(W * 0.15, 80);
+  rimRadius = hoopW / 2;
+}
+window.addEventListener('resize', resize);
+resize();
+
+// Ball physics
+const GRAVITY = 0.4;
+const BALL_RADIUS = 18;
+
+class Ball {
+  constructor(x, y, vx, vy) {
+    this.x = x; this.y = y; this.vx = vx; this.vy = vy;
+    this.r = BALL_RADIUS;
+    this.scored = false;
+    this.missed = false;
+    this.alpha = 1;
+    this.rotation = 0;
+    this.rotSpeed = (Math.random() - 0.5) * 0.2;
+  }
+  update() {
+    this.vy += GRAVITY;
+    this.x += this.vx;
+    this.y += this.vy;
+    this.rotation += this.rotSpeed;
+
+    // Bounce off walls
+    if (this.x - this.r < 0) { this.x = this.r; this.vx *= -0.6; }
+    if (this.x + this.r > W) { this.x = W - this.r; this.vx *= -0.6; }
+
+    // Check if ball passes through hoop
+    if (!this.scored && !this.missed && this.vy > 0) {
+      const dx = this.x - hoopX;
+      const dy = this.y - hoopY;
+      if (Math.abs(dx) < rimRadius * 0.7 && dy > -5 && dy < 15) {
+        this.scored = true;
+        onScore();
+      }
+      // Rim collision (left)
+      const dlx = this.x - (hoopX - rimRadius);
+      const dly = this.y - hoopY;
+      const distL = Math.sqrt(dlx*dlx + dly*dly);
+      if (distL < this.r + 5) {
+        this.vx = Math.abs(this.vx) * 0.5 + 1;
+        this.vy *= 0.7;
+      }
+      // Rim collision (right)
+      const drx = this.x - (hoopX + rimRadius);
+      const dry = this.y - hoopY;
+      const distR = Math.sqrt(drx*drx + dry*dry);
+      if (distR < this.r + 5) {
+        this.vx = -Math.abs(this.vx) * 0.5 - 1;
+        this.vy *= 0.7;
+      }
+    }
+
+    // Mark as missed if it goes below hoop without scoring
+    if (!this.scored && !this.missed && this.y > hoopY + 60 && this.vy > 0) {
+      this.missed = true;
+      onMiss();
+    }
+
+    // Fade out when below screen
+    if (this.y > H + 50) this.alpha = 0;
+  }
+  draw() {
+    if (this.alpha <= 0) return;
+    ctx.save();
+    ctx.globalAlpha = this.alpha;
+    ctx.translate(this.x, this.y);
+    ctx.rotate(this.rotation);
+
+    // Ball
+    ctx.beginPath();
+    ctx.arc(0, 0, this.r, 0, Math.PI * 2);
+    ctx.fillStyle = '#f97316';
+    ctx.fill();
+
+    // Lines on ball
+    ctx.strokeStyle = '#c2410c';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(0, 0, this.r, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(-this.r, 0);
+    ctx.lineTo(this.r, 0);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(0, 0, this.r * 0.5, -Math.PI/2, Math.PI/2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(0, 0, this.r * 0.5, Math.PI/2, Math.PI*1.5);
+    ctx.stroke();
+
+    ctx.restore();
+  }
+}
+
+function onScore() {
+  makes++;
+  streak++;
+  if (streak > bestStreak) bestStreak = streak;
+  let pts = 2;
+  if (streak >= 5) pts = 4;
+  else if (streak >= 3) pts = 3;
+  score += pts;
+  document.getElementById('score').textContent = score;
+  document.getElementById('streakDisplay').textContent = streak;
+
+  // Feedback
+  showFeedback('made', pts > 2 ? `+${pts} 🔥` : 'Swish! +2');
+  if (streak === 3) showStreak('🔥 ON FIRE!');
+  if (streak === 5) showStreak('💥 UNSTOPPABLE!');
+  if (streak === 10) showStreak('🏆 LEGENDARY!');
+}
+
+function onMiss() {
+  streak = 0;
+  document.getElementById('streakDisplay').textContent = streak;
+  showFeedback('missed', 'Miss!');
+}
+
+function showFeedback(type, text) {
+  const el = document.createElement('div');
+  el.id = type;
+  el.textContent = text;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 600);
+}
+
+function showStreak(text) {
+  const el = document.createElement('div');
+  el.className = 'streak';
+  el.textContent = text;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 800);
+}
+
+function drawHoop() {
+  // Backboard
+  ctx.fillStyle = '#334155';
+  ctx.fillRect(hoopX - 50, hoopY - 60, 100, 70);
+  ctx.strokeStyle = '#475569';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(hoopX - 50, hoopY - 60, 100, 70);
+
+  // Inner square on backboard
+  ctx.strokeStyle = '#64748b';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(hoopX - 20, hoopY - 35, 40, 30);
+
+  // Rim
+  ctx.beginPath();
+  ctx.moveTo(hoopX - rimRadius, hoopY);
+  ctx.lineTo(hoopX + rimRadius, hoopY);
+  ctx.strokeStyle = '#ef4444';
+  ctx.lineWidth = 4;
+  ctx.stroke();
+
+  // Rim ends (circles)
+  ctx.beginPath();
+  ctx.arc(hoopX - rimRadius, hoopY, 4, 0, Math.PI * 2);
+  ctx.fillStyle = '#ef4444';
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(hoopX + rimRadius, hoopY, 4, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Net (simple lines)
+  ctx.strokeStyle = '#94a3b8';
+  ctx.lineWidth = 1;
+  for (let i = 0; i < 5; i++) {
+    const x = hoopX - rimRadius + (rimRadius * 2 / 4) * i;
+    ctx.beginPath();
+    ctx.moveTo(x, hoopY);
+    ctx.lineTo(hoopX + (x - hoopX) * 0.4, hoopY + 40);
+    ctx.stroke();
+  }
+  // Cross lines
+  for (let j = 1; j <= 3; j++) {
+    const ny = hoopY + j * 10;
+    const spread = 1 - j * 0.15;
+    ctx.beginPath();
+    ctx.moveTo(hoopX - rimRadius * spread, ny);
+    ctx.lineTo(hoopX + rimRadius * spread, ny);
+    ctx.stroke();
+  }
+}
+
+function drawAimLine() {
+  if (dragging && dragStart && dragEnd) {
+    const dx = dragStart.x - dragEnd.x;
+    const dy = dragStart.y - dragEnd.y;
+    const len = Math.sqrt(dx*dx + dy*dy);
+    const maxLen = 150;
+    const power = Math.min(len / maxLen, 1);
+
+    // Arrow
+    ctx.beginPath();
+    ctx.moveTo(dragStart.x, dragStart.y);
+    ctx.lineTo(dragStart.x + dx * 0.5, dragStart.y + dy * 0.5);
+    ctx.strokeStyle = `rgba(249,115,22,${0.3 + power * 0.7})`;
+    ctx.lineWidth = 3;
+    ctx.stroke();
+
+    // Power indicator
+    ctx.fillStyle = '#f97316';
+    ctx.font = '14px -apple-system, sans-serif';
+    ctx.fillText(Math.round(power * 100) + '%', dragStart.x + 20, dragStart.y - 10);
+
+    // Ghost ball at start
+    ctx.beginPath();
+    ctx.arc(dragStart.x, dragStart.y, BALL_RADIUS, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(249,115,22,0.3)';
+    ctx.fill();
+  }
+}
+
+function loop() {
+  ctx.clearRect(0, 0, W, H);
+
+  // Court floor
+  ctx.fillStyle = '#1a0e08';
+  ctx.fillRect(0, H * 0.75, W, H * 0.25);
+  ctx.strokeStyle = '#4a2f1a';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(0, H * 0.75);
+  ctx.lineTo(W, H * 0.75);
+  ctx.stroke();
+
+  // Three-point arc (decorative)
+  ctx.beginPath();
+  ctx.arc(hoopX, H * 0.75, W * 0.3, Math.PI, 0);
+  ctx.strokeStyle = '#2d1a0a';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  drawHoop();
+
+  balls.forEach(b => { b.update(); b.draw(); });
+  balls = balls.filter(b => b.alpha > 0);
+
+  drawAimLine();
+
+  requestAnimationFrame(loop);
+}
+
+// Input
+function getPos(e) {
+  const t = e.touches ? e.touches[0] : e;
+  return { x: t.clientX, y: t.clientY };
+}
+
+canvas.addEventListener('mousedown', e => {
+  if (!gameRunning) return;
+  dragging = true;
+  dragStart = getPos(e);
+  dragEnd = dragStart;
+});
+canvas.addEventListener('mousemove', e => {
+  if (dragging) dragEnd = getPos(e);
+});
+canvas.addEventListener('mouseup', e => {
+  if (!dragging) return;
+  shoot(e);
+});
+
+canvas.addEventListener('touchstart', e => {
+  if (!gameRunning) return;
+  e.preventDefault();
+  dragging = true;
+  dragStart = getPos(e);
+  dragEnd = dragStart;
+}, { passive: false });
+canvas.addEventListener('touchmove', e => {
+  if (dragging) { e.preventDefault(); dragEnd = getPos(e); }
+}, { passive: false });
+canvas.addEventListener('touchend', e => {
+  if (!dragging) return;
+  e.preventDefault();
+  shoot(e);
+}, { passive: false });
+
+function shoot(e) {
+  if (!dragging || !dragStart || !dragEnd) { dragging = false; return; }
+  const dx = dragStart.x - dragEnd.x;
+  const dy = dragStart.y - dragEnd.y;
+  const len = Math.sqrt(dx*dx + dy*dy);
+  if (len < 10) { dragging = false; return; }
+
+  const maxLen = 150;
+  const power = Math.min(len / maxLen, 1);
+  const speed = 5 + power * 15;
+  const angle = Math.atan2(dy, dx);
+
+  const vx = Math.cos(angle) * speed;
+  const vy = Math.sin(angle) * speed;
+
+  balls.push(new Ball(dragStart.x, dragStart.y, vx, vy));
+  shots++;
+  dragging = false;
+  dragStart = null;
+  dragEnd = null;
+}
+
+function startGame() {
+  document.getElementById('startScreen').classList.add('hidden');
+  document.getElementById('overlay').classList.add('hidden');
+  score = 0; shots = 0; makes = 0; streak = 0; bestStreak = 0; timeLeft = 30;
+  balls = [];
+  document.getElementById('score').textContent = '0';
+  document.getElementById('timer').textContent = '30';
+  document.getElementById('timer').classList.remove('warning');
+  document.getElementById('streakDisplay').textContent = '0';
+  gameRunning = true;
+
+  clearInterval(timer);
+  timer = setInterval(() => {
+    timeLeft--;
+    document.getElementById('timer').textContent = timeLeft;
+    if (timeLeft <= 10) document.getElementById('timer').classList.add('warning');
+    if (timeLeft <= 0) endGame();
+  }, 1000);
+}
+
+function endGame() {
+  gameRunning = false;
+  clearInterval(timer);
+  document.getElementById('finalScore').textContent = score;
+  const pct = shots > 0 ? Math.round((makes/shots)*100) : 0;
+  document.getElementById('finalStats').textContent = `${makes}/${shots} shots (${pct}%) · Best streak: ${bestStreak}`;
+  document.getElementById('overlay').classList.remove('hidden');
+}
+
+loop();
+</script>
+</body>
+</html>
