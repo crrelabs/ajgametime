@@ -675,11 +675,18 @@ function loop() {
   });
   ghosts = ghosts.filter(g => g.size > 0);
 
-  // Powerup pickup
+  // Powerup pickup — shoot them OR walk over them
   powerups.forEach(p => {
     if (p.collected) return;
+    // Walk over
     const dist = Math.hypot(p.x - player.x, p.y - player.y);
-    if (dist < p.r + 20) activatePower(p);
+    if (dist < p.r + 20) { activatePower(p); return; }
+    // Shoot to collect
+    beams.forEach(b => {
+      if (p.collected) return;
+      const bd = Math.hypot(b.x - p.x, b.y - p.y);
+      if (bd < p.r + b.r + 4) { activatePower(p); b.life = 0; }
+    });
   });
   powerups = powerups.filter(p => !p.collected);
 
