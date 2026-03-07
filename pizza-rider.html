@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Pizza Rider — AJ GameTime</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@600;700;800&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#87CEEB;overflow:hidden;touch-action:none;font-family:'Nunito',sans-serif;user-select:none;-webkit-user-select:none}
+canvas{display:block}
+#hud{position:absolute;top:0;left:0;width:100%;padding:8px 12px;display:flex;justify-content:space-between;align-items:flex-start;pointer-events:none;z-index:10}
+.hud-box{background:rgba(0,0,0,0.6);border-radius:10px;padding:6px 12px;color:#fff;font-weight:700;font-size:14px;backdrop-filter:blur(4px)}
+#money{color:#22c55e;font-family:'Lilita One',cursive;font-size:22px}
+#timer{color:#fbbf24;font-family:'Lilita One',cursive;font-size:20px}
+#order-info{color:#f97316;font-size:13px}
+#message{position:absolute;top:45%;left:50%;transform:translate(-50%,-50%);font-family:'Lilita One',cursive;font-size:clamp(24px,5vw,40px);color:#fff;text-shadow:0 2px 8px rgba(0,0,0,0.5);z-index:10;pointer-events:none;opacity:0;transition:opacity 0.3s}
+#controls{position:absolute;bottom:0;left:0;width:100%;padding:8px 10px;display:flex;justify-content:space-between;align-items:flex-end;pointer-events:none;z-index:10}
+.ctrl-side{display:flex;flex-direction:column;gap:6px;align-items:center;pointer-events:auto}
+.steer-row{display:flex;gap:6px}
+.btn{border-radius:50%;border:2px solid rgba(255,255,255,0.4);display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:800;color:#fff;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+.btn:active{transform:scale(0.92)}
+.btn-gas{width:70px;height:70px;background:rgba(34,197,94,0.6);box-shadow:0 0 12px rgba(34,197,94,0.3)}
+.btn-brake{width:58px;height:58px;background:rgba(239,68,68,0.5)}
+.btn-left{width:60px;height:60px;background:rgba(59,130,246,0.5)}
+.btn-right{width:60px;height:60px;background:rgba(59,130,246,0.5)}
+.btn-deliver{width:74px;height:74px;background:rgba(249,115,22,0.7);box-shadow:0 0 18px rgba(249,115,22,0.4);font-size:32px}
+#overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:20;background:rgba(0,0,0,0.85)}
+#overlay h1{font-family:'Lilita One',cursive;font-size:clamp(30px,7vw,52px);background:linear-gradient(135deg,#f97316,#ef4444);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:4px}
+#overlay h2{color:#22c55e;font-family:'Lilita One',cursive;font-size:clamp(16px,3vw,24px);margin-bottom:16px}
+#overlay p{color:#94a3b8;font-size:14px;max-width:340px;text-align:center;line-height:1.6;margin-bottom:16px}
+#play-btn{pointer-events:auto;padding:14px 44px;font-family:'Lilita One',cursive;font-size:24px;color:#fff;background:linear-gradient(135deg,#f97316,#ef4444);border:none;border-radius:14px;cursor:pointer;box-shadow:0 4px 24px rgba(249,115,22,0.4)}
+#back{position:absolute;top:10px;left:10px;color:#64748b;text-decoration:none;font-size:13px;font-weight:700;z-index:30}
+@media(min-width:600px){.btn-gas{width:80px;height:80px}.btn-deliver{width:84px;height:84px}.btn-left,.btn-right{width:68px;height:68px}}
+</style>
+</head>
+<body>
+<a id="back" href="index.html">← Back</a>
+<canvas id="game"></canvas>
+
+<div id="hud">
+  <div>
+    <div class="hud-box" id="money">$0</div>
+    <div class="hud-box" id="order-info" style="margin-top:4px">🍕 Pick up pizzas!</div>
+  </div>
+  <div class="hud-box" id="timer">⏰ 2:00</div>
+</div>
+
+<div id="message"></div>
+
+<div id="controls">
+  <div class="ctrl-side">
+    <div class="btn btn-left" data-action="left" style="width:70px;height:70px">◀</div>
+    <div class="btn btn-right" data-action="right" style="width:70px;height:70px">▶</div>
+  </div>
+  <div class="ctrl-side">
+    <div class="btn btn-deliver" data-action="deliver">🍕</div>
+    <div class="btn btn-brake" data-action="brake" style="margin-top:4px">⬇</div>
+  </div>
+</div>
+
+<div id="overlay">
+  <h1>🍕 Pizza Rider</h1>
+  <h2>First-Person Delivery!</h2>
+  <p>Race through the city on your motorcycle! Pick up pizzas from the shop and deliver to houses marked with 📍. Earn tips for fast deliveries!</p>
+  <p style="color:#64748b;font-size:12px">◀▶ Steer · ⬇ Brake · 🍕 Pick up / Deliver<br>You auto-drive forward!</p>
+  <button id="play-btn">🏍️ Let's Ride!</button>
+</div>
+
+<script>
+const C = document.getElementById('game');
+const X = C.getContext('2d');
+const overlay = document.getElementById('overlay');
+const msgEl = document.getElementById('message');
+let W, H;
+function resize() { W = C.width = window.innerWidth; H = C.height = window.innerHeight; }
+resize(); window.addEventListener('resize', resize);
+
+let playing = false, score = 0, timeLeft = 120, frame = 0;
+let deliveries = 0;
+
+// Player state
+let speed = 0, maxSpeed = 200, accel = 300, brakeForce = 400, friction = 80;
+let posX = 0; // lateral position on road (-1 to 1)
+let playerZ = 0; // distance traveled
+
+// Road segments
+const SEGMENT_LENGTH = 200;
+const ROAD_WIDTH = 2000;
+const DRAW_DISTANCE = 150;
+let segments = [];
+
+// Game objects
+let pizzasHeld = 0, maxPizzas = 3;
+let currentOrder = null;
+let orderDistance = 0;
+let shopDistance = 0;
+let nextShopDist = 0;
+let nextOrderDist = 0;
+
+// Scenery sprites
+const HOUSE_COLORS = ['#c9a882','#8b4513','#b0c4de','#deb887','#bc8f8f','#cd853f','#d2691e','#e8d4b8','#a0522d','#778899'];
+const ROOF_COLORS = ['#8b0000','#4a2810','#2d4a3a','#3d1e08','#4a3a5a','#6b3a2a'];
+const CAR_COLORS = ['#ef4444','#3b82f6','#22c55e','#f59e0b','#8b5cf6','#ec4899','#fff','#333'];
+
+function buildRoad() {
+  segments = [];
+  for (let i = 0; i < 3000; i++) {
+    let curve = 0;
+    if (i > 50 && i < 100) curve = 2;
+    else if (i > 150 && i < 200) curve = -3;
+    else if (i > 250 && i < 320) curve = 1.5;
+    else if (i > 400 && i < 450) curve = -2;
+    else if (i > 500 && i < 560) curve = 2.5;
+    else if (i > 650 && i < 700) curve = -1.5;
+    else if (i > 800 && i < 870) curve = 3;
+    else if (i > 950 && i < 1000) curve = -2.5;
+    // Repeat pattern
+    const ci = i % 1000;
+    if (ci > 50 && ci < 100) curve = 2 + Math.sin(i*0.01);
+    else if (ci > 200 && ci < 260) curve = -2.5;
+    else if (ci > 400 && ci < 470) curve = 1.8;
+    else if (ci > 600 && ci < 660) curve = -3;
+    else if (ci > 800 && ci < 850) curve = 2.2;
+
+    const seg = {
+      index: i,
+      curve: curve,
+      sprites: [],
+      cars: []
+    };
+
+    // Add scenery
+    if (Math.random() < 0.25) {
+      const side = Math.random() > 0.5 ? 1 : -1;
+      const type = Math.random();
+      if (type < 0.4) {
+        // House
+        seg.sprites.push({
+          type: 'house',
+          offset: side * (1.2 + Math.random() * 0.8),
+          color: HOUSE_COLORS[Math.floor(Math.random() * HOUSE_COLORS.length)],
+          roofColor: ROOF_COLORS[Math.floor(Math.random() * ROOF_COLORS.length)],
+          w: 80 + Math.random() * 40,
+          h: 60 + Math.random() * 30,
+          lit: Math.random() > 0.3
+        });
+      } else if (type < 0.7) {
+        // Tree
+        seg.sprites.push({
+          type: 'tree',
+          offset: side * (1.1 + Math.random() * 1.2),
+          size: 30 + Math.random() * 30
+        });
+      } else {
+        // Lamp post
+        seg.sprites.push({
+          type: 'lamp',
+          offset: side * 1.05
+        });
+      }
+    }
+
+    // Add other side scenery
+    if (Math.random() < 0.15) {
+      const side = Math.random() > 0.5 ? 1 : -1;
+      seg.sprites.push({
+        type: 'tree',
+        offset: side * (1.3 + Math.random() * 0.5),
+        size: 25 + Math.random() * 25
+      });
+    }
+
+    // Traffic cars
+    if (Math.random() < 0.04 && i > 10) {
+      seg.cars.push({
+        offset: -0.5 + Math.random() * 1.0,
+        speed: 0.5 + Math.random() * 0.5,
+        color: CAR_COLORS[Math.floor(Math.random() * CAR_COLORS.length)],
+        z: 0
+      });
+    }
+
+    segments.push(seg);
+  }
+
+  // Place shop and first order
+  nextShopDist = 300;
+  placeShop();
+  nextOrderDist = nextShopDist + 800;
+}
+
+function placeShop() {
+  shopDistance = nextShopDist;
+  const si = Math.floor(shopDistance / SEGMENT_LENGTH) % segments.length;
+  segments[si].shop = true;
+  nextShopDist = shopDistance + 1500 + Math.random() * 1000;
+}
+
+function placeOrder() {
+  orderDistance = nextOrderDist;
+  const si = Math.floor(orderDistance / SEGMENT_LENGTH) % segments.length;
+  segments[si].orderHouse = true;
+  currentOrder = { dist: orderDistance, timeBonus: 150 };
+  nextOrderDist = orderDistance + 800 + Math.random() * 600;
+}
+
+// Input
+const actions = {};
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowLeft' || e.key === 'a') actions.left = true;
+  if (e.key === 'ArrowRight' || e.key === 'd') actions.right = true;
+  if (e.key === 'ArrowUp' || e.key === 'w') actions.gas = true;
+  if (e.key === 'ArrowDown' || e.key === 's') actions.brake = true;
+  if (e.key === ' ' || e.key === 'Enter') { if (!actions.deliverLock) { actions.deliverLock = true; tryAction(); } }
+});
+document.addEventListener('keyup', e => {
+  if (e.key === 'ArrowLeft' || e.key === 'a') actions.left = false;
+  if (e.key === 'ArrowRight' || e.key === 'd') actions.right = false;
+  if (e.key === 'ArrowUp' || e.key === 'w') actions.gas = false;
+  if (e.key === 'ArrowDown' || e.key === 's') actions.brake = false;
+  if (e.key === ' ' || e.key === 'Enter') actions.deliverLock = false;
+});
+
+document.querySelectorAll('.btn').forEach(btn => {
+  const act = btn.dataset.action;
+  const down = e => {
+    e.preventDefault(); e.stopPropagation();
+    if (act === 'deliver') tryAction();
+    else actions[act] = true;
+  };
+  const up = e => {
+    e.preventDefault(); e.stopPropagation();
+    if (act !== 'deliver') actions[act] = false;
+  };
+  btn.addEventListener('touchstart', down, { passive: false });
+  btn.addEventListener('touchend', up, { passive: false });
+  btn.addEventListener('touchcancel', up, { passive: false });
+  btn.addEventListener('mousedown', down);
+  btn.addEventListener('mouseup', up);
+  btn.addEventListener('mouseleave', up);
+});
+
+function showMsg(text, duration) {
+  msgEl.textContent = text;
+  msgEl.style.opacity = '1';
+  clearTimeout(msgEl._t);
+  msgEl._t = setTimeout(() => msgEl.style.opacity = '0', duration || 1200);
+}
+
+function tryAction() {
+  if (!playing) return;
+  // Near shop?
+  const shopSeg = Math.floor(shopDistance / SEGMENT_LENGTH) % segments.length;
+  const playerSeg = Math.floor(playerZ / SEGMENT_LENGTH) % segments.length;
+  const shopDiff = Math.abs(playerZ - shopDistance);
+
+  if (shopDiff < SEGMENT_LENGTH * 2 && pizzasHeld < maxPizzas) {
+    const needed = currentOrder ? (currentOrder.delivered ? 0 : 1) : 1;
+    pizzasHeld = Math.min(maxPizzas, pizzasHeld + 3);
+    showMsg('🍕 Loaded up! ' + pizzasHeld + ' pizzas!');
+    if (!currentOrder) placeOrder();
+    return;
+  }
+
+  // Near order house?
+  if (currentOrder && !currentOrder.delivered && pizzasHeld > 0) {
+    const orderDiff = Math.abs(playerZ - currentOrder.dist);
+    if (orderDiff < SEGMENT_LENGTH * 2) {
+      currentOrder.delivered = true;
+      pizzasHeld--;
+      deliveries++;
+      const tip = Math.max(5, Math.floor(currentOrder.timeBonus / 8));
+      score += 50 + tip;
+      showMsg('+$' + (50 + tip) + ' 🎉 Delivered!', 1500);
+      // Clear marker
+      const oi = Math.floor(currentOrder.dist / SEGMENT_LENGTH) % segments.length;
+      segments[oi].orderHouse = false;
+      // Place next order and shop
+      setTimeout(() => {
+        placeOrder();
+        placeShop();
+      }, 500);
+      return;
+    }
+  }
+
+  if (pizzasHeld <= 0) showMsg('❌ No pizzas! Find the shop 🏪');
+  else if (currentOrder && !currentOrder.delivered) showMsg('🏠 Get closer to the house!');
+}
+
+function updateHUD() {
+  document.getElementById('money').textContent = '$' + score;
+  const m = Math.floor(timeLeft / 60), s = timeLeft % 60;
+  document.getElementById('timer').textContent = '⏰ ' + m + ':' + (s < 10 ? '0' : '') + s;
+  document.getElementById('timer').style.color = timeLeft <= 15 ? '#ef4444' : '#fbbf24';
+
+  let info = '';
+  if (pizzasHeld <= 0) info = '🏪 Go to pizza shop!';
+  else if (currentOrder && !currentOrder.delivered) info = '📍 Deliver to house! 🍕×' + pizzasHeld;
+  else info = '🍕×' + pizzasHeld + ' — Looking for orders...';
+  document.getElementById('order-info').textContent = info;
+}
+
+// Pseudo-3D rendering
+function project(pX, pY, pZ, camX, camY, camZ) {
+  const scale = 1 / (pZ - camZ);
+  return {
+    x: W/2 + (pX - camX) * scale * W * 0.7,
+    y: H/2 - (pY - camY) * scale * H * 2,
+    w: scale * ROAD_WIDTH * W * 0.35,
+    scale: scale
+  };
+}
+
+let lastTime = 0;
+function update(dt) {
+  if (!playing) return;
+
+  frame++;
+  if (frame % 60 === 0) {
+    timeLeft--;
+    if (timeLeft <= 0) { gameOver(); return; }
+  }
+
+  // Decrease time bonus
+  if (currentOrder && !currentOrder.delivered) {
+    currentOrder.timeBonus = Math.max(0, currentOrder.timeBonus - dt * 15);
+  }
+
+  // Speed — always accelerating (auto-gas), brake to slow down
+  if (actions.brake) speed -= brakeForce * dt;
+  else speed += accel * dt;
+  speed = Math.max(20, Math.min(maxSpeed, speed));
+
+  // Steering
+  const steerAmount = 2.5 * dt * (speed / maxSpeed);
+  if (actions.left) posX -= steerAmount;
+  if (actions.right) posX += steerAmount;
+
+  // Road curve pushes player
+  const curSeg = Math.floor(playerZ / SEGMENT_LENGTH) % segments.length;
+  const curve = segments[curSeg].curve;
+  posX += curve * dt * speed * 0.00003;
+
+  // Clamp to road
+  if (posX < -1.1) { posX = -1.1; speed *= 0.95; }
+  if (posX > 1.1) { posX = 1.1; speed *= 0.95; }
+
+  // Off-road slowdown
+  if (Math.abs(posX) > 0.9) speed *= (1 - 2 * dt);
+
+  // Move forward
+  playerZ += speed * dt;
+
+  // Wrap segments
+  if (playerZ > segments.length * SEGMENT_LENGTH) playerZ -= segments.length * SEGMENT_LENGTH;
+
+  updateHUD();
+}
+
+function render() {
+  // Sky gradient
+  const skyGrad = X.createLinearGradient(0, 0, 0, H * 0.5);
+  skyGrad.addColorStop(0, '#1e90ff');
+  skyGrad.addColorStop(0.6, '#87CEEB');
+  skyGrad.addColorStop(1, '#b0e0e6');
+  X.fillStyle = skyGrad;
+  X.fillRect(0, 0, W, H * 0.5);
+
+  // Sun
+  X.fillStyle = '#fff3b0';
+  X.shadowColor = '#fbbf24';
+  X.shadowBlur = 40;
+  X.beginPath();
+  X.arc(W * 0.8, H * 0.12, 30, 0, Math.PI * 2);
+  X.fill();
+  X.shadowBlur = 0;
+
+  // Clouds
+  X.fillStyle = 'rgba(255,255,255,0.7)';
+  for (let i = 0; i < 5; i++) {
+    const cx = ((i * 317 + frame * 0.2) % (W + 200)) - 100;
+    const cy = 30 + (i * 47 % 60);
+    X.beginPath();
+    X.ellipse(cx, cy, 50 + i * 10, 15 + i * 3, 0, 0, Math.PI * 2);
+    X.fill();
+  }
+
+  // Ground
+  X.fillStyle = '#3a7a3a';
+  X.fillRect(0, H * 0.5, W, H * 0.5);
+
+  const baseSeg = Math.floor(playerZ / SEGMENT_LENGTH);
+  const camH = 1500;
+  let x = 0, dx = 0;
+
+  // Draw segments from back to front
+  const segPoints = [];
+  for (let n = 0; n < DRAW_DISTANCE; n++) {
+    const i = (baseSeg + n) % segments.length;
+    const seg = segments[i];
+    const z = (baseSeg + n) * SEGMENT_LENGTH - playerZ;
+
+    if (z <= 0) continue;
+
+    const p = project(posX * ROAD_WIDTH * -0.5 + x, 0, z, 0, camH, 0);
+    p.curve = seg.curve;
+    p.index = i;
+    p.z = z;
+    p.n = n;
+    segPoints.push(p);
+
+    x += dx;
+    dx += seg.curve * 0.02;
+  }
+
+  // Draw road segments
+  for (let n = segPoints.length - 1; n > 0; n--) {
+    const p1 = segPoints[n];
+    const p2 = segPoints[n - 1];
+    const seg = segments[p1.index];
+
+    const grass = (Math.floor(p1.index / 3) % 2) ? '#2d6a2d' : '#3a7a3a';
+    const rumble = (Math.floor(p1.index / 3) % 2) ? '#d44' : '#fff';
+    const road = (Math.floor(p1.index / 3) % 2) ? '#555' : '#666';
+    const lane = (Math.floor(p1.index / 6) % 2) ? '#fff' : road;
+
+    // Grass
+    X.fillStyle = grass;
+    X.fillRect(0, p2.y, W, p1.y - p2.y + 1);
+
+    // Road
+    drawPoly(X, road, p1.x - p1.w, p1.y, p1.x + p1.w, p1.y, p2.x + p2.w, p2.y, p2.x - p2.w, p2.y);
+
+    // Rumble strips
+    const rw1 = p1.w * 1.15, rw2 = p2.w * 1.15;
+    drawPoly(X, rumble, p1.x - rw1, p1.y, p1.x - p1.w, p1.y, p2.x - p2.w, p2.y, p2.x - rw2, p2.y);
+    drawPoly(X, rumble, p1.x + p1.w, p1.y, p1.x + rw1, p1.y, p2.x + rw2, p2.y, p2.x + p2.w, p2.y);
+
+    // Lane markings
+    const lw = p1.w * 0.02;
+    drawPoly(X, lane, p1.x - lw, p1.y, p1.x + lw, p1.y, p2.x + p2.w*0.02, p2.y, p2.x - p2.w*0.02, p2.y);
+
+    // Sprites
+    seg.sprites.forEach(sp => {
+      drawSprite(sp, p1, p2);
+    });
+
+    // Shop marker
+    if (seg.shop) {
+      const sw = p1.w * 0.4;
+      const sh = sw * 0.8;
+      const sx = p1.x + p1.w * 0.6;
+      const sy = p1.y - sh;
+
+      if (sy > 0 && sy < H && p1.z < SEGMENT_LENGTH * 40) {
+        // Building
+        X.fillStyle = '#f97316';
+        X.fillRect(sx - sw/2, sy, sw, sh);
+        // Roof
+        X.fillStyle = '#7c2d12';
+        X.beginPath();
+        X.moveTo(sx - sw/2 - 4, sy);
+        X.lineTo(sx, sy - sh * 0.35);
+        X.lineTo(sx + sw/2 + 4, sy);
+        X.closePath();
+        X.fill();
+        // Sign
+        X.fillStyle = '#fff';
+        X.font = `bold ${Math.max(8, sw * 0.2)}px Nunito`;
+        X.textAlign = 'center';
+        X.fillText('🍕 PIZZA', sx, sy + sh * 0.5);
+        // Glow
+        X.shadowColor = '#f97316';
+        X.shadowBlur = 15;
+        X.fillStyle = '#f97316';
+        X.beginPath(); X.arc(sx, sy - sh * 0.2, 3, 0, Math.PI * 2); X.fill();
+        X.shadowBlur = 0;
+      }
+    }
+
+    // Order house marker
+    if (seg.orderHouse && currentOrder && !currentOrder.delivered) {
+      const sw = p1.w * 0.45;
+      const sh = sw * 0.7;
+      const sx = p1.x - p1.w * 0.7;
+      const sy = p1.y - sh;
+
+      if (sy > 0 && sy < H && p1.z < SEGMENT_LENGTH * 40) {
+        // House
+        X.fillStyle = '#deb887';
+        X.fillRect(sx - sw/2, sy, sw, sh);
+        // Roof
+        X.fillStyle = '#8b0000';
+        X.beginPath();
+        X.moveTo(sx - sw/2 - 4, sy);
+        X.lineTo(sx, sy - sh * 0.4);
+        X.lineTo(sx + sw/2 + 4, sy);
+        X.closePath();
+        X.fill();
+        // Door
+        X.fillStyle = '#5a3a1a';
+        X.fillRect(sx - sw*0.1, sy + sh*0.4, sw*0.2, sh*0.6);
+        // Marker
+        X.font = `${Math.max(12, sw * 0.3)}px sans-serif`;
+        X.textAlign = 'center';
+        X.fillText('📍', sx, sy - sh * 0.3);
+        // Pulsing glow
+        X.strokeStyle = '#ef4444';
+        X.lineWidth = 2;
+        X.shadowColor = '#ef4444';
+        X.shadowBlur = 10 + Math.sin(frame * 0.1) * 5;
+        X.strokeRect(sx - sw/2 - 4, sy - sh * 0.3, sw + 8, sh * 1.4);
+        X.shadowBlur = 0;
+      }
+    }
+  }
+
+  // Distance arrow to target
+  if (playing) {
+    let targetDist = 0;
+    let targetLabel = '';
+    if (pizzasHeld <= 0) {
+      targetDist = shopDistance - playerZ;
+      targetLabel = '🏪 Shop';
+    } else if (currentOrder && !currentOrder.delivered) {
+      targetDist = currentOrder.dist - playerZ;
+      targetLabel = '🏠 Deliver';
+    }
+    if (targetDist > SEGMENT_LENGTH * 3) {
+      const dist = Math.floor(targetDist / SEGMENT_LENGTH);
+      X.fillStyle = 'rgba(0,0,0,0.5)';
+      X.beginPath();
+      const ax = W/2, ay = H * 0.35;
+      X.fillRect(ax - 60, ay - 14, 120, 28);
+      X.fill();
+      X.fillStyle = '#fff';
+      X.font = 'bold 13px Nunito';
+      X.textAlign = 'center';
+      X.fillText(targetLabel + ' ▲ ' + dist + ' blocks', ax, ay + 4);
+    }
+  }
+
+  // Draw motorcycle/rider at bottom
+  drawBike();
+
+  // Speedometer
+  X.fillStyle = 'rgba(0,0,0,0.4)';
+  X.beginPath();
+  X.fillRect(W/2 - 40, H - 95, 80, 24);
+  X.fill();
+  const mph = Math.floor(speed * 0.6);
+  X.fillStyle = speed > maxSpeed * 0.8 ? '#ef4444' : '#fff';
+  X.font = 'bold 14px Nunito';
+  X.textAlign = 'center';
+  X.fillText(mph + ' mph', W/2, H - 78);
+}
+
+function drawPoly(ctx, color, x1, y1, x2, y2, x3, y3, x4, y4) {
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.moveTo(x1, y1);
+  ctx.lineTo(x2, y2);
+  ctx.lineTo(x3, y3);
+  ctx.lineTo(x4, y4);
+  ctx.closePath();
+  ctx.fill();
+}
+
+function drawSprite(sp, p1, p2) {
+  if (p1.z > SEGMENT_LENGTH * 50) return;
+  const sx = p1.x + p1.w * sp.offset;
+  const sy = p1.y;
+  const scale = p1.w / ROAD_WIDTH * 2;
+
+  if (sx < -100 || sx > W + 100 || sy < 0 || sy > H) return;
+
+  if (sp.type === 'tree') {
+    const ts = sp.size * scale;
+    if (ts < 1) return;
+    // Trunk
+    X.fillStyle = '#5a3a1a';
+    X.fillRect(sx - ts*0.08, sy - ts*0.8, ts*0.16, ts*0.8);
+    // Canopy
+    X.fillStyle = '#2d6a2d';
+    X.beginPath();
+    X.arc(sx, sy - ts*0.9, ts*0.4, 0, Math.PI * 2);
+    X.fill();
+    X.fillStyle = '#1a5a1a';
+    X.beginPath();
+    X.arc(sx - ts*0.1, sy - ts, ts*0.3, 0, Math.PI * 2);
+    X.fill();
+  } else if (sp.type === 'house') {
+    const hw = sp.w * scale;
+    const hh = sp.h * scale;
+    if (hw < 2) return;
+    // Wall
+    X.fillStyle = sp.color;
+    X.fillRect(sx - hw/2, sy - hh, hw, hh);
+    // Roof
+    X.fillStyle = sp.roofColor;
+    X.beginPath();
+    X.moveTo(sx - hw/2 - hw*0.05, sy - hh);
+    X.lineTo(sx, sy - hh - hh*0.45);
+    X.lineTo(sx + hw/2 + hw*0.05, sy - hh);
+    X.closePath();
+    X.fill();
+    // Windows
+    if (hw > 10) {
+      X.fillStyle = sp.lit ? 'rgba(255,230,150,0.8)' : 'rgba(50,50,80,0.4)';
+      X.fillRect(sx - hw*0.3, sy - hh*0.7, hw*0.2, hw*0.2);
+      X.fillRect(sx + hw*0.1, sy - hh*0.7, hw*0.2, hw*0.2);
+    }
+    // Door
+    if (hw > 8) {
+      X.fillStyle = '#5a3a1a';
+      X.fillRect(sx - hw*0.08, sy - hh*0.35, hw*0.16, hh*0.35);
+    }
+  } else if (sp.type === 'lamp') {
+    const lh = 40 * scale;
+    if (lh < 2) return;
+    X.fillStyle = '#555';
+    X.fillRect(sx - 1, sy - lh, 2, lh);
+    X.fillStyle = '#fbbf24';
+    X.shadowColor = '#fbbf24';
+    X.shadowBlur = 8 * scale;
+    X.beginPath();
+    X.arc(sx, sy - lh, 3 * scale, 0, Math.PI * 2);
+    X.fill();
+    X.shadowBlur = 0;
+  }
+}
+
+function drawBike() {
+  const bx = W/2 + posX * W * 0.15;
+  const by = H - 40;
+  const lean = (actions.left ? -1 : 0) + (actions.right ? 1 : 0);
+  const bounce = speed > 10 ? Math.sin(frame * 0.3) * 1.5 : 0;
+
+  X.save();
+  X.translate(bx, by + bounce);
+  X.rotate(lean * 0.1);
+
+  // Shadow
+  X.fillStyle = 'rgba(0,0,0,0.2)';
+  X.beginPath();
+  X.ellipse(0, 5, 20, 5, 0, 0, Math.PI * 2);
+  X.fill();
+
+  // Rear wheel
+  X.fillStyle = '#111';
+  X.beginPath(); X.arc(0, 0, 10, 0, Math.PI * 2); X.fill();
+  X.fillStyle = '#333';
+  X.beginPath(); X.arc(0, 0, 6, 0, Math.PI * 2); X.fill();
+
+  // Body
+  X.fillStyle = '#ef4444';
+  X.fillRect(-8, -25, 16, 20);
+
+  // Handlebars
+  X.fillStyle = '#888';
+  X.fillRect(-14, -30, 28, 4);
+
+  // Windshield
+  X.fillStyle = 'rgba(150,200,255,0.4)';
+  X.beginPath();
+  X.moveTo(-8, -30);
+  X.lineTo(0, -42);
+  X.lineTo(8, -30);
+  X.closePath();
+  X.fill();
+
+  // Rider body
+  X.fillStyle = '#222';
+  X.fillRect(-7, -50, 14, 22);
+
+  // Helmet
+  X.fillStyle = '#ef4444';
+  X.beginPath(); X.arc(0, -55, 9, 0, Math.PI * 2); X.fill();
+  // Visor
+  X.fillStyle = 'rgba(50,50,50,0.8)';
+  X.fillRect(-7, -56, 14, 5);
+
+  // Pizza box
+  if (pizzasHeld > 0) {
+    X.fillStyle = '#f97316';
+    X.fillRect(-12, -15, 24, 6);
+    X.fillStyle = '#fff';
+    X.font = 'bold 8px Nunito';
+    X.textAlign = 'center';
+    X.fillText('PIZZA ×' + pizzasHeld, 0, -10);
+  }
+
+  // Headlight glow
+  if (speed > 5) {
+    X.fillStyle = 'rgba(255,240,200,0.3)';
+    X.beginPath();
+    X.moveTo(-15, -35);
+    X.lineTo(0, -80 - speed * 0.3);
+    X.lineTo(15, -35);
+    X.closePath();
+    X.fill();
+  }
+
+  X.restore();
+}
+
+function gameOver() {
+  playing = false;
+  overlay.querySelector('h1').textContent = '🍕 Shift Over!';
+  overlay.querySelector('h2').textContent = 'Earned $' + score + ' · ' + deliveries + ' deliveries';
+  overlay.querySelector('p').textContent = 'Great riding! Ready for another shift?';
+  document.getElementById('play-btn').textContent = '🏍️ Ride Again!';
+  overlay.style.display = 'flex';
+}
+
+document.getElementById('play-btn').addEventListener('click', () => {
+  overlay.style.display = 'none';
+  playing = true;
+  score = 0; timeLeft = 120; frame = 0; deliveries = 0;
+  speed = 50; posX = 0; playerZ = 0;
+  pizzasHeld = 0; currentOrder = null;
+  buildRoad();
+  overlay.querySelector('h1').textContent = '🍕 Pizza Rider';
+  overlay.querySelector('h2').textContent = 'First-Person Delivery!';
+});
+
+// Pre-build road so it renders on start screen
+buildRoad();
+
+function loop(ts) {
+  const dt = Math.min(0.05, (ts - lastTime) / 1000);
+  lastTime = ts;
+  update(dt);
+  render();
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
