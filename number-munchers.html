@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Number Munchers — AJ GameTime</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap');
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { min-height: 100vh; font-family: 'VT323', monospace; background: #1a1a4a; color: #fff; overflow-x: hidden; user-select: none; }
+#header { width: 100%; padding: 0.5rem 1rem; display: flex; justify-content: space-between; align-items: center; position: fixed; top: 0; z-index: 10; background: rgba(26,26,74,0.95); border-bottom: 2px solid #3333aa; }
+#header a { color: #6666cc; text-decoration: none; font-size: 0.85rem; font-family: 'VT323', monospace; }
+
+.game-wrap { max-width: 700px; margin: 0 auto; padding: 3.5rem 0.5rem 1rem; }
+
+/* HUD */
+.hud { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 1rem; background: #0a0a3a; border: 2px solid #3333aa; border-bottom: none; border-radius: 8px 8px 0 0; }
+.hud-item { text-align: center; }
+.hud-label { font-size: 0.8rem; color: #6666cc; }
+.hud-val { font-size: 1.5rem; font-family: 'Press Start 2P', monospace; }
+.hud-val.score { color: #ffcc00; }
+.hud-val.level { color: #33ff33; }
+.hud-val.lives { color: #ff4444; }
+
+/* Challenge bar */
+.challenge {
+  background: #2222aa; padding: 0.75rem; text-align: center;
+  font-family: 'Press Start 2P', monospace; font-size: clamp(0.6rem, 2vw, 0.9rem);
+  color: #ffcc00; border: 2px solid #3333aa; border-top: none; border-bottom: none;
+  text-shadow: 0 0 10px rgba(255,204,0,0.5);
+}
+
+/* Grid */
+.grid-container {
+  background: #0a0a3a; border: 2px solid #3333aa; border-radius: 0 0 8px 8px;
+  padding: 0.5rem;
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 2px;
+}
+.cell {
+  aspect-ratio: 1.4;
+  display: flex; align-items: center; justify-content: center;
+  background: #1a1a5a; border: 1px solid #2a2a6a;
+  font-family: 'Press Start 2P', monospace;
+  font-size: clamp(0.7rem, 2.5vw, 1.1rem);
+  color: #ccccff;
+  cursor: pointer;
+  transition: background 0.1s;
+  position: relative;
+  min-height: 45px;
+}
+.cell:hover { background: #2a2a7a; }
+.cell.player {
+  background: #33aa33 !important;
+  border-color: #44dd44;
+  box-shadow: 0 0 10px rgba(51,170,51,0.5);
+}
+.cell.player .muncher { display: block; }
+.cell.correct-flash { background: #22aa22 !important; animation: flashGood 0.3s; }
+.cell.wrong-flash { background: #aa2222 !important; animation: flashBad 0.3s; }
+.cell.troggle { color: #ff6666; }
+.cell.empty-cell { color: #333366; }
+
+@keyframes flashGood { 0% { transform: scale(1.1); } 100% { transform: scale(1); } }
+@keyframes flashBad { 0% { transform: scale(0.9); } 100% { transform: scale(1); } }
+
+/* Muncher character */
+.muncher {
+  display: none;
+  position: absolute;
+  font-size: clamp(1.2rem, 4vw, 2rem);
+  z-index: 2;
+  animation: munch 0.5s ease-in-out infinite;
+}
+@keyframes munch {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+/* Troggle */
+.troggle-sprite {
+  position: absolute;
+  font-size: clamp(1rem, 3vw, 1.5rem);
+  z-index: 3;
+  animation: troggleWalk 0.6s ease-in-out infinite;
+}
+@keyframes troggleWalk {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+
+/* Screens */
+.overlay {
+  position: fixed; inset: 0; background: rgba(10,10,40,0.95);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  z-index: 30;
+}
+.overlay.hidden { display: none; }
+.overlay h1 { font-family: 'Press Start 2P', monospace; font-size: clamp(1.2rem, 4vw, 2rem); color: #ffcc00; margin-bottom: 1rem; text-shadow: 0 0 20px rgba(255,204,0,0.5); }
+.overlay h2 { font-family: 'Press Start 2P', monospace; font-size: clamp(0.8rem, 3vw, 1.2rem); color: #ff4444; margin-bottom: 1rem; }
+.overlay p { font-size: 1.3rem; color: #9999cc; margin-bottom: 0.5rem; text-align: center; max-width: 500px; }
+.overlay .emoji { font-size: 4rem; margin-bottom: 1rem; }
+.play-btn {
+  margin-top: 1.5rem; padding: 1rem 2.5rem; font-family: 'Press Start 2P', monospace;
+  font-size: 0.9rem; background: #2222aa; color: #ffcc00; border: 3px solid #4444cc;
+  cursor: pointer; transition: 0.2s; border-radius: 4px;
+}
+.play-btn:hover { background: #3333cc; border-color: #ffcc00; transform: scale(1.05); }
+
+/* Level complete */
+.level-msg {
+  position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%);
+  background: #1a1a5a; border: 3px solid #ffcc00; padding: 2rem 3rem;
+  font-family: 'Press Start 2P', monospace; text-align: center; z-index: 25;
+  border-radius: 8px; box-shadow: 0 0 40px rgba(255,204,0,0.3);
+}
+.level-msg.hidden { display: none; }
+.level-msg h2 { color: #ffcc00; font-size: 1rem; margin-bottom: 0.5rem; }
+.level-msg p { color: #9999cc; font-size: 0.7rem; }
+
+/* Mobile controls */
+#mobileControls {
+  display: none; justify-content: center; gap: 0.25rem; margin-top: 0.5rem;
+  flex-direction: column; align-items: center;
+}
+.ctrl-row { display: flex; gap: 0.25rem; }
+.ctrl-btn {
+  width: 55px; height: 55px; border-radius: 8px; border: 2px solid #3333aa;
+  background: #1a1a5a; color: #ffcc00; font-size: 1.5rem;
+  display: flex; align-items: center; justify-content: center;
+  -webkit-tap-highlight-color: transparent; cursor: pointer;
+}
+.ctrl-btn:active { background: #3333aa; }
+.ctrl-btn.munch-btn { width: 120px; font-family: 'Press Start 2P', monospace; font-size: 0.6rem; color: #33ff33; border-color: #33aa33; }
+@media (pointer: coarse), (hover: none) {
+  #mobileControls { display: flex !important; }
+}
+</style>
+</head>
+<body>
+
+<div id="header">
+  <a href="/">← AJ GameTime</a>
+  <span style="font-family:'Press Start 2P',monospace;font-size:0.55rem;color:#6666cc;">NUMBER MUNCHERS</span>
+</div>
+
+<div id="startScreen" class="overlay">
+  <div class="emoji">🟢</div>
+  <h1>NUMBER MUNCHERS</h1>
+  <p>Munch the correct numbers on the grid! Watch out for Troggles — they'll eat YOU!</p>
+  <p style="font-size:1.1rem;">Arrow keys to move · Space/Enter to munch<br>On mobile: use on-screen buttons</p>
+  <button class="play-btn" onclick="startGame()">START GAME</button>
+</div>
+
+<div id="gameOverScreen" class="overlay hidden">
+  <div class="emoji">💀</div>
+  <h2>GAME OVER</h2>
+  <p>Final Score: <span id="finalScore" style="color:#ffcc00;font-family:'Press Start 2P',monospace;">0</span></p>
+  <p>Level Reached: <span id="finalLevel" style="color:#33ff33;">1</span></p>
+  <button class="play-btn" onclick="startGame()">PLAY AGAIN</button>
+</div>
+
+<div id="levelMsg" class="level-msg hidden">
+  <h2 id="levelTitle">LEVEL 1</h2>
+  <p id="levelDesc">Find multiples of 2</p>
+</div>
+
+<div class="game-wrap">
+  <div class="hud">
+    <div class="hud-item"><div class="hud-label">Score</div><div class="hud-val score" id="scoreDisp">0</div></div>
+    <div class="hud-item"><div class="hud-label">Level</div><div class="hud-val level" id="levelDisp">1</div></div>
+    <div class="hud-item"><div class="hud-label">Lives</div><div class="hud-val lives" id="livesDisp">❤️❤️❤️</div></div>
+  </div>
+  <div class="challenge" id="challenge">Eat the multiples of 2!</div>
+  <div class="grid-container">
+    <div class="grid" id="grid"></div>
+  </div>
+  <div id="mobileControls">
+    <div class="ctrl-row">
+      <div class="ctrl-btn" style="visibility:hidden;"></div>
+      <div class="ctrl-btn" ontouchstart="move(0,-1)" onclick="move(0,-1)">⬆️</div>
+      <div class="ctrl-btn" style="visibility:hidden;"></div>
+    </div>
+    <div class="ctrl-row">
+      <div class="ctrl-btn" ontouchstart="move(-1,0)" onclick="move(-1,0)">⬅️</div>
+      <div class="ctrl-btn" ontouchstart="move(0,1)" onclick="move(0,1)">⬇️</div>
+      <div class="ctrl-btn" ontouchstart="move(1,0)" onclick="move(1,0)">➡️</div>
+    </div>
+    <div class="ctrl-row">
+      <div class="ctrl-btn munch-btn" ontouchstart="munch()" onclick="munch()">MUNCH!</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const ROWS = 5, COLS = 6;
+let grid, playerR, playerC;
+let score, lives, level;
+let gameRunning = false;
+let correctCount, totalCorrect;
+let troggles = [];
+let troggleInterval;
+let currentChallenge;
+
+// Challenge types
+function getChallenges(lvl) {
+  const challenges = [
+    { type: 'multiples', n: 2, text: 'Eat the multiples of 2!', desc: 'Find multiples of 2' },
+    { type: 'multiples', n: 3, text: 'Eat the multiples of 3!', desc: 'Find multiples of 3' },
+    { type: 'multiples', n: 5, text: 'Eat the multiples of 5!', desc: 'Find multiples of 5' },
+    { type: 'multiples', n: 4, text: 'Eat the multiples of 4!', desc: 'Find multiples of 4' },
+    { type: 'multiples', n: 7, text: 'Eat the multiples of 7!', desc: 'Find multiples of 7' },
+    { type: 'primes', text: 'Eat the prime numbers!', desc: 'Find prime numbers' },
+    { type: 'evens', text: 'Eat the even numbers!', desc: 'Find even numbers' },
+    { type: 'odds', text: 'Eat the odd numbers!', desc: 'Find odd numbers' },
+    { type: 'factors', n: 24, text: 'Eat the factors of 24!', desc: 'Find factors of 24' },
+    { type: 'factors', n: 36, text: 'Eat the factors of 36!', desc: 'Find factors of 36' },
+    { type: 'multiples', n: 6, text: 'Eat the multiples of 6!', desc: 'Find multiples of 6' },
+    { type: 'factors', n: 48, text: 'Eat the factors of 48!', desc: 'Find factors of 48' },
+    { type: 'multiples', n: 9, text: 'Eat the multiples of 9!', desc: 'Find multiples of 9' },
+    { type: 'primes', text: 'Eat the prime numbers!', desc: 'Find prime numbers' },
+    { type: 'multiples', n: 8, text: 'Eat the multiples of 8!', desc: 'Find multiples of 8' },
+  ];
+  return challenges[(lvl - 1) % challenges.length];
+}
+
+function isPrime(n) {
+  if (n < 2) return false;
+  if (n < 4) return true;
+  if (n % 2 === 0 || n % 3 === 0) return false;
+  for (let i = 5; i * i <= n; i += 6) { if (n%i===0||n%(i+2)===0) return false; }
+  return true;
+}
+
+function getFactors(n) {
+  const f = [];
+  for (let i = 1; i <= n; i++) { if (n % i === 0) f.push(i); }
+  return f;
+}
+
+function isCorrect(num) {
+  const ch = currentChallenge;
+  if (ch.type === 'multiples') return num % ch.n === 0 && num !== 0;
+  if (ch.type === 'primes') return isPrime(num);
+  if (ch.type === 'evens') return num % 2 === 0 && num !== 0;
+  if (ch.type === 'odds') return num % 2 !== 0;
+  if (ch.type === 'factors') return ch.n % num === 0 && num > 0;
+  return false;
+}
+
+function generateNumber() {
+  const ch = currentChallenge;
+  if (ch.type === 'multiples') {
+    // Mix of correct and wrong
+    if (Math.random() < 0.35) return ch.n * (1 + Math.floor(Math.random() * Math.floor(99/ch.n)));
+    return 1 + Math.floor(Math.random() * 99);
+  }
+  if (ch.type === 'primes') {
+    if (Math.random() < 0.35) {
+      const primes = [2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71,73,79,83,89,97];
+      return primes[Math.floor(Math.random() * primes.length)];
+    }
+    return 1 + Math.floor(Math.random() * 99);
+  }
+  if (ch.type === 'evens') {
+    if (Math.random() < 0.35) return (1 + Math.floor(Math.random() * 49)) * 2;
+    return 1 + Math.floor(Math.random() * 99);
+  }
+  if (ch.type === 'odds') {
+    if (Math.random() < 0.35) return 1 + Math.floor(Math.random() * 50) * 2;
+    return 1 + Math.floor(Math.random() * 99);
+  }
+  if (ch.type === 'factors') {
+    const factors = getFactors(ch.n);
+    if (Math.random() < 0.35) return factors[Math.floor(Math.random() * factors.length)];
+    return 1 + Math.floor(Math.random() * 99);
+  }
+  return 1 + Math.floor(Math.random() * 99);
+}
+
+function initGrid() {
+  grid = [];
+  for (let r = 0; r < ROWS; r++) {
+    grid[r] = [];
+    for (let c = 0; c < COLS; c++) {
+      grid[r][c] = { num: generateNumber(), eaten: false };
+    }
+  }
+  // Ensure enough correct answers
+  let correctCells = 0;
+  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+    if (isCorrect(grid[r][c].num)) correctCells++;
+  }
+  // Need at least 8 correct
+  while (correctCells < 8) {
+    const r = Math.floor(Math.random() * ROWS);
+    const c = Math.floor(Math.random() * COLS);
+    if (!isCorrect(grid[r][c].num)) {
+      grid[r][c].num = generateCorrectNumber();
+      correctCells++;
+    }
+  }
+  totalCorrect = 0;
+  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+    if (isCorrect(grid[r][c].num)) totalCorrect++;
+  }
+  correctCount = 0;
+}
+
+function generateCorrectNumber() {
+  const ch = currentChallenge;
+  if (ch.type === 'multiples') return ch.n * (1 + Math.floor(Math.random() * Math.floor(99/ch.n)));
+  if (ch.type === 'primes') {
+    const primes = [2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71,73,79,83,89,97];
+    return primes[Math.floor(Math.random() * primes.length)];
+  }
+  if (ch.type === 'evens') return (1 + Math.floor(Math.random() * 49)) * 2;
+  if (ch.type === 'odds') return 1 + Math.floor(Math.random() * 50) * 2;
+  if (ch.type === 'factors') { const f = getFactors(ch.n); return f[Math.floor(Math.random() * f.length)]; }
+  return 2;
+}
+
+function renderGrid() {
+  const g = document.getElementById('grid');
+  let html = '';
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const cell = grid[r][c];
+      const isPlayer = r === playerR && c === playerC;
+      const trogHere = troggles.find(t => t.r === r && t.c === c && t.alive);
+      let cls = 'cell';
+      if (isPlayer) cls += ' player';
+      if (cell.eaten) cls += ' empty-cell';
+      if (trogHere) cls += ' troggle';
+
+      html += `<div class="${cls}" data-r="${r}" data-c="${c}" onclick="clickCell(${r},${c})">`;
+      if (isPlayer) {
+        html += `<span class="muncher">🟢</span>`;
+      }
+      if (trogHere) {
+        html += `<span class="troggle-sprite">${trogHere.emoji}</span>`;
+      }
+      if (!cell.eaten) {
+        html += cell.num;
+      }
+      html += `</div>`;
+    }
+  }
+  g.innerHTML = html;
+}
+
+function updateHUD() {
+  document.getElementById('scoreDisp').textContent = score;
+  document.getElementById('levelDisp').textContent = level;
+  let h = '';
+  for (let i = 0; i < lives; i++) h += '❤️';
+  document.getElementById('livesDisp').textContent = h || '💀';
+  document.getElementById('challenge').textContent = currentChallenge.text;
+}
+
+function move(dc, dr) {
+  if (!gameRunning) return;
+  const newR = playerR + dr;
+  const newC = playerC + dc;
+  if (newR < 0 || newR >= ROWS || newC < 0 || newC >= COLS) return;
+  playerR = newR;
+  playerC = newC;
+  checkTroggleCollision();
+  renderGrid();
+}
+
+function munch() {
+  if (!gameRunning) return;
+  const cell = grid[playerR][playerC];
+  if (cell.eaten) return;
+
+  const cellEl = document.querySelector(`.cell[data-r="${playerR}"][data-c="${playerC}"]`);
+
+  if (isCorrect(cell.num)) {
+    // Correct!
+    cell.eaten = true;
+    score += 5 * level;
+    correctCount++;
+    if (cellEl) cellEl.classList.add('correct-flash');
+    updateHUD();
+
+    // Level complete?
+    if (correctCount >= totalCorrect) {
+      setTimeout(() => nextLevel(), 500);
+    }
+  } else {
+    // Wrong!
+    loseLife();
+    if (cellEl) cellEl.classList.add('wrong-flash');
+  }
+  renderGrid();
+}
+
+function clickCell(r, c) {
+  if (!gameRunning) return;
+  // If adjacent or same cell, move there then munch
+  if (r === playerR && c === playerC) {
+    munch();
+  } else if (Math.abs(r - playerR) + Math.abs(c - playerC) === 1) {
+    playerR = r; playerC = c;
+    checkTroggleCollision();
+    renderGrid();
+    setTimeout(munch, 100);
+  } else {
+    // Move toward clicked cell
+    const dr = Math.sign(r - playerR);
+    const dc = Math.sign(c - playerC);
+    if (dr !== 0 && dc !== 0) {
+      // Move one axis at a time
+      playerR += dr;
+    } else {
+      playerR += dr;
+      playerC += dc;
+    }
+    checkTroggleCollision();
+    renderGrid();
+  }
+}
+
+function loseLife() {
+  lives--;
+  updateHUD();
+  if (lives <= 0) {
+    gameRunning = false;
+    clearInterval(troggleInterval);
+    document.getElementById('finalScore').textContent = score;
+    document.getElementById('finalLevel').textContent = level;
+    document.getElementById('gameOverScreen').classList.remove('hidden');
+  }
+}
+
+// Troggles!
+const TROGGLE_TYPES = [
+  { emoji: '👾', name: 'Reggie', speed: 1 },
+  { emoji: '👿', name: 'Bashful', speed: 1 },
+  { emoji: '🐛', name: 'Worker', speed: 2 },
+  { emoji: '💀', name: 'Smarty', speed: 1 },
+];
+
+function spawnTroggle() {
+  if (!gameRunning) return;
+  const maxTroggles = Math.min(1 + Math.floor(level / 2), 4);
+  const alive = troggles.filter(t => t.alive).length;
+  if (alive >= maxTroggles) return;
+
+  const type = TROGGLE_TYPES[Math.floor(Math.random() * Math.min(TROGGLE_TYPES.length, 1 + Math.floor(level/3)))];
+  // Spawn at edge
+  const edge = Math.floor(Math.random() * 4);
+  let r, c;
+  if (edge === 0) { r = 0; c = Math.floor(Math.random() * COLS); }
+  else if (edge === 1) { r = ROWS-1; c = Math.floor(Math.random() * COLS); }
+  else if (edge === 2) { r = Math.floor(Math.random() * ROWS); c = 0; }
+  else { r = Math.floor(Math.random() * ROWS); c = COLS-1; }
+
+  // Don't spawn on player
+  if (r === playerR && c === playerC) return;
+
+  troggles.push({ ...type, r, c, alive: true, moveTimer: 0 });
+}
+
+function moveTroggles() {
+  if (!gameRunning) return;
+  troggles.forEach(t => {
+    if (!t.alive) return;
+    t.moveTimer++;
+    if (t.moveTimer < (4 - Math.min(t.speed + Math.floor(level/4), 3))) return;
+    t.moveTimer = 0;
+
+    // Move toward player (with some randomness)
+    let dr = Math.sign(playerR - t.r);
+    let dc = Math.sign(playerC - t.c);
+
+    if (Math.random() < 0.3) {
+      // Random move
+      const dirs = [[0,1],[0,-1],[1,0],[-1,0]];
+      const d = dirs[Math.floor(Math.random() * 4)];
+      dr = d[0]; dc = d[1];
+    } else {
+      // Prefer the larger gap
+      if (Math.abs(playerR - t.r) > Math.abs(playerC - t.c)) dc = 0;
+      else dr = 0;
+    }
+
+    const nr = t.r + dr;
+    const nc = t.c + dc;
+    if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS) {
+      t.r = nr; t.c = nc;
+    }
+
+    // Eat numbers they walk over (if wrong answers)
+    const cell = grid[t.r][t.c];
+    if (!cell.eaten && !isCorrect(cell.num) && Math.random() < 0.3) {
+      cell.eaten = true;
+    }
+  });
+
+  checkTroggleCollision();
+  renderGrid();
+}
+
+function checkTroggleCollision() {
+  troggles.forEach(t => {
+    if (t.alive && t.r === playerR && t.c === playerC) {
+      t.alive = false;
+      loseLife();
+    }
+  });
+}
+
+function nextLevel() {
+  level++;
+  troggles = [];
+  currentChallenge = getChallenges(level);
+  initGrid();
+  playerR = Math.floor(ROWS / 2);
+  playerC = Math.floor(COLS / 2);
+
+  // Show level message
+  const msg = document.getElementById('levelMsg');
+  document.getElementById('levelTitle').textContent = `LEVEL ${level}`;
+  document.getElementById('levelDesc').textContent = currentChallenge.desc;
+  msg.classList.remove('hidden');
+  setTimeout(() => msg.classList.add('hidden'), 1500);
+
+  updateHUD();
+  renderGrid();
+}
+
+function startGame() {
+  document.getElementById('startScreen').classList.add('hidden');
+  document.getElementById('gameOverScreen').classList.add('hidden');
+
+  score = 0; lives = 3; level = 1;
+  troggles = [];
+  playerR = Math.floor(ROWS / 2);
+  playerC = Math.floor(COLS / 2);
+  currentChallenge = getChallenges(1);
+  initGrid();
+  gameRunning = true;
+
+  // Show level 1 message
+  const msg = document.getElementById('levelMsg');
+  document.getElementById('levelTitle').textContent = 'LEVEL 1';
+  document.getElementById('levelDesc').textContent = currentChallenge.desc;
+  msg.classList.remove('hidden');
+  setTimeout(() => msg.classList.add('hidden'), 1500);
+
+  updateHUD();
+  renderGrid();
+
+  clearInterval(troggleInterval);
+  troggleInterval = setInterval(() => {
+    moveTroggles();
+    if (Math.random() < 0.15) spawnTroggle();
+  }, 800);
+}
+
+// Keyboard
+window.addEventListener('keydown', e => {
+  if (!gameRunning) return;
+  if (e.code === 'ArrowUp' || e.code === 'KeyW') { e.preventDefault(); move(0, -1); }
+  if (e.code === 'ArrowDown' || e.code === 'KeyS') { e.preventDefault(); move(0, 1); }
+  if (e.code === 'ArrowLeft' || e.code === 'KeyA') { move(-1, 0); }
+  if (e.code === 'ArrowRight' || e.code === 'KeyD') { move(1, 0); }
+  if (e.code === 'Space' || e.code === 'Enter') { e.preventDefault(); munch(); }
+});
+
+// Touch support
+if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+  document.getElementById('mobileControls').style.display = 'flex';
+}
+</script>
+</body>
+</html>
