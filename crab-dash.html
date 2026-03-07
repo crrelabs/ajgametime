@@ -136,11 +136,11 @@ function resetGame() {
 function spawnObstacle() {
   const types = ['seagull', 'turtle', 'trash', 'bottle', 'crate'];
   const type = types[Math.floor(Math.random() * types.length)];
-  const y = 40 + Math.random() * (H - 140);
+  const y = H * 0.35 + Math.random() * (H * 0.5);
   obstacles.push({
     type, x: W + 30, y,
-    w: type === 'seagull' ? 30 : type === 'turtle' ? 28 : 22,
-    h: type === 'seagull' ? 20 : type === 'turtle' ? 22 : 20,
+    w: type === 'seagull' ? 44 : type === 'turtle' ? 40 : 34,
+    h: type === 'seagull' ? 32 : type === 'turtle' ? 34 : 30,
     speed: type === 'seagull' ? scrollSpeed + 1.5 + Math.random() * 2 : scrollSpeed + Math.random(),
     bobTimer: Math.random() * Math.PI * 2,
     swoopY: type === 'seagull' ? y : 0,
@@ -152,7 +152,7 @@ function spawnCollectible() {
   const types = ['shell', 'pearl', 'starfish'];
   const type = types[Math.floor(Math.random() * types.length)];
   collectibles.push({
-    type, x: W + 20, y: 50 + Math.random() * (H - 160),
+    type, x: W + 20, y: H * 0.35 + Math.random() * (H * 0.45),
     w: 18, h: 18, bob: Math.random() * Math.PI * 2
   });
 }
@@ -208,31 +208,31 @@ function update() {
   if (actions.left) crab.x -= spd;
   if (actions.right) crab.x += spd;
   crab.x = Math.max(crab.w/2, Math.min(W - crab.w/2, crab.x));
-  crab.y = Math.max(crab.h/2 + 30, Math.min(H - crab.h/2 - 70, crab.y));
+  crab.y = Math.max(H * 0.35, Math.min(H - crab.h/2 - 70, crab.y));
 
   // Tide mechanic
   tideTimer++;
   if (tideTimer >= tideCooldown && !tideActive) {
     tideActive = true;
     tideY = H + 50;
-    tideSpeed = 1.5 + distance * 0.005;
+    tideSpeed = 1.0 + distance * 0.003;
     document.getElementById('tide-warn').style.opacity = '1';
     setTimeout(() => document.getElementById('tide-warn').style.opacity = '0', 1500);
   }
   if (tideActive) {
     tideY -= tideSpeed;
     // Tide pushes crab
-    if (crab.y > tideY - 20) {
-      crab.y -= tideSpeed * 1.5;
-      // If crab is at top of screen and tide catches up
-      if (crab.y < crab.h) {
+    if (crab.y > tideY - 10) {
+      crab.y -= tideSpeed * 1.2;
+      // If crab gets pushed to top of beach
+      if (crab.y < H * 0.36) {
         hitCrab();
         addParticles(crab.x, crab.y, '#22d3ee', 15);
       }
     }
     // Tide recedes
-    if (tideY < H * 0.3) {
-      tideSpeed = -2;
+    if (tideY < H * 0.55) {
+      tideSpeed = -2.5;
     }
     if (tideY > H + 60 && tideSpeed < 0) {
       tideActive = false;
@@ -356,7 +356,7 @@ function draw() {
   // Obstacles
   obstacles.forEach(o => {
     const bob = Math.sin(o.bobTimer) * 2;
-    X.font = o.type === 'seagull' ? '28px sans-serif' : '24px sans-serif';
+    X.font = o.type === 'seagull' ? '40px sans-serif' : '36px sans-serif';
     X.textAlign = 'center';
     if (o.type === 'seagull') {
       // Seagull with wing animation
