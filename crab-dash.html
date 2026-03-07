@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Crab Dash — AJ GameTime</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@600;700;800&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#f4d9a0;overflow:hidden;touch-action:none;font-family:'Nunito',sans-serif;user-select:none;-webkit-user-select:none}
+canvas{display:block}
+#hud{position:absolute;top:0;left:0;width:100%;padding:8px 12px;display:flex;justify-content:space-between;pointer-events:none;z-index:10}
+.hud-box{background:rgba(0,0,0,0.5);border-radius:10px;padding:5px 12px;color:#fff;font-weight:700;font-size:14px;backdrop-filter:blur(4px)}
+#score{color:#fbbf24;font-family:'Lilita One',cursive;font-size:20px}
+#dist{color:#22d3ee;font-size:13px}
+#lives-display{color:#ef4444;font-size:16px}
+#tide-warn{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-family:'Lilita One',cursive;font-size:clamp(28px,6vw,48px);color:#22d3ee;text-shadow:0 2px 10px rgba(0,0,0,0.4);z-index:15;pointer-events:none;opacity:0;transition:opacity 0.3s}
+#controls{position:absolute;bottom:8px;left:0;width:100%;display:flex;justify-content:space-between;align-items:flex-end;padding:0 10px;pointer-events:none;z-index:10}
+.ctrl-side{pointer-events:auto;display:flex;flex-direction:column;align-items:center;gap:4px}
+.dpad-row{display:flex;gap:4px}
+.btn{border-radius:50%;border:2px solid rgba(255,255,255,0.4);display:flex;align-items:center;justify-content:center;font-size:24px;color:#fff;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;width:60px;height:60px}
+.btn:active{transform:scale(0.9)}
+.btn-up{background:rgba(34,197,94,0.6)}
+.btn-down{background:rgba(239,68,68,0.5)}
+.btn-left{background:rgba(59,130,246,0.5)}
+.btn-right{background:rgba(59,130,246,0.5)}
+.btn-dash{background:rgba(249,115,22,0.7);box-shadow:0 0 15px rgba(249,115,22,0.3);width:72px;height:72px;font-size:28px;font-family:'Lilita One',cursive;font-weight:400}
+#overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:20;background:rgba(0,0,0,0.82)}
+#overlay h1{font-family:'Lilita One',cursive;font-size:clamp(30px,7vw,52px);background:linear-gradient(135deg,#f97316,#ef4444);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:4px}
+#overlay h2{color:#22d3ee;font-family:'Lilita One',cursive;font-size:clamp(14px,3vw,22px);margin-bottom:14px}
+#overlay p{color:#94a3b8;font-size:14px;max-width:340px;text-align:center;line-height:1.6;margin-bottom:14px}
+#play-btn{pointer-events:auto;padding:14px 44px;font-family:'Lilita One',cursive;font-size:24px;color:#fff;background:linear-gradient(135deg,#f97316,#ef4444);border:none;border-radius:14px;cursor:pointer;box-shadow:0 4px 24px rgba(249,115,22,0.4)}
+#back{position:absolute;top:10px;left:10px;color:rgba(255,255,255,0.5);text-decoration:none;font-size:13px;font-weight:700;z-index:30}
+@media(min-width:600px){.btn{width:68px;height:68px;font-size:28px}.btn-dash{width:80px;height:80px}}
+</style>
+</head>
+<body>
+<a id="back" href="index.html">← Back</a>
+<canvas id="game"></canvas>
+<div id="tide-warn">🌊 TIDE INCOMING!</div>
+
+<div id="hud">
+  <div>
+    <div class="hud-box" id="score">🦀 0</div>
+    <div class="hud-box" id="dist" style="margin-top:4px">0m</div>
+  </div>
+  <div class="hud-box" id="lives-display">❤️❤️❤️</div>
+</div>
+
+<div id="controls">
+  <div class="ctrl-side">
+    <div class="btn btn-up" data-action="up">▲</div>
+    <div class="dpad-row">
+      <div class="btn btn-left" data-action="left">◀</div>
+      <div class="btn btn-down" data-action="down">▼</div>
+      <div class="btn btn-right" data-action="right">▶</div>
+    </div>
+  </div>
+  <div class="ctrl-side">
+    <div class="btn btn-dash" data-action="dash">💨</div>
+  </div>
+</div>
+
+<div id="overlay">
+  <h1>🦀 Crab Dash</h1>
+  <h2>Race across the beach!</h2>
+  <p>Dodge seagulls 🕊️, turtles 🐢, and trash 🗑️ as you dash across the sand! Watch out for the tide — it'll wash you away! 🌊</p>
+  <p style="color:#64748b;font-size:12px">▲▼◀▶ Move · 💨 Speed boost</p>
+  <button id="play-btn">🦀 Let's Dash!</button>
+</div>
+
+<script>
+const C = document.getElementById('game');
+const X = C.getContext('2d');
+let W, H;
+function resize() { W = C.width = window.innerWidth; H = C.height = window.innerHeight; }
+resize(); window.addEventListener('resize', resize);
+
+let playing = false, score = 0, lives = 3, frame = 0, distance = 0;
+let scrollSpeed = 2, baseScroll = 2;
+let tideY = 0, tideActive = false, tideTimer = 0, tideCooldown = 600, tideSpeed = 0;
+let particles = [], obstacles = [], collectibles = [];
+let dashCooldown = 0, dashing = false, dashTimer = 0;
+let invincible = 0;
+let sandOffset = 0;
+let bestScore = parseInt(localStorage.getItem('crabdash_best') || '0');
+
+// Crab
+const crab = { x: 0, y: 0, w: 32, h: 24 };
+
+// Input
+const actions = {};
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowUp' || e.key === 'w') actions.up = true;
+  if (e.key === 'ArrowDown' || e.key === 's') actions.down = true;
+  if (e.key === 'ArrowLeft' || e.key === 'a') actions.left = true;
+  if (e.key === 'ArrowRight' || e.key === 'd') actions.right = true;
+  if (e.key === ' ') tryDash();
+});
+document.addEventListener('keyup', e => {
+  if (e.key === 'ArrowUp' || e.key === 'w') actions.up = false;
+  if (e.key === 'ArrowDown' || e.key === 's') actions.down = false;
+  if (e.key === 'ArrowLeft' || e.key === 'a') actions.left = false;
+  if (e.key === 'ArrowRight' || e.key === 'd') actions.right = false;
+});
+
+document.querySelectorAll('.btn').forEach(btn => {
+  const act = btn.dataset.action;
+  const down = e => { e.preventDefault(); e.stopPropagation(); if (act === 'dash') tryDash(); else actions[act] = true; };
+  const up = e => { e.preventDefault(); e.stopPropagation(); if (act !== 'dash') actions[act] = false; };
+  btn.addEventListener('touchstart', down, { passive: false });
+  btn.addEventListener('touchend', up, { passive: false });
+  btn.addEventListener('touchcancel', up, { passive: false });
+  btn.addEventListener('mousedown', down);
+  btn.addEventListener('mouseup', up);
+  btn.addEventListener('mouseleave', up);
+});
+
+function tryDash() {
+  if (!playing || dashCooldown > 0) return;
+  dashing = true;
+  dashTimer = 30;
+  dashCooldown = 120;
+}
+
+function resetGame() {
+  score = 0; lives = 3; frame = 0; distance = 0;
+  scrollSpeed = baseScroll;
+  crab.x = W * 0.2; crab.y = H * 0.5;
+  obstacles = []; collectibles = []; particles = [];
+  tideY = H + 100; tideActive = false; tideTimer = 0; tideCooldown = 600;
+  invincible = 0; dashCooldown = 0; dashing = false;
+  updateHUD();
+}
+
+function spawnObstacle() {
+  const types = ['seagull', 'turtle', 'trash', 'bottle', 'crate'];
+  const type = types[Math.floor(Math.random() * types.length)];
+  const y = 40 + Math.random() * (H - 140);
+  obstacles.push({
+    type, x: W + 30, y,
+    w: type === 'seagull' ? 30 : type === 'turtle' ? 28 : 22,
+    h: type === 'seagull' ? 20 : type === 'turtle' ? 22 : 20,
+    speed: type === 'seagull' ? scrollSpeed + 1.5 + Math.random() * 2 : scrollSpeed + Math.random(),
+    bobTimer: Math.random() * Math.PI * 2,
+    swoopY: type === 'seagull' ? y : 0,
+    swooping: type === 'seagull' && Math.random() > 0.5
+  });
+}
+
+function spawnCollectible() {
+  const types = ['shell', 'pearl', 'starfish'];
+  const type = types[Math.floor(Math.random() * types.length)];
+  collectibles.push({
+    type, x: W + 20, y: 50 + Math.random() * (H - 160),
+    w: 18, h: 18, bob: Math.random() * Math.PI * 2
+  });
+}
+
+function updateHUD() {
+  document.getElementById('score').textContent = '🦀 ' + score;
+  document.getElementById('dist').textContent = Math.floor(distance) + 'm';
+  let hearts = '';
+  for (let i = 0; i < lives; i++) hearts += '❤️';
+  document.getElementById('lives-display').textContent = hearts || '💀';
+}
+
+function hitCrab() {
+  if (invincible > 0) return;
+  lives--;
+  invincible = 90;
+  addParticles(crab.x, crab.y, '#ef4444', 10);
+  if (lives <= 0) gameOver();
+  updateHUD();
+}
+
+function addParticles(x, y, color, count) {
+  for (let i = 0; i < count; i++) {
+    particles.push({ x, y, vx: (Math.random()-0.5)*6, vy: (Math.random()-0.5)*6,
+      life: 25+Math.random()*15, maxLife: 40, color, size: 2+Math.random()*4 });
+  }
+}
+
+function update() {
+  if (!playing) return;
+  frame++;
+  distance += scrollSpeed * 0.05;
+  sandOffset += scrollSpeed;
+
+  // Speed increases over time
+  if (frame % 300 === 0) scrollSpeed += 0.2;
+
+  // Dash
+  if (dashing) {
+    dashTimer--;
+    scrollSpeed = baseScroll + distance * 0.003 + 4;
+    if (dashTimer <= 0) { dashing = false; scrollSpeed = baseScroll + distance * 0.003; }
+  } else {
+    scrollSpeed = baseScroll + distance * 0.003;
+  }
+  if (dashCooldown > 0) dashCooldown--;
+  if (invincible > 0) invincible--;
+
+  // Move crab
+  const spd = dashing ? 6 : 4;
+  if (actions.up) crab.y -= spd;
+  if (actions.down) crab.y += spd;
+  if (actions.left) crab.x -= spd;
+  if (actions.right) crab.x += spd;
+  crab.x = Math.max(crab.w/2, Math.min(W - crab.w/2, crab.x));
+  crab.y = Math.max(crab.h/2 + 30, Math.min(H - crab.h/2 - 70, crab.y));
+
+  // Tide mechanic
+  tideTimer++;
+  if (tideTimer >= tideCooldown && !tideActive) {
+    tideActive = true;
+    tideY = H + 50;
+    tideSpeed = 1.5 + distance * 0.005;
+    document.getElementById('tide-warn').style.opacity = '1';
+    setTimeout(() => document.getElementById('tide-warn').style.opacity = '0', 1500);
+  }
+  if (tideActive) {
+    tideY -= tideSpeed;
+    // Tide pushes crab
+    if (crab.y > tideY - 20) {
+      crab.y -= tideSpeed * 1.5;
+      // If crab is at top of screen and tide catches up
+      if (crab.y < crab.h) {
+        hitCrab();
+        addParticles(crab.x, crab.y, '#22d3ee', 15);
+      }
+    }
+    // Tide recedes
+    if (tideY < H * 0.3) {
+      tideSpeed = -2;
+    }
+    if (tideY > H + 60 && tideSpeed < 0) {
+      tideActive = false;
+      tideTimer = 0;
+      tideCooldown = 400 + Math.random() * 300;
+    }
+  }
+
+  // Spawn obstacles
+  if (frame % Math.max(20, 50 - Math.floor(distance / 5)) === 0) spawnObstacle();
+  if (frame % 90 === 0) spawnCollectible();
+
+  // Update obstacles
+  obstacles.forEach(o => {
+    o.x -= o.speed;
+    o.bobTimer += 0.08;
+    if (o.type === 'seagull') {
+      if (o.swooping) {
+        o.y = o.swoopY + Math.sin(o.bobTimer * 2) * 40;
+      }
+    }
+    // Collision
+    if (Math.abs(o.x - crab.x) < (o.w + crab.w) / 2 &&
+        Math.abs(o.y - crab.y) < (o.h + crab.h) / 2) {
+      hitCrab();
+      o.x = -100; // remove
+    }
+    // Tide washes away obstacles too
+    if (tideActive && o.y > tideY) {
+      o.y -= tideSpeed * 0.5;
+    }
+  });
+  obstacles = obstacles.filter(o => o.x > -50);
+
+  // Update collectibles
+  collectibles.forEach(c => {
+    c.x -= scrollSpeed;
+    c.bob += 0.08;
+    if (Math.abs(c.x - crab.x) < (c.w + crab.w) / 2 &&
+        Math.abs(c.y - crab.y) < (c.h + crab.h) / 2) {
+      const pts = c.type === 'pearl' ? 50 : c.type === 'starfish' ? 30 : 10;
+      score += pts;
+      addParticles(c.x, c.y, '#fbbf24', 6);
+      c.x = -100;
+    }
+  });
+  collectibles = collectibles.filter(c => c.x > -30);
+
+  // Score from distance
+  if (frame % 30 === 0) score += Math.floor(scrollSpeed);
+
+  // Particles
+  particles = particles.filter(p => {
+    p.x += p.vx; p.y += p.vy; p.life--;
+    return p.life > 0;
+  });
+
+  updateHUD();
+}
+
+function draw() {
+  // Sky
+  const skyGrad = X.createLinearGradient(0, 0, 0, H * 0.3);
+  skyGrad.addColorStop(0, '#87CEEB');
+  skyGrad.addColorStop(1, '#b0e0e6');
+  X.fillStyle = skyGrad;
+  X.fillRect(0, 0, W, H * 0.3);
+
+  // Ocean horizon
+  X.fillStyle = '#1e90ff';
+  X.fillRect(0, H * 0.15, W, H * 0.15);
+
+  // Waves at horizon
+  X.fillStyle = '#4db8ff';
+  for (let i = 0; i < W; i += 5) {
+    const wy = H * 0.28 + Math.sin(i * 0.03 + frame * 0.03) * 3;
+    X.fillRect(i, wy, 5, 3);
+  }
+
+  // Beach sand
+  const sandGrad = X.createLinearGradient(0, H * 0.25, 0, H);
+  sandGrad.addColorStop(0, '#f0d68a');
+  sandGrad.addColorStop(0.3, '#e8c872');
+  sandGrad.addColorStop(1, '#d4a84a');
+  X.fillStyle = sandGrad;
+  X.fillRect(0, H * 0.28, W, H * 0.72);
+
+  // Sand texture dots
+  X.fillStyle = 'rgba(180,140,60,0.15)';
+  for (let i = 0; i < 40; i++) {
+    const sx = ((i * 73 + sandOffset * 0.3) % (W + 40)) - 20;
+    const sy = H * 0.3 + (i * 41 % (H * 0.6));
+    X.beginPath();
+    X.arc(sx, sy, 1 + (i % 3), 0, Math.PI * 2);
+    X.fill();
+  }
+
+  // Sand ripples
+  X.strokeStyle = 'rgba(180,140,60,0.08)';
+  X.lineWidth = 1;
+  for (let r = 0; r < 5; r++) {
+    const ry = H * 0.35 + r * (H * 0.12);
+    X.beginPath();
+    for (let x = 0; x < W; x += 4) {
+      const y = ry + Math.sin((x + sandOffset * 0.5 + r * 50) * 0.02) * 3;
+      x === 0 ? X.moveTo(x, y) : X.lineTo(x, y);
+    }
+    X.stroke();
+  }
+
+  // Collectibles
+  collectibles.forEach(c => {
+    const by = Math.sin(c.bob) * 3;
+    X.font = '18px sans-serif';
+    X.textAlign = 'center';
+    if (c.type === 'shell') X.fillText('🐚', c.x, c.y + by);
+    else if (c.type === 'pearl') X.fillText('💎', c.x, c.y + by);
+    else X.fillText('⭐', c.x, c.y + by);
+  });
+
+  // Obstacles
+  obstacles.forEach(o => {
+    const bob = Math.sin(o.bobTimer) * 2;
+    X.font = o.type === 'seagull' ? '28px sans-serif' : '24px sans-serif';
+    X.textAlign = 'center';
+    if (o.type === 'seagull') {
+      // Seagull with wing animation
+      const wing = Math.sin(o.bobTimer * 4) > 0 ? '🕊️' : '🐦';
+      X.fillText(wing, o.x, o.y + bob);
+      // Shadow
+      X.fillStyle = 'rgba(0,0,0,0.1)';
+      X.beginPath();
+      X.ellipse(o.x, o.y + 25, 12, 4, 0, 0, Math.PI * 2);
+      X.fill();
+    } else if (o.type === 'turtle') {
+      X.fillText('🐢', o.x, o.y + bob);
+    } else if (o.type === 'trash') {
+      X.fillText('🗑️', o.x, o.y);
+    } else if (o.type === 'bottle') {
+      X.fillText('🍾', o.x, o.y);
+    } else if (o.type === 'crate') {
+      X.fillText('📦', o.x, o.y);
+    }
+  });
+
+  // Tide
+  if (tideActive) {
+    // Water
+    const tideGrad = X.createLinearGradient(0, tideY - 30, 0, H);
+    tideGrad.addColorStop(0, 'rgba(30,144,255,0.3)');
+    tideGrad.addColorStop(0.1, 'rgba(30,144,255,0.6)');
+    tideGrad.addColorStop(1, 'rgba(10,80,180,0.8)');
+    X.fillStyle = tideGrad;
+    X.fillRect(0, tideY, W, H - tideY);
+
+    // Foam line
+    X.fillStyle = 'rgba(255,255,255,0.6)';
+    for (let fx = 0; fx < W; fx += 4) {
+      const fy = tideY + Math.sin(fx * 0.05 + frame * 0.08) * 5 - 5;
+      X.fillRect(fx, fy, 4, 3);
+    }
+
+    // Bubbles
+    X.fillStyle = 'rgba(255,255,255,0.3)';
+    for (let b = 0; b < 10; b++) {
+      const bx = (b * 137 + frame * 2) % W;
+      const by = tideY + 10 + (b * 31 % 40);
+      if (by < H) {
+        X.beginPath();
+        X.arc(bx, by, 2 + (b % 3), 0, Math.PI * 2);
+        X.fill();
+      }
+    }
+  }
+
+  // Crab
+  if (!playing && !document.getElementById('overlay').style.display) return;
+  const cx = crab.x, cy = crab.y;
+  const flash = invincible > 0 && Math.floor(invincible / 4) % 2;
+  if (!flash) {
+    X.save();
+    X.translate(cx, cy);
+
+    // Shadow
+    X.fillStyle = 'rgba(0,0,0,0.15)';
+    X.beginPath();
+    X.ellipse(0, crab.h/2 + 2, crab.w/2, 5, 0, 0, Math.PI * 2);
+    X.fill();
+
+    // Body
+    X.fillStyle = '#ef4444';
+    X.beginPath();
+    X.ellipse(0, 0, crab.w/2, crab.h/2, 0, 0, Math.PI * 2);
+    X.fill();
+
+    // Shell texture
+    X.fillStyle = '#dc2626';
+    X.beginPath();
+    X.ellipse(0, -2, crab.w/3, crab.h/3, 0, 0, Math.PI * 2);
+    X.fill();
+
+    // Eyes
+    X.fillStyle = '#111';
+    const dir = actions.right ? 3 : actions.left ? -3 : 0;
+    // Eye stalks
+    X.strokeStyle = '#ef4444';
+    X.lineWidth = 2;
+    X.beginPath(); X.moveTo(-6, -8); X.lineTo(-8 + dir, -15); X.stroke();
+    X.beginPath(); X.moveTo(6, -8); X.lineTo(8 + dir, -15); X.stroke();
+    // Eye balls
+    X.fillStyle = '#fff';
+    X.beginPath(); X.arc(-8 + dir, -15, 4, 0, Math.PI * 2); X.fill();
+    X.beginPath(); X.arc(8 + dir, -15, 4, 0, Math.PI * 2); X.fill();
+    X.fillStyle = '#111';
+    X.beginPath(); X.arc(-7 + dir, -15, 2, 0, Math.PI * 2); X.fill();
+    X.beginPath(); X.arc(9 + dir, -15, 2, 0, Math.PI * 2); X.fill();
+
+    // Claws
+    const clawAnim = Math.sin(frame * 0.15) * 0.2;
+    X.fillStyle = '#ef4444';
+    // Left claw
+    X.save();
+    X.translate(-crab.w/2 - 2, -2);
+    X.rotate(-0.5 + clawAnim);
+    X.beginPath();
+    X.ellipse(0, 0, 8, 5, 0, 0, Math.PI * 2);
+    X.fill();
+    X.fillStyle = '#dc2626';
+    X.beginPath();
+    X.moveTo(-4, -4); X.lineTo(-10, -2); X.lineTo(-4, 0); X.closePath();
+    X.moveTo(-4, 0); X.lineTo(-10, 2); X.lineTo(-4, 4); X.closePath();
+    X.fill();
+    X.restore();
+    // Right claw
+    X.fillStyle = '#ef4444';
+    X.save();
+    X.translate(crab.w/2 + 2, -2);
+    X.rotate(0.5 - clawAnim);
+    X.beginPath();
+    X.ellipse(0, 0, 8, 5, 0, 0, Math.PI * 2);
+    X.fill();
+    X.fillStyle = '#dc2626';
+    X.beginPath();
+    X.moveTo(4, -4); X.lineTo(10, -2); X.lineTo(4, 0); X.closePath();
+    X.moveTo(4, 0); X.lineTo(10, 2); X.lineTo(4, 4); X.closePath();
+    X.fill();
+    X.restore();
+
+    // Legs
+    X.strokeStyle = '#dc2626';
+    X.lineWidth = 2;
+    const legWiggle = Math.sin(frame * 0.2) * 3;
+    for (let side = -1; side <= 1; side += 2) {
+      for (let i = 0; i < 3; i++) {
+        const lx = side * (6 + i * 4);
+        const ly = 4 + i * 3;
+        X.beginPath();
+        X.moveTo(lx, ly);
+        X.lineTo(lx + side * 10, ly + 6 + (i % 2 ? legWiggle : -legWiggle));
+        X.stroke();
+      }
+    }
+
+    // Dash effect
+    if (dashing) {
+      X.globalAlpha = 0.4;
+      X.fillStyle = '#f97316';
+      for (let t = 1; t <= 3; t++) {
+        X.beginPath();
+        X.ellipse(-t * 12, 0, crab.w/3, crab.h/3, 0, 0, Math.PI * 2);
+        X.fill();
+      }
+      X.globalAlpha = 1;
+    }
+
+    X.restore();
+  }
+
+  // Dash cooldown indicator
+  if (dashCooldown > 0) {
+    X.fillStyle = 'rgba(0,0,0,0.3)';
+    X.fillRect(W - 80, H - 90, 40, 6);
+    X.fillStyle = '#f97316';
+    X.fillRect(W - 80, H - 90, 40 * (1 - dashCooldown / 120), 6);
+  }
+
+  // Particles
+  particles.forEach(p => {
+    X.globalAlpha = p.life / p.maxLife;
+    X.fillStyle = p.color;
+    X.beginPath(); X.arc(p.x, p.y, p.size, 0, Math.PI * 2); X.fill();
+  });
+  X.globalAlpha = 1;
+}
+
+function gameOver() {
+  playing = false;
+  if (score > bestScore) {
+    bestScore = score;
+    localStorage.setItem('crabdash_best', bestScore);
+  }
+  const overlay = document.getElementById('overlay');
+  overlay.querySelector('h1').textContent = '🦀 Washed Out!';
+  overlay.querySelector('h2').textContent = 'Score: ' + score + ' · ' + Math.floor(distance) + 'm';
+  overlay.querySelector('p').textContent = 'Best: ' + bestScore + ' · Ready to dash again?';
+  document.getElementById('play-btn').textContent = '🦀 Dash Again!';
+  overlay.style.display = 'flex';
+}
+
+document.getElementById('play-btn').addEventListener('click', () => {
+  document.getElementById('overlay').style.display = 'none';
+  playing = true;
+  resetGame();
+});
+
+function loop() {
+  update();
+  draw();
+  requestAnimationFrame(loop);
+}
+loop();
+</script>
+</body>
+</html>
