@@ -599,7 +599,7 @@ const GAME_NAME = 'skeleton-brawl';
 
 async function fetchLeaderboard() {
   try {
-    const res = await fetch(`${SUPA_URL}/rest/v1/ajgametime_leaderboard?game=eq.${GAME_NAME}&order=score.desc&limit=20`, {
+    const res = await fetch(`${SUPA_URL}/rest/v1/ajgametime_leaderboard?game=eq.${GAME_NAME}&order=score.desc&limit=10`, {
       headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY }
     });
     return await res.json();
