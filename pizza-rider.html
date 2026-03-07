@@ -251,7 +251,8 @@ document.querySelectorAll('.btn').forEach(btn => {
   const act = btn.dataset.action;
   const down = e => { e.preventDefault(); if (act === 'deliver') tryDeliver(); else actions[act] = true; };
   const up = e => { e.preventDefault(); if (act !== 'deliver') actions[act] = false; };
-  btn.addEventListener('touchstart', down); btn.addEventListener('touchend', up);
+  btn.addEventListener('touchstart', down, { passive: false }); btn.addEventListener('touchend', up, { passive: false });
+  btn.addEventListener('touchcancel', up, { passive: false });
   btn.addEventListener('mousedown', down); btn.addEventListener('mouseup', up);
 });
 
