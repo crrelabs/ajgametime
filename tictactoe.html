@@ -3,40 +3,86 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Tic Tac Toe</title>
+<title>Tic Tac Toe — AJ GameTime</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: -apple-system, sans-serif; background: #0f172a; color: #e2e8f0; }
+body { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: -apple-system, sans-serif; background: #0f172a; color: #e2e8f0; padding: 1rem; }
+a#back { position: absolute; top: 12px; left: 12px; color: #64748b; text-decoration: none; font-size: 0.85rem; font-weight: 700; }
+a#back:hover { color: #94a3b8; }
 h1 { font-size: 2rem; margin-bottom: 0.5rem; }
-#status { font-size: 1.1rem; margin-bottom: 1.5rem; color: #94a3b8; min-height: 1.5em; }
+#mode-picker { display: flex; gap: 8px; margin-bottom: 1rem; }
+.mode-btn { padding: 8px 18px; font-size: 0.85rem; font-weight: 700; border-radius: 8px; border: 2px solid #334155; background: transparent; color: #94a3b8; cursor: pointer; transition: all 0.2s; }
+.mode-btn.active { border-color: #38bdf8; color: #38bdf8; background: rgba(56,189,248,0.1); }
+.mode-btn:hover { border-color: #7dd3fc; color: #e2e8f0; }
+#diff-picker { display: none; gap: 6px; margin-bottom: 0.8rem; }
+#diff-picker.show { display: flex; }
+.diff-btn { padding: 5px 14px; font-size: 0.75rem; font-weight: 700; border-radius: 6px; border: 1px solid #334155; background: transparent; color: #64748b; cursor: pointer; transition: all 0.2s; }
+.diff-btn.active { border-color: #f59e0b; color: #f59e0b; background: rgba(245,158,11,0.1); }
+.diff-btn:hover { color: #e2e8f0; }
+#status { font-size: 1.1rem; margin-bottom: 1.2rem; color: #94a3b8; min-height: 1.5em; }
 #board { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 1.5rem; }
 .cell { width: 100px; height: 100px; background: #1e293b; border: 2px solid #334155; border-radius: 12px; font-size: 2.5rem; font-weight: 700; cursor: pointer; transition: all 0.15s; display: flex; align-items: center; justify-content: center; }
 .cell:hover { background: #334155; }
 .cell.x { color: #38bdf8; }
 .cell.o { color: #f472b6; }
 .cell.win { background: #1e3a5f; border-color: #38bdf8; animation: pulse 0.5s; }
-button { padding: 0.75rem 2rem; font-size: 1rem; font-weight: 600; background: #38bdf8; color: #0f172a; border: none; border-radius: 8px; cursor: pointer; transition: background 0.2s; }
-button:hover { background: #7dd3fc; }
+button#newgame { padding: 0.75rem 2rem; font-size: 1rem; font-weight: 600; background: #38bdf8; color: #0f172a; border: none; border-radius: 8px; cursor: pointer; transition: background 0.2s; }
+button#newgame:hover { background: #7dd3fc; }
 #score { margin-bottom: 1rem; font-size: 0.9rem; color: #64748b; }
 #score span { font-weight: 700; color: #e2e8f0; }
 @keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.05); } }
 </style>
 </head>
 <body>
+<a id="back" href="index.html">← Back</a>
 <h1>Tic Tac Toe</h1>
+
+<div id="mode-picker">
+  <button class="mode-btn active" data-mode="2p">👥 2 Player</button>
+  <button class="mode-btn" data-mode="cpu">🤖 vs CPU</button>
+</div>
+
+<div id="diff-picker">
+  <button class="diff-btn" data-diff="easy">Easy</button>
+  <button class="diff-btn active" data-diff="medium">Medium</button>
+  <button class="diff-btn" data-diff="hard">Hard</button>
+</div>
+
 <div id="score">X: <span id="sx">0</span> &nbsp;|&nbsp; O: <span id="so">0</span> &nbsp;|&nbsp; Draws: <span id="sd">0</span></div>
 <div id="status">X goes first</div>
 <div id="board"></div>
-<button onclick="reset()">New Game</button>
+<button id="newgame" onclick="reset()">New Game</button>
 
 <script>
 const board = document.getElementById('board');
-const status = document.getElementById('status');
+const statusEl = document.getElementById('status');
 let cells = Array(9).fill('');
 let turn = 'X';
 let over = false;
-let score = { X: 0, O: 0, D: 0 };
+let scoreObj = { X: 0, O: 0, D: 0 };
+let mode = '2p';
+let difficulty = 'medium';
+let cpuThinking = false;
 const wins = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+
+document.querySelectorAll('.mode-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    mode = btn.dataset.mode;
+    document.getElementById('diff-picker').className = mode === 'cpu' ? 'show' : '';
+    reset();
+  });
+});
+
+document.querySelectorAll('.diff-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    difficulty = btn.dataset.diff;
+    reset();
+  });
+});
 
 function render() {
   board.innerHTML = '';
@@ -50,49 +96,102 @@ function render() {
 }
 
 function play(i) {
-  if (cells[i] || over) return;
+  if (cells[i] || over || cpuThinking) return;
+  if (mode === 'cpu' && turn === 'O') return;
   cells[i] = turn;
+  if (checkEnd()) return;
+  turn = turn === 'X' ? 'O' : 'X';
+  statusEl.textContent = mode === 'cpu' && turn === 'O' ? '🤖 CPU thinking...' : turn + "'s turn";
+  render();
+  if (mode === 'cpu' && turn === 'O' && !over) {
+    cpuThinking = true;
+    setTimeout(() => { cpuMove(); cpuThinking = false; }, 400 + Math.random() * 300);
+  }
+}
+
+function checkEnd() {
   const w = checkWin();
   if (w) {
     over = true;
-    status.textContent = turn + ' wins!';
-    score[turn]++;
-    updateScore();
-    render();
+    const winner = cells[w[0]];
+    statusEl.textContent = mode === 'cpu' ? (winner === 'X' ? '🎉 You win!' : '🤖 CPU wins!') : winner + ' wins!';
+    scoreObj[winner]++;
+    updateScore(); render();
     w.forEach(i => board.children[i].classList.add('win'));
-    return;
+    return true;
   }
   if (!cells.includes('')) {
-    over = true;
-    status.textContent = "It's a draw!";
-    score.D++;
-    updateScore();
-    render();
-    return;
+    over = true; statusEl.textContent = "It's a draw!";
+    scoreObj.D++; updateScore(); render(); return true;
   }
-  turn = turn === 'X' ? 'O' : 'X';
-  status.textContent = turn + "'s turn";
-  render();
+  return false;
+}
+
+function cpuMove() {
+  if (over) return;
+  let move;
+  if (difficulty === 'easy') move = cpuEasy();
+  else if (difficulty === 'hard') move = cpuHard();
+  else move = Math.random() < 0.6 ? cpuHard() : cpuEasy();
+  if (move !== undefined) {
+    cells[move] = 'O';
+    if (checkEnd()) return;
+    turn = 'X'; statusEl.textContent = "Your turn!"; render();
+  }
+}
+
+function cpuEasy() {
+  const empty = cells.map((v, i) => v === '' ? i : -1).filter(i => i >= 0);
+  return empty[Math.floor(Math.random() * empty.length)];
+}
+
+function cpuHard() {
+  let bestScore = -Infinity, bestMove;
+  for (let i = 0; i < 9; i++) {
+    if (cells[i] !== '') continue;
+    cells[i] = 'O';
+    const s = minimax(cells, 0, false);
+    cells[i] = '';
+    if (s > bestScore) { bestScore = s; bestMove = i; }
+  }
+  return bestMove;
+}
+
+function minimax(b, depth, isMax) {
+  const w = winnerOf(b);
+  if (w === 'O') return 10 - depth;
+  if (w === 'X') return depth - 10;
+  if (!b.includes('')) return 0;
+  if (isMax) {
+    let best = -Infinity;
+    for (let i = 0; i < 9; i++) { if (b[i]) continue; b[i] = 'O'; best = Math.max(best, minimax(b, depth+1, false)); b[i] = ''; }
+    return best;
+  } else {
+    let best = Infinity;
+    for (let i = 0; i < 9; i++) { if (b[i]) continue; b[i] = 'X'; best = Math.min(best, minimax(b, depth+1, true)); b[i] = ''; }
+    return best;
+  }
+}
+
+function winnerOf(b) {
+  for (const [a,c,d] of wins) { if (b[a] && b[a]===b[c] && b[c]===b[d]) return b[a]; }
+  return null;
 }
 
 function checkWin() {
-  for (const [a,b,c] of wins) {
-    if (cells[a] && cells[a] === cells[b] && cells[b] === cells[c]) return [a,b,c];
-  }
+  for (const [a,b,c] of wins) { if (cells[a] && cells[a]===cells[b] && cells[b]===cells[c]) return [a,b,c]; }
   return null;
 }
 
 function updateScore() {
-  document.getElementById('sx').textContent = score.X;
-  document.getElementById('so').textContent = score.O;
-  document.getElementById('sd').textContent = score.D;
+  document.getElementById('sx').textContent = scoreObj.X;
+  document.getElementById('so').textContent = scoreObj.O;
+  document.getElementById('sd').textContent = scoreObj.D;
 }
 
 function reset() {
-  cells = Array(9).fill('');
-  turn = 'X';
-  over = false;
-  status.textContent = "X goes first";
+  cells = Array(9).fill(''); turn = 'X'; over = false; cpuThinking = false;
+  statusEl.textContent = mode === 'cpu' ? "You're X — your turn!" : "X goes first";
   render();
 }
 

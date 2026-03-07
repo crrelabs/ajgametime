@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Oregon Trail — AJ GameTime</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap');
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { min-height: 100vh; font-family: 'VT323', monospace; background: #0a1a0a; color: #33ff33; overflow-x: hidden; user-select: none; }
+#header { width: 100%; padding: 0.5rem 1rem; display: flex; justify-content: space-between; align-items: center; position: fixed; top: 0; z-index: 10; background: rgba(10,26,10,0.9); border-bottom: 2px solid #1a3a1a; }
+#header a { color: #1a6a1a; text-decoration: none; font-size: 0.85rem; font-family: 'VT323', monospace; }
+
+.game-container {
+  max-width: 800px; margin: 0 auto; padding: 3.5rem 1rem 1rem;
+  min-height: 100vh; display: flex; flex-direction: column;
+}
+
+/* Retro CRT effect */
+.screen {
+  background: #0a1a0a;
+  border: 3px solid #1a5a1a;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+  position: relative;
+  box-shadow: 0 0 30px rgba(51,255,51,0.05), inset 0 0 60px rgba(0,0,0,0.3);
+}
+.screen::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: repeating-linear-gradient(0deg, rgba(0,0,0,0.15) 0px, rgba(0,0,0,0.15) 1px, transparent 1px, transparent 3px);
+  pointer-events: none; border-radius: 8px;
+}
+
+h1 { font-family: 'Press Start 2P', monospace; font-size: clamp(1rem, 3vw, 1.5rem); text-align: center; margin-bottom: 0.5rem; color: #33ff33; text-shadow: 0 0 10px rgba(51,255,51,0.5); }
+h2 { font-family: 'Press Start 2P', monospace; font-size: clamp(0.65rem, 2vw, 0.85rem); text-align: center; margin-bottom: 1rem; color: #1aaa1a; }
+h3 { font-family: 'Press Start 2P', monospace; font-size: 0.7rem; color: #33ff33; margin-bottom: 0.75rem; }
+
+.text { font-size: 1.3rem; line-height: 1.6; color: #33ff33; margin-bottom: 0.75rem; }
+.dim { color: #1a8a1a; }
+.warn { color: #ffaa33; }
+.danger { color: #ff3333; }
+.good { color: #33ff33; }
+.highlight { color: #33ffaa; }
+
+/* HUD */
+.hud { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 0.5rem; margin-bottom: 1rem; }
+.hud-item { background: #0f1f0f; border: 1px solid #1a3a1a; padding: 0.5rem; border-radius: 4px; text-align: center; }
+.hud-label { font-size: 0.75rem; color: #1a6a1a; text-transform: uppercase; }
+.hud-val { font-size: 1.4rem; font-weight: bold; }
+
+/* Menu buttons */
+.menu { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 1rem; }
+.btn {
+  font-family: 'VT323', monospace; font-size: 1.3rem;
+  background: #0f1f0f; color: #33ff33; border: 2px solid #1a5a1a;
+  padding: 0.75rem 1.5rem; cursor: pointer; border-radius: 4px;
+  text-align: left; transition: all 0.15s;
+}
+.btn:hover, .btn:active { background: #1a3a1a; border-color: #33ff33; text-shadow: 0 0 8px rgba(51,255,51,0.5); }
+.btn .key { color: #ffaa33; margin-right: 0.5rem; }
+.btn:disabled { opacity: 0.3; cursor: default; }
+.btn-row { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.btn-small { padding: 0.5rem 1rem; font-size: 1.1rem; }
+
+/* Canvas for scenes */
+canvas { width: 100%; height: 200px; border: 2px solid #1a3a1a; border-radius: 4px; margin-bottom: 1rem; image-rendering: pixelated; }
+
+/* Party list */
+.party-list { margin: 0.5rem 0; }
+.party-member { display: flex; justify-content: space-between; padding: 0.25rem 0; border-bottom: 1px solid #0f1f0f; font-size: 1.2rem; }
+.status-good { color: #33ff33; }
+.status-fair { color: #ffaa33; }
+.status-poor { color: #ff6633; }
+.status-dead { color: #ff3333; text-decoration: line-through; }
+
+/* Progress bar */
+.progress-bar { width: 100%; height: 20px; background: #0f1f0f; border: 1px solid #1a3a1a; border-radius: 3px; margin: 0.5rem 0; overflow: hidden; }
+.progress-fill { height: 100%; background: linear-gradient(90deg, #1a5a1a, #33ff33); transition: width 0.5s; }
+
+/* Typing effect */
+.typing::after { content: '█'; animation: blink 0.7s infinite; }
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+</style>
+</head>
+<body>
+
+<div id="header">
+  <a href="/">← AJ GameTime</a>
+  <span style="font-family:'Press Start 2P',monospace;font-size:0.6rem;color:#1a6a1a;">OREGON TRAIL</span>
+</div>
+
+<div class="game-container">
+  <div id="game"></div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const game = $('game');
+
+// Game State
+let state = {
+  screen: 'title',
+  month: 3, day: 1, year: 1848,
+  miles: 0, totalMiles: 2170,
+  pace: 'steady', // slow, steady, grueling
+  rations: 'filling', // bare, meager, filling
+  money: 0,
+  food: 0, oxen: 0, clothes: 0, ammo: 0, wheels: 0, axles: 0, tongues: 0,
+  party: [],
+  weather: 'fair',
+  nextLandmark: null,
+  landmarkIndex: 0,
+  morale: 100,
+  hunting: false,
+};
+
+const LANDMARKS = [
+  { name: 'Independence, MO', miles: 0, type: 'town' },
+  { name: 'Kansas River Crossing', miles: 102, type: 'river', depth: 3, width: 620 },
+  { name: 'Big Blue River Crossing', miles: 185, type: 'river', depth: 4, width: 400 },
+  { name: 'Fort Kearney', miles: 304, type: 'fort' },
+  { name: 'Chimney Rock', miles: 554, type: 'landmark' },
+  { name: 'Fort Laramie', miles: 640, type: 'fort' },
+  { name: 'Independence Rock', miles: 830, type: 'landmark' },
+  { name: 'South Pass', miles: 932, type: 'landmark' },
+  { name: 'Fort Bridger', miles: 1000, type: 'fort' },
+  { name: 'Soda Springs', miles: 1160, type: 'landmark' },
+  { name: 'Fort Hall', miles: 1220, type: 'fort' },
+  { name: 'Snake River Crossing', miles: 1430, type: 'river', depth: 6, width: 1000 },
+  { name: 'Fort Boise', miles: 1510, type: 'fort' },
+  { name: 'Blue Mountains', miles: 1630, type: 'mountain' },
+  { name: 'The Dalles', miles: 1830, type: 'landmark' },
+  { name: 'Willamette Valley, OR', miles: 2170, type: 'end' },
+];
+
+const EVENTS = [
+  { text: 'You found wild fruit by the trail!', effect: s => { s.food += 20; return '+20 lbs food'; } },
+  { text: 'An ox wandered off during the night.', effect: s => { if(s.oxen>1)s.oxen--; return '-1 ox'; }, bad: true },
+  { text: 'A thief stole supplies from your wagon!', effect: s => { const lost=Math.min(25,s.food); s.food-=lost; return `-${lost} lbs food stolen`; }, bad: true },
+  { text: 'You found an abandoned wagon with supplies!', effect: s => { s.food+=40; s.ammo+=20; return '+40 food, +20 ammo'; } },
+  { text: 'Heavy rain flooded the trail.', effect: s => { return 'Lost 1 day'; }, bad: true },
+  { text: 'A member of your party got bitten by a snake!', effect: s => { const m=s.party.find(p=>p.alive&&p.health>0); if(m){m.health-=25;return `${m.name} was bitten! -25 health`;} return ''; }, bad: true },
+  { text: 'Beautiful weather and good roads today.', effect: s => { return 'Good spirits!'; } },
+  { text: 'You traded with friendly Native Americans.', effect: s => { s.food+=30; s.clothes+=2; return '+30 food, +2 clothes'; } },
+  { text: 'A wagon wheel broke!', effect: s => { if(s.wheels>0){s.wheels--;return 'Used spare wheel';} return 'No spare wheels! Lost 3 days repairing'; }, bad: true },
+  { text: 'An axle broke on the wagon!', effect: s => { if(s.axles>0){s.axles--;return 'Used spare axle';} return 'No spare axles! Lost 3 days'; }, bad: true },
+  { text: 'Severe thunderstorm!', effect: s => { return 'Party morale dropped'; }, bad: true },
+  { text: 'A member of your party has dysentery.', effect: s => { const m=s.party.find(p=>p.alive&&p.health>20); if(m){m.health-=30;m.sick='dysentery';return `${m.name} has dysentery!`;} return ''; }, bad: true },
+  { text: 'A member caught a fever.', effect: s => { const m=s.party.find(p=>p.alive&&p.health>20); if(m){m.health-=20;m.sick='fever';return `${m.name} has a fever!`;} return ''; }, bad: true },
+  { text: 'Found a clear stream — everyone rested well.', effect: s => { s.party.forEach(p=>{if(p.alive)p.health=Math.min(100,p.health+10);}); return 'Party health improved'; } },
+  { text: 'Stampede! Your oxen panicked!', effect: s => { if(s.oxen>1)s.oxen--; return '-1 ox lost'; }, bad: true },
+];
+
+const PROFESSIONS = [
+  { name: 'Banker', money: 1600, desc: 'Start with $1,600' },
+  { name: 'Carpenter', money: 800, desc: 'Start with $800, +bonus repair' },
+  { name: 'Farmer', money: 400, desc: 'Start with $400, +bonus survival' },
+];
+
+let selectedProf = 0;
+
+function render() {
+  switch(state.screen) {
+    case 'title': renderTitle(); break;
+    case 'profession': renderProfession(); break;
+    case 'names': renderNames(); break;
+    case 'store': renderStore(); break;
+    case 'travel': renderTravel(); break;
+    case 'event': renderEvent(); break;
+    case 'landmark': renderLandmark(); break;
+    case 'river': renderRiver(); break;
+    case 'hunt': renderHunt(); break;
+    case 'rest': renderRest(); break;
+    case 'dead': renderDead(); break;
+    case 'win': renderWin(); break;
+  }
+}
+
+function renderTitle() {
+  game.innerHTML = `
+    <div class="screen">
+      <canvas id="scene" width="760" height="200"></canvas>
+      <h1>THE OREGON TRAIL</h1>
+      <h2>AJ GameTime Edition</h2>
+      <p class="text dim" style="text-align:center;">The year is 1848. You and your family must travel 2,170 miles from Independence, Missouri to Oregon's Willamette Valley.</p>
+      <p class="text dim" style="text-align:center;margin-top:0.5rem;">Will you survive the journey?</p>
+      <div class="menu">
+        <button class="btn" onclick="state.screen='profession';render();"><span class="key">[1]</span> Start a New Game</button>
+      </div>
+    </div>`;
+  drawTitleScene();
+}
+
+function drawTitleScene() {
+  const c = $('scene'); if(!c) return;
+  const ctx = c.getContext('2d');
+  c.width = 760; c.height = 200;
+  // Sky gradient
+  const sky = ctx.createLinearGradient(0,0,0,120);
+  sky.addColorStop(0,'#1a0a2e'); sky.addColorStop(0.5,'#2d1b4e'); sky.addColorStop(1,'#f4845f');
+  ctx.fillStyle = sky; ctx.fillRect(0,0,760,120);
+  // Sun
+  ctx.fillStyle = '#f4845f';ctx.shadowColor='#f4845f';ctx.shadowBlur=30;
+  ctx.beginPath();ctx.arc(600,100,25,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
+  // Stars
+  ctx.fillStyle='#fff';
+  for(let i=0;i<30;i++){ctx.globalAlpha=0.3+Math.random()*0.5;ctx.fillRect(Math.random()*760,Math.random()*80,1.5,1.5);}
+  ctx.globalAlpha=1;
+  // Ground
+  ctx.fillStyle='#2a4a1a';ctx.fillRect(0,120,760,80);
+  // Trail
+  ctx.strokeStyle='#5a3a20';ctx.lineWidth=8;ctx.beginPath();ctx.moveTo(0,160);ctx.bezierCurveTo(200,140,500,170,760,145);ctx.stroke();
+  // Wagon
+  drawPixelWagon(ctx, 350, 125);
+  // Mountains
+  ctx.fillStyle='#1a2a3a';
+  ctx.beginPath();ctx.moveTo(0,120);ctx.lineTo(100,60);ctx.lineTo(200,120);ctx.fill();
+  ctx.beginPath();ctx.moveTo(500,120);ctx.lineTo(620,50);ctx.lineTo(760,120);ctx.fill();
+  ctx.fillStyle='#2a3a4a';
+  ctx.beginPath();ctx.moveTo(150,120);ctx.lineTo(300,70);ctx.lineTo(450,120);ctx.fill();
+}
+
+function drawPixelWagon(ctx, x, y) {
+  // Wagon body
+  ctx.fillStyle='#8B6914';ctx.fillRect(x,y,50,20);
+  // Canvas top
+  ctx.fillStyle='#f5f0e0';ctx.beginPath();
+  ctx.moveTo(x+5,y);ctx.quadraticCurveTo(x+25,y-22,x+45,y);ctx.fill();
+  // Wheels
+  ctx.fillStyle='#4a2a0a';
+  ctx.beginPath();ctx.arc(x+12,y+22,8,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.arc(x+38,y+22,8,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#6a4a1a';
+  ctx.beginPath();ctx.arc(x+12,y+22,4,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.arc(x+38,y+22,4,0,Math.PI*2);ctx.fill();
+  // Ox
+  ctx.fillStyle='#8B7355';ctx.fillRect(x-30,y+5,25,15);
+  ctx.fillRect(x-35,y+2,10,12);
+  // Legs
+  ctx.fillStyle='#6a5a40';
+  ctx.fillRect(x-28,y+20,4,8);ctx.fillRect(x-14,y+20,4,8);
+  // Horns
+  ctx.strokeStyle='#ccc';ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.moveTo(x-35,y+2);ctx.lineTo(x-38,y-4);ctx.moveTo(x-26,y+2);ctx.lineTo(x-23,y-4);ctx.stroke();
+}
+
+function renderProfession() {
+  game.innerHTML = `
+    <div class="screen">
+      <h3>Choose Your Profession</h3>
+      <p class="text dim">Your profession determines your starting money and bonuses.</p>
+      <div class="menu">
+        ${PROFESSIONS.map((p,i) => `<button class="btn" onclick="chooseProfession(${i})"><span class="key">[${i+1}]</span> ${p.name} — ${p.desc}</button>`).join('')}
+      </div>
+    </div>`;
+}
+
+function chooseProfession(i) {
+  selectedProf = i;
+  state.money = PROFESSIONS[i].money;
+  state.screen = 'names';
+  render();
+}
+
+function renderNames() {
+  game.innerHTML = `
+    <div class="screen">
+      <h3>Name Your Party</h3>
+      <p class="text dim">Enter names for your wagon party (5 people).</p>
+      <div style="display:flex;flex-direction:column;gap:0.5rem;margin-top:1rem;">
+        ${[0,1,2,3,4].map(i => `
+          <div style="display:flex;align-items:center;gap:0.5rem;">
+            <span class="text" style="width:100px;">${i===0?'Leader':'Member '+(i)}:</span>
+            <input id="name${i}" type="text" value="${['Captain','Sarah','Billy','Grandma','Scout'][i]}"
+              style="flex:1;font-family:'VT323',monospace;font-size:1.3rem;background:#0f1f0f;color:#33ff33;border:2px solid #1a5a1a;padding:0.5rem;border-radius:4px;outline:none;"
+              maxlength="12">
+          </div>
+        `).join('')}
+      </div>
+      <div class="menu">
+        <button class="btn" onclick="startJourney()"><span class="key">[→]</span> Hit the Trail!</button>
+      </div>
+    </div>`;
+  $('name0').focus();
+}
+
+function startJourney() {
+  state.party = [];
+  for(let i=0;i<5;i++) {
+    const name = $('name'+i).value.trim() || ['Captain','Sarah','Billy','Grandma','Scout'][i];
+    state.party.push({ name, health: 100, alive: true, sick: null });
+  }
+  state.landmarkIndex = 0;
+  state.screen = 'store';
+  state.storeLandmark = 'Independence';
+  render();
+}
+
+// Store
+let storeCart = {};
+function renderStore() {
+  const items = [
+    { key: 'oxen', name: 'Oxen (yoke)', price: 40, desc: 'Need at least 1 yoke. More = faster.' },
+    { key: 'food', name: 'Food (lbs)', price: 0.20, desc: 'About 200 lbs per person recommended.', step: 50 },
+    { key: 'clothes', name: 'Clothing (sets)', price: 10, desc: '2 sets per person recommended.' },
+    { key: 'ammo', name: 'Ammunition (boxes)', price: 2, desc: '1 box = 20 bullets for hunting.' },
+    { key: 'wheels', name: 'Spare wheels', price: 10, desc: 'Wheels can break on the trail.' },
+    { key: 'axles', name: 'Spare axles', price: 10, desc: 'Axles can break on rough terrain.' },
+    { key: 'tongues', name: 'Spare tongues', price: 10, desc: 'Wagon tongues can snap.' },
+  ];
+  if(!storeCart.oxen) storeCart = { oxen:2, food:500, clothes:10, ammo:5, wheels:1, axles:1, tongues:1 };
+  const total = items.reduce((s,it) => s + (storeCart[it.key]||0) * it.price, 0);
+
+  game.innerHTML = `
+    <div class="screen">
+      <h3>${state.storeLandmark || 'General Store'}</h3>
+      <p class="text highlight">Money: $${state.money.toFixed(2)}</p>
+      <p class="text ${total>state.money?'danger':'dim'}">Cart Total: $${total.toFixed(2)}</p>
+      <div style="margin-top:1rem;">
+        ${items.map(it => {
+          const qty = storeCart[it.key] || 0;
+          const step = it.step || 1;
+          return `<div style="display:flex;justify-content:space-between;align-items:center;padding:0.4rem 0;border-bottom:1px solid #0f1f0f;">
+            <div>
+              <span class="text">${it.name}</span>
+              <span class="dim" style="font-size:1rem;"> — $${it.price.toFixed(2)} ea</span>
+              <br><span class="dim" style="font-size:0.9rem;">${it.desc}</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:0.5rem;">
+              <button class="btn btn-small" onclick="storeAdj('${it.key}',${-step})" ${qty<=0?'disabled':''}>-</button>
+              <span class="text" style="min-width:40px;text-align:center;">${qty}</span>
+              <button class="btn btn-small" onclick="storeAdj('${it.key}',${step})">+</button>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+      <div class="menu" style="margin-top:1.5rem;">
+        <button class="btn" onclick="buyStore()" ${total>state.money?'disabled':''}><span class="key">[→]</span> Buy & Continue ${total>state.money?'(not enough money)':''}</button>
+      </div>
+    </div>`;
+}
+
+function storeAdj(key, delta) {
+  storeCart[key] = Math.max(0, (storeCart[key]||0) + delta);
+  renderStore();
+}
+
+function buyStore() {
+  const prices = { oxen:40, food:0.20, clothes:10, ammo:2, wheels:10, axles:10, tongues:10 };
+  let total = 0;
+  for(const k in storeCart) total += (storeCart[k]||0) * prices[k];
+  if(total > state.money) return;
+  state.money -= total;
+  for(const k in storeCart) state[k] += storeCart[k];
+  storeCart = {};
+  state.screen = 'travel';
+  render();
+}
+
+// Travel
+function renderTravel() {
+  const next = LANDMARKS[state.landmarkIndex + 1] || LANDMARKS[LANDMARKS.length-1];
+  const milesLeft = next.miles - state.miles;
+  const progress = state.miles / state.totalMiles * 100;
+  const dateStr = getDateStr();
+  const aliveCount = state.party.filter(p=>p.alive).length;
+
+  game.innerHTML = `
+    <div class="screen">
+      <canvas id="scene" width="760" height="180"></canvas>
+      <div class="hud">
+        <div class="hud-item"><div class="hud-label">Date</div><div class="hud-val good">${dateStr}</div></div>
+        <div class="hud-item"><div class="hud-label">Miles</div><div class="hud-val good">${state.miles} / ${state.totalMiles}</div></div>
+        <div class="hud-item"><div class="hud-label">Next Stop</div><div class="hud-val highlight">${milesLeft} mi</div></div>
+        <div class="hud-item"><div class="hud-label">Weather</div><div class="hud-val">${state.weather}</div></div>
+        <div class="hud-item"><div class="hud-label">Food</div><div class="hud-val ${state.food<100?'warn':state.food<50?'danger':'good'}">${state.food} lbs</div></div>
+        <div class="hud-item"><div class="hud-label">Party</div><div class="hud-val">${aliveCount}/5 alive</div></div>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" style="width:${progress}%"></div></div>
+      <p class="text dim" style="text-align:center;font-size:1rem;">Next: ${next.name}</p>
+      <div class="menu">
+        <button class="btn" onclick="doTravel()"><span class="key">[1]</span> Continue on trail</button>
+        <button class="btn" onclick="checkSupplies()"><span class="key">[2]</span> Check supplies</button>
+        <button class="btn" onclick="changePace()"><span class="key">[3]</span> Change pace (${state.pace})</button>
+        <button class="btn" onclick="changeRations()"><span class="key">[4]</span> Change rations (${state.rations})</button>
+        <button class="btn" onclick="goHunting()" ${state.ammo<=0?'disabled':''}><span class="key">[5]</span> Go hunting ${state.ammo<=0?'(no ammo)':''}</button>
+        <button class="btn" onclick="doRest()"><span class="key">[6]</span> Rest for a day</button>
+      </div>
+    </div>`;
+  drawTravelScene();
+}
+
+function drawTravelScene() {
+  const c = $('scene'); if(!c) return;
+  const ctx = c.getContext('2d');
+  c.width = 760; c.height = 180;
+  // Sky
+  const isNight = state.day % 3 === 0;
+  if(isNight) {
+    ctx.fillStyle = '#0a0a2e'; ctx.fillRect(0,0,760,100);
+    ctx.fillStyle='#fff';for(let i=0;i<40;i++){ctx.globalAlpha=0.2+Math.random()*0.6;ctx.fillRect(Math.random()*760,Math.random()*80,1.5,1.5);}ctx.globalAlpha=1;
+  } else {
+    const sky = ctx.createLinearGradient(0,0,0,100);
+    sky.addColorStop(0,'#4a90d9');sky.addColorStop(1,'#87ceeb');
+    ctx.fillStyle=sky;ctx.fillRect(0,0,760,100);
+    // Clouds
+    ctx.fillStyle='rgba(255,255,255,0.7)';
+    [[100,30],[350,20],[600,35]].forEach(([cx,cy])=>{
+      ctx.beginPath();ctx.arc(cx,cy,15,0,Math.PI*2);ctx.arc(cx+15,cy-5,12,0,Math.PI*2);ctx.arc(cx+30,cy,14,0,Math.PI*2);ctx.fill();
+    });
+  }
+  // Ground
+  const progress = state.miles / state.totalMiles;
+  if(progress > 0.7) { ctx.fillStyle='#3a5a2a'; } // green Oregon
+  else if(progress > 0.4) { ctx.fillStyle='#5a4a30'; } // desert/mountains
+  else { ctx.fillStyle='#4a6a2a'; } // plains
+  ctx.fillRect(0,100,760,80);
+  // Trail
+  ctx.strokeStyle='#6a5a3a';ctx.lineWidth=6;ctx.beginPath();ctx.moveTo(0,145);ctx.bezierCurveTo(200,135,500,155,760,140);ctx.stroke();
+  // Wagon moving
+  const wx = 300 + Math.sin(Date.now()/500) * 3;
+  drawPixelWagon(ctx, wx, 110);
+  // Weather effects
+  if(state.weather==='rainy'||state.weather==='heavy rain') {
+    ctx.strokeStyle='rgba(100,150,255,0.3)';ctx.lineWidth=1;
+    for(let i=0;i<50;i++){const rx=Math.random()*760;const ry=Math.random()*180;ctx.beginPath();ctx.moveTo(rx,ry);ctx.lineTo(rx-2,ry+8);ctx.stroke();}
+  }
+  if(state.weather==='snowy') {
+    ctx.fillStyle='rgba(255,255,255,0.6)';for(let i=0;i<40;i++){ctx.beginPath();ctx.arc(Math.random()*760,Math.random()*180,2,0,Math.PI*2);ctx.fill();}
+  }
+}
+
+function getDateStr() {
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return `${months[state.month-1]} ${state.day}, ${state.year}`;
+}
+
+function advanceDay(days) {
+  for(let d=0;d<days;d++) {
+    state.day++;
+    if(state.day > 30) { state.day = 1; state.month++; }
+    if(state.month > 12) { state.month = 1; state.year++; }
+  }
+}
+
+function consumeFood() {
+  const alive = state.party.filter(p=>p.alive).length;
+  let consumption = alive * 3; // base per person per day
+  if(state.rations==='meager') consumption = alive * 2;
+  if(state.rations==='bare') consumption = alive * 1;
+  state.food = Math.max(0, state.food - consumption);
+  if(state.food <= 0) {
+    state.party.forEach(p => { if(p.alive) p.health -= 8; });
+  }
+}
+
+function updateHealth() {
+  state.party.forEach(p => {
+    if(!p.alive) return;
+    // Rations effect
+    if(state.rations === 'filling') p.health = Math.min(100, p.health + 1);
+    if(state.rations === 'bare') p.health -= 2;
+    // Pace effect
+    if(state.pace === 'grueling') p.health -= 2;
+    // Sick effect
+    if(p.sick) {
+      p.health -= 3;
+      if(Math.random() < 0.15) p.sick = null; // recover
+    }
+    // Weather
+    if(state.weather === 'heavy rain' || state.weather === 'snowy') p.health -= 1;
+    if(state.clothes < state.party.filter(q=>q.alive).length && state.weather === 'snowy') p.health -= 3;
+    // Death check
+    if(p.health <= 0) { p.health = 0; p.alive = false; }
+  });
+  // Update weather
+  const r = Math.random();
+  if(state.month >= 10) {
+    state.weather = r < 0.2 ? 'snowy' : r < 0.4 ? 'cold' : r < 0.6 ? 'rainy' : 'fair';
+  } else if(state.month >= 6) {
+    state.weather = r < 0.1 ? 'heavy rain' : r < 0.3 ? 'hot' : r < 0.5 ? 'rainy' : 'fair';
+  } else {
+    state.weather = r < 0.15 ? 'rainy' : r < 0.25 ? 'cold' : 'fair';
+  }
+}
+
+let lastEvent = null;
+function doTravel() {
+  if(state.oxen <= 0) { lastEvent = { text:'You have no oxen! You cannot travel. Buy oxen at the next fort or rest.', result:'Stranded!', bad:true }; state.screen='event'; render(); return; }
+  // Calculate miles
+  let baseMiles = 12 + state.oxen * 3;
+  if(state.pace === 'slow') baseMiles *= 0.6;
+  if(state.pace === 'grueling') baseMiles *= 1.4;
+  baseMiles = Math.floor(baseMiles + Math.random() * 8 - 4);
+  if(state.weather === 'heavy rain' || state.weather === 'snowy') baseMiles = Math.floor(baseMiles * 0.5);
+  if(state.weather === 'rainy') baseMiles = Math.floor(baseMiles * 0.75);
+
+  state.miles += baseMiles;
+  advanceDay(1);
+  consumeFood();
+  updateHealth();
+
+  // Check death
+  if(!state.party.some(p=>p.alive)) { state.screen = 'dead'; render(); return; }
+
+  // Check landmark
+  const next = LANDMARKS[state.landmarkIndex + 1];
+  if(next && state.miles >= next.miles) {
+    state.miles = next.miles;
+    state.landmarkIndex++;
+    if(next.type === 'end') { state.screen = 'win'; render(); return; }
+    state.screen = 'landmark';
+    render();
+    return;
+  }
+
+  // Random event (30% chance)
+  if(Math.random() < 0.3) {
+    const evt = EVENTS[Math.floor(Math.random() * EVENTS.length)];
+    const result = evt.effect(state);
+    lastEvent = { text: evt.text, result, bad: evt.bad };
+    // Check deaths from event
+    state.party.forEach(p => { if(p.alive && p.health <= 0) { p.health = 0; p.alive = false; } });
+    if(!state.party.some(p=>p.alive)) { state.screen = 'dead'; render(); return; }
+    state.screen = 'event';
+    render();
+    return;
+  }
+
+  render();
+}
+
+function renderEvent() {
+  game.innerHTML = `
+    <div class="screen">
+      <h3>${lastEvent.bad ? '⚠️ Trouble!' : '✨ Good Fortune!'}</h3>
+      <p class="text ${lastEvent.bad ? 'warn' : 'good'}">${lastEvent.text}</p>
+      <p class="text dim">${lastEvent.result}</p>
+      ${renderPartyHealth()}
+      <div class="menu">
+        <button class="btn" onclick="state.screen='travel';render();"><span class="key">[→]</span> Continue</button>
+      </div>
+    </div>`;
+}
+
+function renderPartyHealth() {
+  return `<div class="party-list" style="margin-top:0.75rem;">
+    ${state.party.map(p => {
+      let cls = 'status-good', label = 'Good';
+      if(!p.alive) { cls='status-dead'; label='Dead'; }
+      else if(p.health < 30) { cls='status-poor'; label=p.sick||'Poor'; }
+      else if(p.health < 60) { cls='status-fair'; label=p.sick||'Fair'; }
+      else { label = p.sick || 'Good'; }
+      return `<div class="party-member"><span class="${cls}">${p.name}</span><span class="${cls}">${label} (${p.alive?p.health:'✝'})</span></div>`;
+    }).join('')}
+  </div>`;
+}
+
+function checkSupplies() {
+  game.innerHTML = `
+    <div class="screen">
+      <h3>📦 Supplies</h3>
+      <div style="margin:1rem 0;">
+        <p class="text">💰 Money: <span class="highlight">$${state.money.toFixed(2)}</span></p>
+        <p class="text">🐂 Oxen: <span class="highlight">${state.oxen}</span></p>
+        <p class="text">🍖 Food: <span class="${state.food<100?'warn':'highlight'}">${state.food} lbs</span></p>
+        <p class="text">👕 Clothing: <span class="highlight">${state.clothes} sets</span></p>
+        <p class="text">🔫 Ammunition: <span class="highlight">${state.ammo} boxes (${state.ammo*20} bullets)</span></p>
+        <p class="text">🛞 Spare wheels: <span class="highlight">${state.wheels}</span></p>
+        <p class="text">⚙️ Spare axles: <span class="highlight">${state.axles}</span></p>
+        <p class="text">🪵 Spare tongues: <span class="highlight">${state.tongues}</span></p>
+      </div>
+      <h3>👥 Party</h3>
+      ${renderPartyHealth()}
+      <div class="menu">
+        <button class="btn" onclick="state.screen='travel';render();"><span class="key">[→]</span> Back</button>
+      </div>
+    </div>`;
+}
+
+function changePace() {
+  const paces = ['slow','steady','grueling'];
+  const i = (paces.indexOf(state.pace) + 1) % paces.length;
+  state.pace = paces[i];
+  render();
+}
+
+function changeRations() {
+  const rations = ['bare','meager','filling'];
+  const i = (rations.indexOf(state.rations) + 1) % rations.length;
+  state.rations = rations[i];
+  render();
+}
+
+function doRest() {
+  advanceDay(1);
+  consumeFood();
+  state.party.forEach(p => { if(p.alive) p.health = Math.min(100, p.health + 5); if(p.sick && Math.random()<0.25) p.sick=null; });
+  lastEvent = { text:'Your party rested for a day.', result:'Health improved slightly.', bad:false };
+  state.screen = 'event';
+  render();
+}
+
+// Hunting mini-game
+let huntCanvas, huntCtx, huntAnimals, huntBullets, huntScore, huntAmmo, huntTime, huntInterval;
+function goHunting() { state.screen = 'hunt'; render(); }
+
+function renderHunt() {
+  game.innerHTML = `
+    <div class="screen">
+      <h3>🎯 Hunting</h3>
+      <p class="text dim">Click/tap animals to shoot! You have 30 seconds.</p>
+      <p class="text">Ammo: <span id="huntAmmo" class="highlight">${state.ammo * 20}</span> · Food: <span id="huntFood" class="good">0 lbs</span> · Time: <span id="huntTime" class="warn">30s</span></p>
+      <canvas id="huntCanvas" width="760" height="300" style="height:300px;cursor:crosshair;background:#2a4a1a;margin-top:0.5rem;"></canvas>
+      <div class="menu">
+        <button class="btn" id="huntDone" onclick="endHunt()"><span class="key">[→]</span> Done Hunting</button>
+      </div>
+    </div>`;
+  startHunt();
+}
+
+function startHunt() {
+  const c = $('huntCanvas'); if(!c) return;
+  huntCtx = c.getContext('2d');
+  huntAnimals = [];
+  huntScore = 0;
+  huntAmmo = state.ammo * 20;
+  huntTime = 30;
+
+  // Spawn animals
+  function spawnAnimal() {
+    const types = [
+      { name:'rabbit', emoji:'🐇', food:5, size:20, speed:3 },
+      { name:'deer', emoji:'🦌', food:30, size:30, speed:2 },
+      { name:'buffalo', emoji:'🦬', food:80, size:40, speed:1 },
+      { name:'squirrel', emoji:'🐿️', food:3, size:15, speed:4 },
+    ];
+    const t = types[Math.floor(Math.random()*types.length)];
+    huntAnimals.push({
+      ...t,
+      x: Math.random() < 0.5 ? -30 : 790,
+      y: 50 + Math.random() * 220,
+      dir: 0, alive: true,
+    });
+    huntAnimals[huntAnimals.length-1].dir = huntAnimals[huntAnimals.length-1].x < 0 ? 1 : -1;
+  }
+  for(let i=0;i<4;i++) spawnAnimal();
+
+  c.onclick = (e) => {
+    if(huntAmmo <= 0) return;
+    huntAmmo--;
+    const rect = c.getBoundingClientRect();
+    const scaleX = 760 / rect.width;
+    const scaleY = 300 / rect.height;
+    const mx = (e.clientX - rect.left) * scaleX;
+    const my = (e.clientY - rect.top) * scaleY;
+    // Check hits
+    for(let a of huntAnimals) {
+      if(!a.alive) continue;
+      if(Math.abs(a.x - mx) < a.size && Math.abs(a.y - my) < a.size) {
+        a.alive = false;
+        huntScore += a.food;
+        break;
+      }
+    }
+    $('huntAmmo').textContent = huntAmmo;
+    $('huntFood').textContent = huntScore + ' lbs';
+  };
+
+  huntInterval = setInterval(() => {
+    huntTime--;
+    if($('huntTime')) $('huntTime').textContent = huntTime + 's';
+    if(huntTime <= 0) endHunt();
+    // Spawn more
+    if(Math.random() < 0.3 && huntAnimals.filter(a=>a.alive).length < 6) spawnAnimal();
+  }, 1000);
+
+  function drawHunt() {
+    if(state.screen !== 'hunt') return;
+    huntCtx.clearRect(0,0,760,300);
+    // Grass
+    huntCtx.fillStyle = '#2a5a1a'; huntCtx.fillRect(0,0,760,300);
+    // Trees
+    huntCtx.fillStyle='#1a3a0a';
+    [50,200,400,600,720].forEach(tx=>{
+      huntCtx.beginPath();huntCtx.moveTo(tx,40);huntCtx.lineTo(tx-15,90);huntCtx.lineTo(tx+15,90);huntCtx.fill();
+      huntCtx.fillRect(tx-3,90,6,15);
+    });
+    // Bushes
+    huntCtx.fillStyle='#2a6a1a';
+    [100,300,550,700].forEach(bx=>{
+      huntCtx.beginPath();huntCtx.arc(bx,260,18,0,Math.PI*2);huntCtx.fill();
+    });
+
+    huntAnimals.forEach(a => {
+      if(!a.alive) return;
+      a.x += a.speed * a.dir;
+      if(a.x < -40 || a.x > 800) { a.x = a.dir>0 ? -30 : 790; a.y = 50+Math.random()*220; }
+      huntCtx.font = `${a.size}px sans-serif`;
+      huntCtx.textAlign = 'center';
+      huntCtx.save();
+      if(a.dir < 0) { huntCtx.translate(a.x, a.y); huntCtx.scale(-1,1); huntCtx.fillText(a.emoji,0,0); }
+      else huntCtx.fillText(a.emoji, a.x, a.y);
+      huntCtx.restore();
+    });
+    requestAnimationFrame(drawHunt);
+  }
+  drawHunt();
+}
+
+function endHunt() {
+  clearInterval(huntInterval);
+  state.ammo = Math.floor(huntAmmo / 20);
+  const maxCarry = 200;
+  const carried = Math.min(huntScore, maxCarry);
+  state.food += carried;
+  advanceDay(1);
+  consumeFood();
+  lastEvent = {
+    text: `You hunted and got ${huntScore} lbs of food.${huntScore>maxCarry?' You could only carry '+maxCarry+' lbs back.':''}`,
+    result: `+${carried} lbs food`,
+    bad: false
+  };
+  state.screen = 'event';
+  render();
+}
+
+// Landmarks
+function renderLandmark() {
+  const lm = LANDMARKS[state.landmarkIndex];
+  const isFort = lm.type === 'fort';
+  const isRiver = lm.type === 'river';
+
+  if(isRiver) { renderRiver(); return; }
+
+  game.innerHTML = `
+    <div class="screen">
+      <h3>📍 ${lm.name}</h3>
+      <p class="text good">You have reached ${lm.name}!</p>
+      <p class="text dim">${getDateStr()} — ${state.miles} miles traveled</p>
+      ${renderPartyHealth()}
+      <div class="menu">
+        ${isFort ? `<button class="btn" onclick="storeCart={};state.storeLandmark='${lm.name}';state.screen='store';render();"><span class="key">[1]</span> Visit the store</button>` : ''}
+        <button class="btn" onclick="state.screen='travel';render();"><span class="key">[→]</span> Continue on trail</button>
+      </div>
+    </div>`;
+}
+
+function renderRiver() {
+  const lm = LANDMARKS[state.landmarkIndex];
+  game.innerHTML = `
+    <div class="screen">
+      <h3>🌊 ${lm.name}</h3>
+      <p class="text highlight">The river is ${lm.depth} feet deep and ${lm.width} feet across.</p>
+      <p class="text dim">How would you like to cross?</p>
+      <div class="menu">
+        <button class="btn" onclick="fordRiver()"><span class="key">[1]</span> Ford the river ${lm.depth>3?'(risky!)':''}</button>
+        <button class="btn" onclick="caulkRiver()"><span class="key">[2]</span> Caulk the wagon and float</button>
+        <button class="btn" onclick="waitRiver()"><span class="key">[3]</span> Wait a day for conditions to improve</button>
+      </div>
+    </div>`;
+}
+
+function fordRiver() {
+  const lm = LANDMARKS[state.landmarkIndex];
+  const risk = lm.depth / 10;
+  if(Math.random() < risk) {
+    const lostFood = Math.floor(Math.random() * 50) + 20;
+    state.food = Math.max(0, state.food - lostFood);
+    if(Math.random() < risk * 0.5) {
+      const m = state.party.find(p=>p.alive);
+      if(m) { m.health -= 40; if(m.health<=0){m.health=0;m.alive=false;} }
+      lastEvent = { text:`Disaster! The river was too deep. You lost ${lostFood} lbs of food and ${m?m.name+' nearly drowned!':'supplies.'}`, result:'River crossing failed!', bad:true };
+    } else {
+      lastEvent = { text:`The ford was rough! You lost ${lostFood} lbs of food in the crossing.`, result:`-${lostFood} food`, bad:true };
+    }
+  } else {
+    lastEvent = { text:'You safely forded the river!', result:'Crossed successfully!', bad:false };
+  }
+  advanceDay(1); consumeFood(); state.screen='event'; render();
+}
+
+function caulkRiver() {
+  if(Math.random() < 0.25) {
+    const lost = Math.floor(Math.random() * 30) + 10;
+    state.food = Math.max(0, state.food - lost);
+    lastEvent = { text:`The wagon tipped while floating! Lost ${lost} lbs of food.`, result:`-${lost} food`, bad:true };
+  } else {
+    lastEvent = { text:'You caulked the wagon and floated across safely!', result:'Crossed successfully!', bad:false };
+  }
+  advanceDay(1); consumeFood(); state.screen='event'; render();
+}
+
+function waitRiver() {
+  advanceDay(1); consumeFood();
+  lastEvent = { text:'You waited a day by the river.', result:'The water level may have changed.', bad:false };
+  state.screen='event'; render();
+}
+
+// Death
+function renderDead() {
+  game.innerHTML = `
+    <div class="screen">
+      <canvas id="scene" width="760" height="200"></canvas>
+      <h1 style="color:#ff3333;">☠️ Your Journey Has Ended</h1>
+      <p class="text danger" style="text-align:center;">Your entire party has perished on the trail.</p>
+      <p class="text dim" style="text-align:center;">${getDateStr()} — ${state.miles} miles from Independence</p>
+      <p class="text dim" style="text-align:center;margin-top:1rem;">Here lies the ${state.party[0].name} party.<br>They made it ${Math.floor(state.miles/state.totalMiles*100)}% of the way to Oregon.</p>
+      <div class="menu">
+        <button class="btn" onclick="resetGame()"><span class="key">[→]</span> Try Again</button>
+      </div>
+    </div>`;
+  // Draw grave scene
+  const c=$('scene');if(!c)return;const ctx=c.getContext('2d');c.width=760;c.height=200;
+  ctx.fillStyle='#1a1a2e';ctx.fillRect(0,0,760,100);
+  ctx.fillStyle='#fff';for(let i=0;i<20;i++){ctx.globalAlpha=0.3+Math.random()*0.4;ctx.fillRect(Math.random()*760,Math.random()*80,1.5,1.5);}ctx.globalAlpha=1;
+  ctx.fillStyle='#2a3a1a';ctx.fillRect(0,100,760,100);
+  // Grave
+  ctx.fillStyle='#666';ctx.fillRect(360,60,40,50);ctx.fillRect(350,58,60,8);
+  ctx.fillStyle='#888';ctx.font='10px sans-serif';ctx.textAlign='center';ctx.fillText('R.I.P.',380,82);
+}
+
+// Win!
+function renderWin() {
+  const bonus = state.party.filter(p=>p.alive).length * 500 + state.food * 2 + state.money;
+  game.innerHTML = `
+    <div class="screen">
+      <canvas id="scene" width="760" height="200"></canvas>
+      <h1 style="color:#33ffaa;">🎉 You Made It to Oregon!</h1>
+      <p class="text good" style="text-align:center;">Congratulations! After 2,170 miles, your party has reached the Willamette Valley!</p>
+      <p class="text dim" style="text-align:center;">${getDateStr()}</p>
+      ${renderPartyHealth()}
+      <div style="margin-top:1rem;text-align:center;">
+        <p class="text highlight" style="font-size:2rem;font-family:'Press Start 2P',monospace;">Score: ${Math.floor(bonus)}</p>
+        <p class="text dim">${state.party.filter(p=>p.alive).length} survivors · $${state.money.toFixed(2)} remaining · ${state.food} lbs food</p>
+      </div>
+      <div class="menu">
+        <button class="btn" onclick="resetGame()"><span class="key">[→]</span> Play Again</button>
+      </div>
+    </div>`;
+  // Draw Oregon scene
+  const c=$('scene');if(!c)return;const ctx=c.getContext('2d');c.width=760;c.height=200;
+  const sky=ctx.createLinearGradient(0,0,0,100);sky.addColorStop(0,'#4a90d9');sky.addColorStop(1,'#87ceeb');
+  ctx.fillStyle=sky;ctx.fillRect(0,0,760,100);
+  ctx.fillStyle='#2a6a1a';ctx.fillRect(0,100,760,100);
+  // Beautiful valley
+  ctx.fillStyle='#1a4a2a';ctx.beginPath();ctx.moveTo(0,100);ctx.lineTo(150,50);ctx.lineTo(300,100);ctx.fill();
+  ctx.beginPath();ctx.moveTo(450,100);ctx.lineTo(600,40);ctx.lineTo(760,100);ctx.fill();
+  // Trees
+  ctx.fillStyle='#1a5a1a';
+  [100,200,350,500,650].forEach(tx=>{ctx.beginPath();ctx.moveTo(tx,70);ctx.lineTo(tx-12,100);ctx.lineTo(tx+12,100);ctx.fill();});
+  // Cabin
+  ctx.fillStyle='#6a4a2a';ctx.fillRect(340,85,80,35);
+  ctx.fillStyle='#4a2a0a';ctx.beginPath();ctx.moveTo(330,85);ctx.lineTo(380,60);ctx.lineTo(430,85);ctx.fill();
+  // Chimney smoke
+  ctx.strokeStyle='rgba(200,200,200,0.4)';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(410,65);ctx.bezierCurveTo(415,50,405,40,410,25);ctx.stroke();
+  drawPixelWagon(ctx, 250, 108);
+}
+
+function resetGame() {
+  state = { screen:'title', month:3, day:1, year:1848, miles:0, totalMiles:2170, pace:'steady', rations:'filling', money:0, food:0, oxen:0, clothes:0, ammo:0, wheels:0, axles:0, tongues:0, party:[], weather:'fair', nextLandmark:null, landmarkIndex:0, morale:100 };
+  storeCart = {};
+  render();
+}
+
+// Start
+render();
+</script>
+</body>
+</html>

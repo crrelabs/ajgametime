@@ -80,7 +80,7 @@ let playing = false, score = 0, timeLeft = 120, frame = 0;
 let deliveries = 0;
 
 // Player state
-let speed = 0, maxSpeed = 200, accel = 300, brakeForce = 400, friction = 80;
+let speed = 0, maxSpeed = 400, accel = 500, brakeForce = 600, friction = 80;
 let posX = 0; // lateral position on road (-1 to 1)
 let playerZ = 0; // distance traveled
 
@@ -719,7 +719,7 @@ document.getElementById('play-btn').addEventListener('click', () => {
   overlay.style.display = 'none';
   playing = true;
   score = 0; timeLeft = 120; frame = 0; deliveries = 0;
-  speed = 50; posX = 0; playerZ = 0;
+  speed = 150; posX = 0; playerZ = 0;
   pizzasHeld = 0; currentOrder = null;
   buildRoad();
   overlay.querySelector('h1').textContent = '🍕 Pizza Rider';
