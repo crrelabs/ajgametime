@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Pizza Rider — AJ GameTime</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@600;700;800&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#1a1a2e;overflow:hidden;touch-action:none;font-family:'Nunito',sans-serif;user-select:none}
+canvas{display:block}
+#ui{position:absolute;top:0;left:0;width:100%;pointer-events:none;z-index:10}
+#hud{display:flex;justify-content:space-between;align-items:flex-start;padding:10px 14px}
+#hud .col{display:flex;flex-direction:column;gap:3px}
+.label{color:#fff;font-size:11px;font-weight:700;text-shadow:1px 1px 2px #000}
+#score-display{color:#f59e0b;font-family:'Lilita One',cursive;font-size:20px;text-shadow:0 0 10px rgba(245,158,11,0.5)}
+#timer-display{color:#ef4444;font-family:'Lilita One',cursive;font-size:18px}
+#deliveries-display{color:#22c55e;font-size:14px;font-weight:700}
+#pizzas-display{color:#f97316;font-size:14px;font-weight:700}
+#tip-text{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-family:'Lilita One',cursive;font-size:32px;color:#22c55e;text-shadow:0 0 20px rgba(34,197,94,0.5);z-index:15;display:none;pointer-events:none}
+#controls{position:absolute;bottom:0;left:0;width:100%;display:flex;justify-content:space-between;align-items:flex-end;padding:10px 12px;pointer-events:none;z-index:10}
+.ctrl-group{display:flex;gap:8px;pointer-events:auto}
+.btn{width:64px;height:64px;border-radius:50%;border:2px solid rgba(255,255,255,0.3);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800;color:#fff;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:transform 0.1s}
+.btn:active{transform:scale(0.9)}
+.btn-left{background:rgba(59,130,246,0.5)}
+.btn-right{background:rgba(59,130,246,0.5)}
+.btn-up{background:rgba(34,197,94,0.5)}
+.btn-down{background:rgba(239,68,68,0.5)}
+.btn-deliver{background:rgba(249,115,22,0.6);box-shadow:0 0 15px rgba(249,115,22,0.3);width:72px;height:72px;font-size:28px}
+#overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:20;background:rgba(0,0,0,0.85)}
+#overlay h1{font-family:'Lilita One',cursive;font-size:clamp(28px,6vw,48px);background:linear-gradient(135deg,#f97316,#ef4444);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:4px}
+#overlay h2{color:#22c55e;font-family:'Lilita One',cursive;font-size:clamp(16px,3vw,22px);margin-bottom:16px}
+#overlay p{color:#94a3b8;font-size:14px;max-width:340px;text-align:center;line-height:1.5;margin-bottom:16px}
+#play-btn{pointer-events:auto;padding:14px 40px;font-family:'Lilita One',cursive;font-size:22px;color:#fff;background:linear-gradient(135deg,#f97316,#ef4444);border:none;border-radius:12px;cursor:pointer;box-shadow:0 4px 20px rgba(249,115,22,0.4)}
+#play-btn:hover{transform:scale(1.05)}
+#back{position:absolute;top:12px;left:12px;color:#64748b;text-decoration:none;font-size:13px;font-weight:700;z-index:30}
+#back:hover{color:#94a3b8}
+#minimap{position:absolute;top:60px;right:10px;width:120px;height:120px;border:2px solid rgba(255,255,255,0.15);border-radius:8px;background:rgba(0,0,0,0.5);z-index:10;pointer-events:none}
+#arrow-indicator{position:absolute;top:50%;left:50%;width:40px;height:40px;transform:translate(-50%,-50%);pointer-events:none;z-index:12;font-size:28px;text-align:center;display:none}
+@media(min-width:600px){.btn{width:72px;height:72px;font-size:28px}.btn-deliver{width:80px;height:80px;font-size:32px}}
+</style>
+</head>
+<body>
+<a id="back" href="index.html">← Back</a>
+<canvas id="game"></canvas>
+<div id="tip-text"></div>
+<div id="arrow-indicator">⬆️</div>
+<canvas id="minimap"></canvas>
+
+<div id="ui">
+  <div id="hud">
+    <div class="col">
+      <div id="score-display">$0</div>
+      <div id="deliveries-display">📦 0 delivered</div>
+    </div>
+    <div class="col" style="align-items:center">
+      <div id="timer-display">⏰ 2:00</div>
+    </div>
+    <div class="col" style="align-items:flex-end">
+      <div id="pizzas-display">🍕 0/0</div>
+    </div>
+  </div>
+</div>
+
+<div id="controls">
+  <div class="ctrl-group" style="flex-direction:column;align-items:center">
+    <div class="btn btn-up" data-action="up">▲</div>
+    <div style="display:flex;gap:8px">
+      <div class="btn btn-left" data-action="left">◀</div>
+      <div class="btn btn-down" data-action="down">▼</div>
+      <div class="btn btn-right" data-action="right">▶</div>
+    </div>
+  </div>
+  <div class="ctrl-group">
+    <div class="btn btn-deliver" data-action="deliver">🍕</div>
+  </div>
+</div>
+
+<div id="overlay">
+  <h1>🍕 Pizza Rider</h1>
+  <h2>Deliver pizzas on your motorcycle!</h2>
+  <p>Pick up pizzas from the shop 🏪 and deliver them to houses 🏠 before time runs out! Avoid cars and obstacles. The faster you deliver, the bigger the tip!</p>
+  <button id="play-btn">🏍️ Let's Ride!</button>
+</div>
+
+<script>
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+const miniCanvas = document.getElementById('minimap');
+const miniCtx = miniCanvas.getContext('2d');
+const overlay = document.getElementById('overlay');
+const playBtn = document.getElementById('play-btn');
+const tipText = document.getElementById('tip-text');
+const arrowEl = document.getElementById('arrow-indicator');
+
+let W, H;
+function resize() { W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; miniCanvas.width = 120; miniCanvas.height = 120; }
+resize();
+window.addEventListener('resize', resize);
+
+// World
+const WORLD_W = 2400;
+const WORLD_H = 2400;
+const ROAD_W = 60;
+const BLOCK = 300; // city block size
+
+let playing = false;
+let score = 0, deliveries = 0, timeLeft = 120, timer = 0;
+let particles = [];
+
+// Player motorcycle
+const bike = {
+  x: 0, y: 0, angle: -Math.PI/2, speed: 0,
+  maxSpeed: 4, accel: 0.15, brake: 0.1, turnSpeed: 0.04, friction: 0.02,
+  pizzas: 0, maxPizzas: 3,
+  stunTimer: 0
+};
+
+// City grid
+let houses = [];
+let shop = { x: 0, y: 0 };
+let deliveryTargets = [];
+let obstacles = []; // parked cars
+let trafficCars = [];
+let trees = [];
+
+function generateCity() {
+  houses = [];
+  trees = [];
+  obstacles = [];
+  trafficCars = [];
+
+  // Place pizza shop at center
+  shop.x = WORLD_W / 2;
+  shop.y = WORLD_H / 2;
+
+  // Generate houses along roads
+  for (let gx = 1; gx < WORLD_W / BLOCK - 1; gx++) {
+    for (let gy = 1; gy < WORLD_H / BLOCK - 1; gy++) {
+      const bx = gx * BLOCK;
+      const by = gy * BLOCK;
+      // Houses on each side of block
+      const sides = [
+        { x: bx + 80, y: by + 50, facing: 0 },
+        { x: bx + 180, y: by + 50, facing: 0 },
+        { x: bx + 80, y: by + BLOCK - 50, facing: 2 },
+        { x: bx + 180, y: by + BLOCK - 50, facing: 2 },
+        { x: bx + 50, y: by + 100, facing: 3 },
+        { x: bx + 50, y: by + 200, facing: 3 },
+        { x: bx + BLOCK - 50, y: by + 100, facing: 1 },
+        { x: bx + BLOCK - 50, y: by + 200, facing: 1 },
+      ];
+      sides.forEach(s => {
+        if (Math.random() < 0.6) {
+          const colors = ['#8b4513','#a0522d','#d2691e','#cd853f','#deb887','#bc8f8f','#b0c4de','#778899','#e8d4b8','#c9a882'];
+          const roofColors = ['#4a2810','#3d1e08','#6b3a2a','#2d4a3a','#4a3a5a','#8b0000'];
+          houses.push({
+            x: s.x, y: s.y,
+            w: 40 + Math.random() * 20,
+            h: 35 + Math.random() * 15,
+            color: colors[Math.floor(Math.random() * colors.length)],
+            roofColor: roofColors[Math.floor(Math.random() * roofColors.length)],
+            hasChimney: Math.random() > 0.5,
+            windowLit: Math.random() > 0.3,
+            doorSide: Math.random() > 0.5 ? 'left' : 'right'
+          });
+        }
+      });
+
+      // Trees in yards
+      for (let t = 0; t < 3; t++) {
+        if (Math.random() < 0.5) {
+          trees.push({
+            x: bx + 70 + Math.random() * 160,
+            y: by + 70 + Math.random() * 160,
+            size: 8 + Math.random() * 8,
+            shade: Math.random()
+          });
+        }
+      }
+    }
+  }
+
+  // Parked cars along roads
+  for (let i = 0; i < 25; i++) {
+    const gx = Math.floor(Math.random() * (WORLD_W / BLOCK));
+    const gy = Math.floor(Math.random() * (WORLD_H / BLOCK));
+    const carColors = ['#ef4444','#3b82f6','#22c55e','#f59e0b','#8b5cf6','#ec4899','#fff','#333','#64748b'];
+    obstacles.push({
+      x: gx * BLOCK + ROAD_W / 2 + (Math.random() > 0.5 ? 5 : ROAD_W - 20),
+      y: gy * BLOCK + 40 + Math.random() * (BLOCK - 80),
+      w: 16, h: 30,
+      color: carColors[Math.floor(Math.random() * carColors.length)],
+      vertical: true
+    });
+  }
+
+  // Moving traffic
+  for (let i = 0; i < 8; i++) {
+    const vert = Math.random() > 0.5;
+    const gx = Math.floor(Math.random() * (WORLD_W / BLOCK));
+    const gy = Math.floor(Math.random() * (WORLD_H / BLOCK));
+    const carColors = ['#ef4444','#3b82f6','#f59e0b','#fff','#64748b'];
+    trafficCars.push({
+      x: vert ? gx * BLOCK + ROAD_W / 2 + 10 : Math.random() * WORLD_W,
+      y: vert ? Math.random() * WORLD_H : gy * BLOCK + ROAD_W / 2 + 10,
+      vx: vert ? 0 : (Math.random() > 0.5 ? 1 : -1) * (1 + Math.random()),
+      vy: vert ? (Math.random() > 0.5 ? 1 : -1) * (1 + Math.random()) : 0,
+      w: vert ? 16 : 30,
+      h: vert ? 30 : 16,
+      color: carColors[Math.floor(Math.random() * carColors.length)]
+    });
+  }
+
+  pickDeliveryTargets();
+}
+
+function pickDeliveryTargets() {
+  deliveryTargets = [];
+  const available = houses.filter(h => {
+    const dist = Math.hypot(h.x - shop.x, h.y - shop.y);
+    return dist > 200;
+  });
+  const count = Math.min(3, available.length);
+  const shuffled = available.sort(() => Math.random() - 0.5);
+  for (let i = 0; i < count; i++) {
+    deliveryTargets.push({ house: shuffled[i], delivered: false, timeBonus: 120 + Math.random() * 60 });
+  }
+}
+
+const actions = { up: false, down: false, left: false, right: false, deliver: false };
+let deliverPressed = false;
+
+document.addEventListener('keydown', e => {
+  if (!playing) return;
+  if (e.key === 'ArrowUp' || e.key === 'w') actions.up = true;
+  if (e.key === 'ArrowDown' || e.key === 's') actions.down = true;
+  if (e.key === 'ArrowLeft' || e.key === 'a') actions.left = true;
+  if (e.key === 'ArrowRight' || e.key === 'd') actions.right = true;
+  if (e.key === ' ' || e.key === 'Enter') { if (!deliverPressed) { deliverPressed = true; tryDeliver(); } }
+});
+document.addEventListener('keyup', e => {
+  if (e.key === 'ArrowUp' || e.key === 'w') actions.up = false;
+  if (e.key === 'ArrowDown' || e.key === 's') actions.down = false;
+  if (e.key === 'ArrowLeft' || e.key === 'a') actions.left = false;
+  if (e.key === 'ArrowRight' || e.key === 'd') actions.right = false;
+  if (e.key === ' ' || e.key === 'Enter') deliverPressed = false;
+});
+
+document.querySelectorAll('.btn').forEach(btn => {
+  const act = btn.dataset.action;
+  const down = e => { e.preventDefault(); if (act === 'deliver') tryDeliver(); else actions[act] = true; };
+  const up = e => { e.preventDefault(); if (act !== 'deliver') actions[act] = false; };
+  btn.addEventListener('touchstart', down); btn.addEventListener('touchend', up);
+  btn.addEventListener('mousedown', down); btn.addEventListener('mouseup', up);
+});
+
+function tryDeliver() {
+  if (!playing) return;
+  // Near shop? Pick up pizzas
+  const shopDist = Math.hypot(bike.x - shop.x, bike.y - shop.y);
+  if (shopDist < 60 && bike.pizzas < bike.maxPizzas) {
+    const needed = deliveryTargets.filter(d => !d.delivered).length;
+    bike.pizzas = Math.min(bike.maxPizzas, needed);
+    showTip('🍕 Loaded ' + bike.pizzas + ' pizzas!');
+    return;
+  }
+
+  // Near a delivery target?
+  if (bike.pizzas <= 0) { showTip('❌ No pizzas! Go to the shop 🏪'); return; }
+  for (let dt of deliveryTargets) {
+    if (dt.delivered) continue;
+    const dist = Math.hypot(bike.x - dt.house.x, bike.y - dt.house.y);
+    if (dist < 55) {
+      dt.delivered = true;
+      bike.pizzas--;
+      deliveries++;
+      const tip = Math.floor(5 + dt.timeBonus / 10);
+      score += 50 + tip;
+      showTip('+$' + (50 + tip) + ' 🎉 Nice delivery!');
+      addParticles(dt.house.x, dt.house.y, '#22c55e', 12);
+      addParticles(dt.house.x, dt.house.y, '#fbbf24', 8);
+
+      // Check if all delivered
+      if (deliveryTargets.every(d => d.delivered)) {
+        score += 100; // batch bonus
+        showTip('+$100 BATCH BONUS! 🔥');
+        setTimeout(() => pickDeliveryTargets(), 1500);
+      }
+      return;
+    }
+  }
+  showTip('🏠 Get closer to the house!');
+}
+
+function showTip(text) {
+  tipText.textContent = text;
+  tipText.style.display = 'block';
+  tipText.style.opacity = '1';
+  setTimeout(() => { tipText.style.display = 'none'; }, 1200);
+}
+
+function addParticles(x, y, color, count) {
+  for (let i = 0; i < count; i++) {
+    particles.push({ x, y, vx: (Math.random()-0.5)*5, vy: (Math.random()-0.5)*5,
+      life: 30+Math.random()*20, maxLife: 50, color, size: 2+Math.random()*4 });
+  }
+}
+
+function update() {
+  if (!playing) return;
+
+  // Timer
+  timer++;
+  if (timer % 60 === 0) {
+    timeLeft--;
+    if (timeLeft <= 0) { gameOver(); return; }
+  }
+
+  // Decrease delivery time bonuses
+  deliveryTargets.forEach(d => { if (!d.delivered && d.timeBonus > 0) d.timeBonus -= 0.05; });
+
+  if (bike.stunTimer > 0) { bike.stunTimer--; bike.speed *= 0.9; }
+  else {
+    // Acceleration
+    if (actions.up) bike.speed = Math.min(bike.maxSpeed, bike.speed + bike.accel);
+    else if (actions.down) bike.speed = Math.max(-bike.maxSpeed * 0.4, bike.speed - bike.brake);
+    else bike.speed *= (1 - bike.friction);
+
+    // Turning (only when moving)
+    if (Math.abs(bike.speed) > 0.2) {
+      const turnMult = Math.min(1, Math.abs(bike.speed) / 2);
+      if (actions.left) bike.angle -= bike.turnSpeed * turnMult * (bike.speed > 0 ? 1 : -1);
+      if (actions.right) bike.angle += bike.turnSpeed * turnMult * (bike.speed > 0 ? 1 : -1);
+    }
+  }
+
+  // Move
+  bike.x += Math.cos(bike.angle) * bike.speed;
+  bike.y += Math.sin(bike.angle) * bike.speed;
+
+  // World bounds
+  bike.x = Math.max(10, Math.min(WORLD_W - 10, bike.x));
+  bike.y = Math.max(10, Math.min(WORLD_H - 10, bike.y));
+
+  // Collision with parked cars
+  obstacles.forEach(o => {
+    if (bike.x > o.x - o.w/2 - 8 && bike.x < o.x + o.w/2 + 8 &&
+        bike.y > o.y - o.h/2 - 8 && bike.y < o.y + o.h/2 + 8) {
+      bike.speed = -bike.speed * 0.5;
+      bike.stunTimer = 20;
+      bike.x -= Math.cos(bike.angle) * 5;
+      bike.y -= Math.sin(bike.angle) * 5;
+      addParticles(bike.x, bike.y, '#ef4444', 5);
+    }
+  });
+
+  // Traffic cars
+  trafficCars.forEach(c => {
+    c.x += c.vx; c.y += c.vy;
+    if (c.x < -50) c.x = WORLD_W + 50; if (c.x > WORLD_W + 50) c.x = -50;
+    if (c.y < -50) c.y = WORLD_H + 50; if (c.y > WORLD_H + 50) c.y = -50;
+
+    // Hit player?
+    if (Math.abs(bike.x - c.x) < 20 && Math.abs(bike.y - c.y) < 20) {
+      bike.speed = -bike.speed * 0.5;
+      bike.stunTimer = 30;
+      bike.x -= Math.cos(bike.angle) * 8;
+      bike.y -= Math.sin(bike.angle) * 8;
+      addParticles(bike.x, bike.y, '#ef4444', 8);
+      // Lose a pizza on crash
+      if (bike.pizzas > 0 && Math.random() > 0.5) {
+        bike.pizzas--;
+        showTip('💥 Crash! Lost a pizza!');
+      }
+    }
+  });
+
+  // Collision with houses
+  houses.forEach(h => {
+    if (bike.x > h.x - h.w/2 - 6 && bike.x < h.x + h.w/2 + 6 &&
+        bike.y > h.y - h.h/2 - 6 && bike.y < h.y + h.h/2 + 6) {
+      bike.speed = -bike.speed * 0.3;
+      bike.x -= Math.cos(bike.angle) * 4;
+      bike.y -= Math.sin(bike.angle) * 4;
+    }
+  });
+
+  // Particles
+  particles = particles.filter(p => {
+    p.x += p.vx; p.y += p.vy; p.vy += 0.1; p.life--;
+    return p.life > 0;
+  });
+
+  // Exhaust
+  if (Math.abs(bike.speed) > 0.5 && timer % 3 === 0) {
+    particles.push({
+      x: bike.x - Math.cos(bike.angle) * 12,
+      y: bike.y - Math.sin(bike.angle) * 12,
+      vx: (Math.random()-0.5)*0.5, vy: -0.5,
+      life: 15, maxLife: 15, color: 'rgba(150,150,150,0.4)', size: 2+Math.random()*3
+    });
+  }
+
+  updateHUD();
+}
+
+function updateHUD() {
+  document.getElementById('score-display').textContent = '$' + score;
+  const m = Math.floor(timeLeft / 60), s = timeLeft % 60;
+  document.getElementById('timer-display').textContent = '⏰ ' + m + ':' + (s < 10 ? '0' : '') + s;
+  document.getElementById('timer-display').style.color = timeLeft <= 15 ? '#ef4444' : '#f59e0b';
+  document.getElementById('deliveries-display').textContent = '📦 ' + deliveries + ' delivered';
+  const pending = deliveryTargets.filter(d => !d.delivered).length;
+  document.getElementById('pizzas-display').textContent = '🍕 ' + bike.pizzas + ' | 🏠 ' + pending + ' orders';
+
+  // Arrow to nearest target
+  let nearest = null, nearDist = Infinity;
+  if (bike.pizzas > 0) {
+    deliveryTargets.forEach(d => {
+      if (d.delivered) return;
+      const dist = Math.hypot(d.house.x - bike.x, d.house.y - bike.y);
+      if (dist < nearDist) { nearDist = dist; nearest = d.house; }
+    });
+  } else {
+    nearest = shop;
+    nearDist = Math.hypot(shop.x - bike.x, shop.y - bike.y);
+  }
+
+  if (nearest && nearDist > 100) {
+    const angle = Math.atan2(nearest.y - bike.y, nearest.x - bike.x) * 180 / Math.PI;
+    arrowEl.style.display = 'block';
+    arrowEl.style.transform = `translate(-50%,-50%) rotate(${angle + 90}deg)`;
+    arrowEl.textContent = bike.pizzas > 0 ? '🏠' : '🏪';
+  } else {
+    arrowEl.style.display = 'none';
+  }
+}
+
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+
+  // Camera
+  const camX = bike.x - W/2;
+  const camY = bike.y - H/2;
+  ctx.save();
+  ctx.translate(-camX, -camY);
+
+  // Grass
+  ctx.fillStyle = '#1a3a1a';
+  ctx.fillRect(0, 0, WORLD_W, WORLD_H);
+
+  // Draw roads (grid)
+  ctx.fillStyle = '#333';
+  for (let gx = 0; gx <= WORLD_W / BLOCK; gx++) {
+    ctx.fillRect(gx * BLOCK - ROAD_W/2, 0, ROAD_W, WORLD_H); // vertical roads
+  }
+  for (let gy = 0; gy <= WORLD_H / BLOCK; gy++) {
+    ctx.fillRect(0, gy * BLOCK - ROAD_W/2, WORLD_W, ROAD_W); // horizontal roads
+  }
+
+  // Road markings
+  ctx.strokeStyle = '#555';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([15, 15]);
+  for (let gx = 0; gx <= WORLD_W / BLOCK; gx++) {
+    ctx.beginPath(); ctx.moveTo(gx * BLOCK, 0); ctx.lineTo(gx * BLOCK, WORLD_H); ctx.stroke();
+  }
+  for (let gy = 0; gy <= WORLD_H / BLOCK; gy++) {
+    ctx.beginPath(); ctx.moveTo(0, gy * BLOCK); ctx.lineTo(WORLD_W, gy * BLOCK); ctx.stroke();
+  }
+  ctx.setLineDash([]);
+
+  // Sidewalks
+  ctx.fillStyle = '#4a4a4a';
+  for (let gx = 0; gx <= WORLD_W / BLOCK; gx++) {
+    ctx.fillRect(gx * BLOCK - ROAD_W/2 - 6, 0, 6, WORLD_H);
+    ctx.fillRect(gx * BLOCK + ROAD_W/2, 0, 6, WORLD_H);
+  }
+  for (let gy = 0; gy <= WORLD_H / BLOCK; gy++) {
+    ctx.fillRect(0, gy * BLOCK - ROAD_W/2 - 6, WORLD_W, 6);
+    ctx.fillRect(0, gy * BLOCK + ROAD_W/2, WORLD_W, 6);
+  }
+
+  // Trees
+  trees.forEach(t => {
+    // Only draw if visible
+    if (t.x < camX - 30 || t.x > camX + W + 30 || t.y < camY - 30 || t.y > camY + H + 30) return;
+    ctx.fillStyle = '#0a2a0a';
+    ctx.beginPath(); ctx.arc(t.x, t.y, t.size + 2, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = t.shade > 0.5 ? '#1a5a1a' : '#2a6a2a';
+    ctx.beginPath(); ctx.arc(t.x, t.y, t.size, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#3a2a1a';
+    ctx.fillRect(t.x - 2, t.y + t.size - 2, 4, 6);
+  });
+
+  // Houses
+  houses.forEach(h => {
+    if (h.x < camX - 60 || h.x > camX + W + 60 || h.y < camY - 60 || h.y > camY + H + 60) return;
+    const hw = h.w, hh = h.h;
+
+    // Shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.2)';
+    ctx.fillRect(h.x - hw/2 + 3, h.y - hh/2 + 3, hw, hh);
+
+    // Walls
+    ctx.fillStyle = h.color;
+    ctx.fillRect(h.x - hw/2, h.y - hh/2, hw, hh);
+
+    // Roof
+    ctx.fillStyle = h.roofColor;
+    ctx.beginPath();
+    ctx.moveTo(h.x - hw/2 - 4, h.y - hh/2);
+    ctx.lineTo(h.x, h.y - hh/2 - 15);
+    ctx.lineTo(h.x + hw/2 + 4, h.y - hh/2);
+    ctx.closePath();
+    ctx.fill();
+
+    // Chimney
+    if (h.hasChimney) {
+      ctx.fillStyle = '#5a3a2a';
+      ctx.fillRect(h.x + hw/4, h.y - hh/2 - 20, 8, 12);
+    }
+
+    // Windows
+    ctx.fillStyle = h.windowLit ? 'rgba(255,230,150,0.7)' : 'rgba(50,50,80,0.5)';
+    ctx.fillRect(h.x - hw/4 - 4, h.y - hh/4, 8, 8);
+    ctx.fillRect(h.x + hw/4 - 4, h.y - hh/4, 8, 8);
+
+    // Door
+    ctx.fillStyle = '#5a3a1a';
+    const dx = h.doorSide === 'left' ? h.x - hw/4 : h.x + hw/4 - 5;
+    ctx.fillRect(dx, h.y + hh/2 - 14, 10, 14);
+    ctx.fillStyle = '#fbbf24';
+    ctx.beginPath(); ctx.arc(dx + 8, h.y + hh/2 - 6, 1.5, 0, Math.PI * 2); ctx.fill();
+
+    // Is this a delivery target?
+    const isTarget = deliveryTargets.some(d => d.house === h && !d.delivered);
+    if (isTarget) {
+      ctx.strokeStyle = '#ef4444';
+      ctx.lineWidth = 2;
+      ctx.shadowColor = '#ef4444';
+      ctx.shadowBlur = 10;
+      ctx.strokeRect(h.x - hw/2 - 6, h.y - hh/2 - 20, hw + 12, hh + 26);
+      ctx.shadowBlur = 0;
+      // Marker
+      ctx.font = '20px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('📍', h.x, h.y - hh/2 - 22);
+    }
+  });
+
+  // Pizza shop
+  ctx.fillStyle = '#f97316';
+  ctx.fillRect(shop.x - 30, shop.y - 25, 60, 50);
+  ctx.fillStyle = '#7c2d12';
+  ctx.beginPath();
+  ctx.moveTo(shop.x - 34, shop.y - 25);
+  ctx.lineTo(shop.x, shop.y - 45);
+  ctx.lineTo(shop.x + 34, shop.y - 25);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 11px Nunito';
+  ctx.textAlign = 'center';
+  ctx.fillText('PIZZA', shop.x, shop.y + 4);
+  ctx.font = '22px sans-serif';
+  ctx.fillText('🍕', shop.x, shop.y - 28);
+  // Shop glow
+  ctx.shadowColor = '#f97316';
+  ctx.shadowBlur = 20;
+  ctx.fillStyle = 'rgba(249,115,22,0.1)';
+  ctx.beginPath(); ctx.arc(shop.x, shop.y, 50, 0, Math.PI * 2); ctx.fill();
+  ctx.shadowBlur = 0;
+
+  // Parked cars
+  obstacles.forEach(o => {
+    if (o.x < camX - 30 || o.x > camX + W + 30 || o.y < camY - 30 || o.y > camY + H + 30) return;
+    ctx.fillStyle = 'rgba(0,0,0,0.2)';
+    ctx.fillRect(o.x - o.w/2 + 2, o.y - o.h/2 + 2, o.w, o.h);
+    ctx.fillStyle = o.color;
+    ctx.fillRect(o.x - o.w/2, o.y - o.h/2, o.w, o.h);
+    // Windshield
+    ctx.fillStyle = 'rgba(100,200,255,0.3)';
+    ctx.fillRect(o.x - o.w/2 + 2, o.y - o.h/2 + 4, o.w - 4, 6);
+  });
+
+  // Traffic cars
+  trafficCars.forEach(c => {
+    if (c.x < camX - 40 || c.x > camX + W + 40 || c.y < camY - 40 || c.y > camY + H + 40) return;
+    ctx.fillStyle = c.color;
+    ctx.fillRect(c.x - c.w/2, c.y - c.h/2, c.w, c.h);
+    // Headlights
+    ctx.fillStyle = '#fbbf24';
+    if (c.vx !== 0) {
+      ctx.fillRect(c.x + (c.vx > 0 ? c.w/2 : -c.w/2 - 3), c.y - 3, 3, 2);
+      ctx.fillRect(c.x + (c.vx > 0 ? c.w/2 : -c.w/2 - 3), c.y + 2, 3, 2);
+    } else {
+      ctx.fillRect(c.x - 3, c.y + (c.vy > 0 ? c.h/2 : -c.h/2 - 3), 2, 3);
+      ctx.fillRect(c.x + 2, c.y + (c.vy > 0 ? c.h/2 : -c.h/2 - 3), 2, 3);
+    }
+  });
+
+  // Player motorcycle
+  ctx.save();
+  ctx.translate(bike.x, bike.y);
+  ctx.rotate(bike.angle + Math.PI/2);
+
+  if (bike.stunTimer > 0 && Math.floor(bike.stunTimer/3) % 2) ctx.globalAlpha = 0.5;
+
+  // Bike body
+  ctx.fillStyle = '#1a1a2e';
+  ctx.fillRect(-6, -14, 12, 28);
+  // Seat
+  ctx.fillStyle = '#333';
+  ctx.fillRect(-5, -4, 10, 10);
+  // Handlebars
+  ctx.fillStyle = '#666';
+  ctx.fillRect(-9, -12, 18, 3);
+  // Front wheel
+  ctx.fillStyle = '#111';
+  ctx.fillRect(-4, -16, 8, 4);
+  // Rear wheel
+  ctx.fillRect(-4, 12, 8, 4);
+  // Rider
+  ctx.fillStyle = '#ef4444'; // helmet
+  ctx.beginPath(); ctx.arc(0, -2, 6, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#2d2d2d'; // jacket
+  ctx.fillRect(-5, 2, 10, 8);
+
+  // Pizza box on back
+  if (bike.pizzas > 0) {
+    ctx.fillStyle = '#f97316';
+    ctx.fillRect(-7, 8, 14, 6);
+    ctx.fillStyle = '#fff';
+    ctx.font = '6px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(bike.pizzas + '🍕', 0, 14);
+  }
+
+  // Headlight
+  ctx.fillStyle = '#fbbf24';
+  ctx.shadowColor = '#fbbf24';
+  ctx.shadowBlur = 10;
+  ctx.fillRect(-2, -17, 4, 2);
+  ctx.shadowBlur = 0;
+
+  ctx.globalAlpha = 1;
+  ctx.restore();
+
+  // Particles
+  particles.forEach(p => {
+    ctx.globalAlpha = p.life / p.maxLife;
+    ctx.fillStyle = p.color;
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill();
+  });
+  ctx.globalAlpha = 1;
+
+  ctx.restore();
+
+  // Draw minimap
+  drawMinimap();
+}
+
+function drawMinimap() {
+  const mw = 120, mh = 120;
+  const sx = mw / WORLD_W, sy = mh / WORLD_H;
+  miniCtx.clearRect(0, 0, mw, mh);
+  miniCtx.fillStyle = '#1a3a1a';
+  miniCtx.fillRect(0, 0, mw, mh);
+
+  // Roads
+  miniCtx.fillStyle = '#444';
+  for (let gx = 0; gx <= WORLD_W / BLOCK; gx++) {
+    miniCtx.fillRect(gx * BLOCK * sx - 1, 0, 2, mh);
+  }
+  for (let gy = 0; gy <= WORLD_H / BLOCK; gy++) {
+    miniCtx.fillRect(0, gy * BLOCK * sy - 1, mw, 2);
+  }
+
+  // Shop
+  miniCtx.fillStyle = '#f97316';
+  miniCtx.fillRect(shop.x * sx - 3, shop.y * sy - 3, 6, 6);
+
+  // Targets
+  deliveryTargets.forEach(d => {
+    if (d.delivered) return;
+    miniCtx.fillStyle = '#ef4444';
+    miniCtx.fillRect(d.house.x * sx - 2, d.house.y * sy - 2, 4, 4);
+  });
+
+  // Player
+  miniCtx.fillStyle = '#22d3ee';
+  miniCtx.fillRect(bike.x * sx - 2, bike.y * sy - 2, 4, 4);
+
+  // Viewport
+  const camX = bike.x - W/2, camY = bike.y - H/2;
+  miniCtx.strokeStyle = 'rgba(255,255,255,0.3)';
+  miniCtx.lineWidth = 1;
+  miniCtx.strokeRect(camX * sx, camY * sy, W * sx, H * sy);
+}
+
+function gameOver() {
+  playing = false;
+  overlay.querySelector('h1').textContent = '🍕 Shift Over!';
+  overlay.querySelector('h2').textContent = 'Earned: $' + score + ' · ' + deliveries + ' deliveries';
+  overlay.querySelector('p').textContent = 'Great work rider! Ready for another shift?';
+  playBtn.textContent = '🏍️ Ride Again!';
+  overlay.style.display = 'flex';
+}
+
+function resetGame() {
+  score = 0; deliveries = 0; timeLeft = 120; timer = 0;
+  bike.x = WORLD_W / 2; bike.y = WORLD_H / 2 + 50;
+  bike.angle = -Math.PI/2; bike.speed = 0; bike.pizzas = 0; bike.stunTimer = 0;
+  particles = [];
+  generateCity();
+}
+
+playBtn.addEventListener('click', () => {
+  overlay.style.display = 'none';
+  playing = true;
+  resetGame();
+});
+
+function gameLoop() {
+  update();
+  draw();
+  requestAnimationFrame(gameLoop);
+}
+gameLoop();
+</script>
+</body>
+</html>
