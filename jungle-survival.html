@@ -174,7 +174,7 @@ function startPhase(p) {
     for (let i = 0; i < 15 + day * 5; i++) {
       const ox = 200 + Math.random() * (trekEnd - 300);
       const oy = 60 + Math.random() * (H - 180);
-      const types = ['rock', 'snake', 'vine', 'quicksand', 'spider'];
+      const types = ['rock', 'snake', 'vine', 'quicksand', 'spider', 'tightrope'];
       trekObstacles.push({
         x: ox, y: oy,
         w: 30 + Math.random() * 20, h: 25 + Math.random() * 15,
@@ -413,11 +413,31 @@ function updateCook() {
 function updateTrek() {
   // Check obstacles
   trekObstacles.forEach(ob => {
-    if (P.x + 10 > ob.x && P.x - 10 < ob.x + ob.w &&
+    if (ob.type === 'tightrope') {
+      const ropeW = ob.w + 60;
+      // Player is on the tightrope zone
+      if (P.x + 10 > ob.x - 10 && P.x - 10 < ob.x + ropeW + 10 &&
+          P.y + 12 > ob.y - 5 && P.y - 12 < ob.y + ob.h + 30) {
+        // Must stay centered on the rope (narrow band)
+        const ropeY = ob.y + ob.h / 2;
+        const offCenter = Math.abs(P.y - ropeY);
+        if (offCenter > 12) {
+          // Falling off the rope!
+          health -= 1;
+          addParticles(P.x, P.y, '#ef4444', 4);
+          showMsg('🪢 Stay on the rope!');
+        } else {
+          // On the rope - slow down and wobble
+          P.speed = 1.5;
+          P.y += Math.sin(frame * 0.1) * 0.5;
+        }
+      } else {
+        P.speed = 3;
+      }
+    } else if (P.x + 10 > ob.x && P.x - 10 < ob.x + ob.w &&
         P.y + 12 > ob.y && P.y - 12 < ob.y + ob.h) {
       health -= 0.5;
       addParticles(P.x, P.y, '#ef4444', 3);
-      // Push player back
       P.x -= P.speed * 2;
     }
   });
@@ -509,8 +529,34 @@ function draw() {
     trekObstacles.forEach(ob => {
       if (ob.x < cameraX - 50 || ob.x > cameraX + W + 50) return;
       X.font = (ob.w > 40 ? '28' : '22') + 'px sans-serif';
+      if (ob.type === 'tightrope') {
+        // Draw tightrope - rope across a gap
+        const ropeW = ob.w + 60;
+        // Gap/chasm
+        X.fillStyle = '#0a0a0a';
+        X.fillRect(ob.x - 10, ob.y - 5, ropeW + 20, ob.h + 30);
+        // Rope
+        X.strokeStyle = '#8B6914';
+        X.lineWidth = 3;
+        X.beginPath();
+        X.moveTo(ob.x - 10, ob.y + ob.h / 2);
+        const sag = Math.sin(frame * 0.03) * 4;
+        X.quadraticCurveTo(ob.x + ropeW / 2, ob.y + ob.h / 2 + 8 + sag, ob.x + ropeW + 10, ob.y + ob.h / 2);
+        X.stroke();
+        // Posts
+        X.fillStyle = '#5a3a1a';
+        X.fillRect(ob.x - 12, ob.y - 10, 6, ob.h + 20);
+        X.fillRect(ob.x + ropeW + 8, ob.y - 10, 6, ob.h + 20);
+        // Label
+        X.fillStyle = '#fbbf24';
+        X.font = '11px Nunito';
+        X.textAlign = 'center';
+        X.fillText('⚠️ TIGHTROPE', ob.x + ropeW / 2, ob.y - 12);
+        X.textAlign = 'start';
+      } else {
       const emoji = ob.type === 'rock' ? '🪨' : ob.type === 'snake' ? '🐍' : ob.type === 'vine' ? '🌿' : ob.type === 'quicksand' ? '🟤' : '🕷️';
       X.fillText(emoji, ob.x, ob.y + ob.h / 2 + 6);
+      }
       // Danger glow
       X.fillStyle = 'rgba(239,68,68,0.1)';
       X.beginPath();
