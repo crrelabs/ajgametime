@@ -113,11 +113,11 @@ var W,H,boardX,boardY,boardW,boardH;
 
 function resize(){
   W=window.innerWidth;H=window.innerHeight;
-  CELL=Math.floor(Math.min((W-20)/COLS,(H-140)/ROWS));
-  if(CELL<16)CELL=16;
+  var availW=W-70;var availH=H-190;CELL=Math.floor(Math.min(availW/COLS,availH/ROWS));
+  if(CELL<14)CELL=14;if(CELL>32)CELL=32;
   boardW=COLS*CELL;boardH=ROWS*CELL;
-  boardX=Math.floor((W-boardW)/2);
-  boardY=Math.floor((H-boardH)/2)-10;
+  boardX=Math.floor((W-boardW-60)/2);if(boardX<4)boardX=4;
+  boardY=Math.floor((H-boardH)/2)+10;if(boardY<50)boardY=50;
   C.width=W;C.height=H;
 }
 resize();window.addEventListener('resize',resize);
@@ -331,14 +331,13 @@ function draw(){
   X.fillRect(0,0,W,H);
   
   // Board background
-  X.fillStyle='#0f172a';
+  X.fillStyle='#060818';
   X.fillRect(boardX-2,boardY-2,boardW+4,boardH+4);
-  X.strokeStyle='#1e293b';
-  X.lineWidth=1;
-  X.strokeRect(boardX-2,boardY-2,boardW+4,boardH+4);
+  X.strokeStyle='#4f46e5';X.lineWidth=2;X.strokeRect(boardX-2,boardY-2,boardW+4,boardH+4);
+  X.shadowColor='#4f46e5';X.shadowBlur=10;X.strokeRect(boardX-2,boardY-2,boardW+4,boardH+4);X.shadowBlur=0;
   
   // Grid lines
-  X.strokeStyle='rgba(255,255,255,0.03)';
+  X.strokeStyle='rgba(255,255,255,0.06)';
   for(var r=0;r<=ROWS;r++){X.beginPath();X.moveTo(boardX,boardY+r*CELL);X.lineTo(boardX+boardW,boardY+r*CELL);X.stroke();}
   for(var c=0;c<=COLS;c++){X.beginPath();X.moveTo(boardX+c*CELL,boardY);X.lineTo(boardX+c*CELL,boardY+boardH);X.stroke();}
   
