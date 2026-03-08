@@ -85,6 +85,20 @@ nav{display:flex;justify-content:center;gap:6px;padding:8px 12px;flex-wrap:wrap}
 #lb-submit-area{text-align:center;margin-top:12px}
 #lb-submit-area input{width:160px;padding:8px;font-size:14px;font-weight:700;border:2px solid #334155;border-radius:8px;background:#0f172a;color:#fff;text-align:center;outline:none;margin-right:6px}
 #lb-submit-area button{padding:8px 16px;font-size:13px;font-weight:700;color:#fff;background:linear-gradient(135deg,#f59e0b,#ef4444);border:none;border-radius:8px;cursor:pointer}
+
+#lb-overlay{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;z-index:100;background:rgba(0,0,0,0.92)}
+#lb-overlay h2{font-size:28px;color:#f59e0b;margin-bottom:12px;font-weight:900}
+#lb-list{width:min(340px,90vw);max-height:50vh;overflow-y:auto}
+.lb-row{display:flex;justify-content:space-between;padding:8px 14px;border-bottom:1px solid rgba(255,255,255,0.08);color:#e2e8f0;font-size:14px;font-weight:600}
+.lb-row:nth-child(1) .lb-rank{color:#fbbf24}.lb-row:nth-child(2) .lb-rank{color:#94a3b8}.lb-row:nth-child(3) .lb-rank{color:#b45309}
+.lb-rank{width:30px;color:#64748b}.lb-name{flex:1;margin:0 8px}.lb-score{color:#22d3ee}
+#lb-close-btn{pointer-events:auto;margin-top:16px;padding:10px 30px;font-size:16px;font-weight:700;color:#fff;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:10px;cursor:pointer}
+#name-modal{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;z-index:101;background:rgba(0,0,0,0.9)}
+#name-modal h2{font-size:24px;color:#f59e0b;margin-bottom:6px;font-weight:900}
+#nm-score-text{color:#fbbf24;font-size:16px;font-weight:700;margin-bottom:10px}
+#name-input{width:220px;padding:10px 14px;font-size:18px;font-weight:700;border:2px solid #22c55e;border-radius:10px;background:#1a1a2e;color:#fff;text-align:center;outline:none}
+#name-submit{pointer-events:auto;margin-top:12px;padding:10px 30px;font-size:18px;font-weight:700;color:#fff;background:linear-gradient(135deg,#22c55e,#3b82f6);border:none;border-radius:10px;cursor:pointer}
+#name-skip{pointer-events:auto;margin-top:8px;color:#94a3b8;background:none;border:none;font-size:14px;cursor:pointer;font-weight:600}
 </style>
 </head>
 <body>
@@ -128,6 +142,7 @@ nav{display:flex;justify-content:center;gap:6px;padding:8px 12px;flex-wrap:wrap}
     <button id="detail-close">Close</button>
   </div>
 </div>
+
 
 <script>
 // === FLAG DATA ===
@@ -508,6 +523,7 @@ const _LB_URL = 'https://adudgrfxwildzwpcvyil.supabase.co';
 const _LB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFkdWRncmZ4d2lsZHp3cGN2eWlsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyOTkzODUsImV4cCI6MjA4Nzg3NTM4NX0.-JYXn5r9QUjxbpwckwDMSvCm8w1xRXOp5lP2TWNOC_E';
 
 render();
+
 </script>
 </body>
 </html>

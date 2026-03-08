@@ -760,7 +760,7 @@ async function _lbSubmit(name,sc){try{await fetch(_LB_URL+'/rest/v1/ajgametime_l
 async function _lbShow(){const lb=document.getElementById('lb-overlay');const list=document.getElementById('lb-list');list.innerHTML='<div style="color:#64748b;text-align:center;padding:20px">Loading...</div>';lb.style.display='flex';const data=await _lbFetch();if(!data.length){list.innerHTML='<div style="color:#64748b;text-align:center;padding:20px">No scores yet!</div>';return;}list.innerHTML=data.map((d,i)=>'<div class="lb-row"><span class="lb-rank">#'+(i+1)+'</span><span class="lb-name">'+d.player_name+'</span><span class="lb-score">'+d.score+'</span></div>').join('');}
 document.getElementById('lb-close-btn').addEventListener('click',()=>document.getElementById('lb-overlay').style.display='none');
 document.getElementById('name-submit').addEventListener('click',async()=>{const n=document.getElementById('name-input').value.trim()||'Anonymous';await _lbSubmit(n,_lbPendingScore);localStorage.setItem('ajgt_name',n);document.getElementById('name-modal').style.display='none';_lbShow();});
-document.getElementById('name-skip').addEventListener('click',()=>document.getElementById('name-modal').style.display='none');
+document.getElementById('name-skip').addEventListener('click',()=>{document.getElementById('name-modal').style.display='none';_lbShow();});
 document.getElementById('name-input').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('name-submit').click();});
 let _lbPendingScore=0;
 function _lbGameOver(sc){_lbPendingScore=sc;document.getElementById('nm-score-text').textContent='Score: '+sc;document.getElementById('name-input').value=localStorage.getItem('ajgt_name')||'';document.getElementById('name-modal').style.display='flex';document.getElementById('name-input').focus();}
@@ -768,6 +768,6 @@ function _lbGameOver(sc){_lbPendingScore=sc;document.getElementById('nm-score-te
 </script>
 
 <div id="lb-overlay"><h2>🏆 Leaderboard</h2><div id="lb-list"></div><button id="lb-close-btn">Close</button></div>
-<div id="name-modal"><h2>New Score!</h2><p id="nm-score-text">Score: 0</p><input type="text" id="name-input" placeholder="Your name" maxlength="16" autocomplete="off"><button id="name-submit">Submit Score</button><button id="name-skip">Skip</button></div>
+<div id="name-modal"><h2>New Score!</h2><p id="nm-score-text">Score: 0</p><input type="text" id="name-input" placeholder="Your name" maxlength="16" autocomplete="off"><button id="name-submit">Submit Score</button><button id="name-skip">🏆 Skip & View Leaderboard</button></div>
 </body>
 </html>
