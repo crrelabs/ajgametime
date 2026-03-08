@@ -577,21 +577,27 @@ function boxCollide(a, b) {
 }
 
 
-// Dirty floor details (generated once)
-var floorDirt=[];
-for(var di=0;di<40;di++){
-  floorDirt.push({x:Math.random()*2000,y:Math.random()*2000,type:Math.floor(Math.random()*5),size:2+Math.random()*6,rot:Math.random()*6.28,alpha:0.1+Math.random()*0.2});
-}
-var floorStains=[];
-for(var si=0;si<12;si++){
-  floorStains.push({x:Math.random()*2000,y:Math.random()*2000,r:8+Math.random()*20,alpha:0.03+Math.random()*0.06,color:['#4a3728','#3a2a1a','#2a3a28','#3a2a3a'][Math.floor(Math.random()*4)]});
-}
-var floorCrumbs=[];
-for(var ci=0;ci<25;ci++){
-  floorCrumbs.push({x:Math.random()*2000,y:Math.random()*2000,size:1+Math.random()*3,color:['#8B7355','#D2B48C','#C4A882','#6B5B45'][Math.floor(Math.random()*4)]});
+// Dirty floor details (generated on first draw to use actual screen size)
+var floorDirt=null,floorStains=null,floorCrumbs=null;
+function initDirt(){
+  if(floorDirt)return;
+  var sw=W||400,sh=H||700;
+  floorDirt=[];
+  for(var di=0;di<50;di++){
+    floorDirt.push({x:Math.random()*sw,y:50+Math.random()*(sh-50),type:Math.floor(Math.random()*5),size:4+Math.random()*10,rot:Math.random()*6.28,alpha:0.25+Math.random()*0.3});
+  }
+  floorStains=[];
+  for(var si=0;si<20;si++){
+    floorStains.push({x:Math.random()*sw,y:50+Math.random()*(sh-50),r:12+Math.random()*30,alpha:0.08+Math.random()*0.12,color:['#5a4030','#4a3020','#3a4a30','#4a3040','#6b5040'][Math.floor(Math.random()*5)]});
+  }
+  floorCrumbs=[];
+  for(var ci=0;ci<35;ci++){
+    floorCrumbs.push({x:Math.random()*sw,y:50+Math.random()*(sh-50),size:2+Math.random()*5,color:['#8B7355','#D2B48C','#C4A882','#6B5B45','#A09070'][Math.floor(Math.random()*5)]});
+  }
 }
 
 function drawFloor() {
+  initDirt();
   // Kitchen floor tiles
   const tileSize = 50;
   for (let x = 0; x < W; x += tileSize) {
@@ -631,7 +637,7 @@ function drawFloor() {
     var cr=floorCrumbs[ci];
     if(cr.x<W&&cr.y<H){
       ctx.fillStyle=cr.color;
-      ctx.globalAlpha=0.4;
+      ctx.globalAlpha=0.7;
       ctx.fillRect(cr.x,cr.y,cr.size,cr.size);
     }
   }
