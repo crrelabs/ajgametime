@@ -226,8 +226,8 @@ function update() {
     }
 
     // Collision
-    if (bird.x + bird.size > p.x && bird.x - bird.size < p.x + PIPE_W) {
-      if (bird.y - bird.size < p.gapY || bird.y + bird.size > p.gapY + GAP) {
+    if (bird.x + bird.size - 6 > p.x && bird.x - bird.size + 6 < p.x + PIPE_W) {
+      if (bird.y - bird.size + 6 < p.gapY || bird.y + bird.size - 6 > p.gapY + GAP) {
         die();
         return;
       }
