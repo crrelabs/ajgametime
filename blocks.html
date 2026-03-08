@@ -349,6 +349,7 @@ function startGame(){
   clearBoard();cur=makePiece();nxt=makePiece();
   playing=true;
   if(musicOn)startMusic();
+  requestAnimationFrame(loop);
 }
 
 document.getElementById('play-btn').addEventListener('click',function(){
@@ -360,8 +361,10 @@ function showMsg(t,d){
   clearTimeout(el._t);el._t=setTimeout(function(){el.style.opacity='0';},d||1200);
 }
 
-function loop(){update();draw();requestAnimationFrame(loop);}
+var loopRunning=false;
+function loop(){loopRunning=true;update();draw();requestAnimationFrame(loop);}
 loop();
+document.addEventListener('visibilitychange',function(){if(!document.hidden&&!loopRunning){loopRunning=false;loop();}});
 
 // ===== MUSIC =====
 var actx=null,musicInt=null,musicOn2=false;
