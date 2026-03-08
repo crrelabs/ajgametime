@@ -95,12 +95,20 @@ nav{display:flex;justify-content:center;gap:6px;padding:8px 12px;flex-wrap:wrap}
 .lb-row:nth-child(1) .lb-rank{color:#fbbf24}.lb-row:nth-child(2) .lb-rank{color:#94a3b8}.lb-row:nth-child(3) .lb-rank{color:#b45309}
 .lb-rank{width:30px;color:#64748b}.lb-name{flex:1;margin:0 8px}.lb-score{color:#22d3ee}
 #lb-close-btn{pointer-events:auto;margin-top:16px;padding:10px 30px;font-size:16px;font-weight:700;color:#fff;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:10px;cursor:pointer}
-#name-modal{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;z-index:101;background:rgba(0,0,0,0.9)}
-#name-modal h2{font-size:24px;color:#f59e0b;margin-bottom:6px;font-weight:900}
-#nm-score-text{color:#fbbf24;font-size:16px;font-weight:700;margin-bottom:10px}
-#name-input{width:220px;padding:10px 14px;font-size:18px;font-weight:700;border:2px solid #22c55e;border-radius:10px;background:#1a1a2e;color:#fff;text-align:center;outline:none}
-#name-submit{pointer-events:auto;margin-top:12px;padding:10px 30px;font-size:18px;font-weight:700;color:#fff;background:linear-gradient(135deg,#22c55e,#3b82f6);border:none;border-radius:10px;cursor:pointer}
-#name-skip{pointer-events:auto;margin-top:8px;color:#94a3b8;background:none;border:none;font-size:14px;cursor:pointer;font-weight:600}
+
+
+
+
+
+
+#death-screen{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;z-index:200;background:rgba(0,0,0,0.92)}
+#death-screen h1{font-family:'Lilita One',sans-serif;font-size:30px;color:#ef4444;margin-bottom:6px}
+#death-score{color:#fbbf24;font-size:18px;font-weight:900;margin-bottom:14px}
+#death-name{width:200px;padding:10px;font-size:16px;font-weight:700;border:2px solid #a855f7;border-radius:10px;background:#0a0a2e;color:#fff;text-align:center;outline:none;margin-bottom:10px}
+.death-btn{padding:12px 28px;font-size:16px;font-weight:900;color:#fff;border:none;border-radius:12px;cursor:pointer;margin:4px;-webkit-tap-highlight-color:transparent}
+#death-submit{background:linear-gradient(135deg,#a855f7,#ec4899)}
+#death-retry{background:linear-gradient(135deg,#f97316,#ef4444)}
+#death-lb{background:linear-gradient(135deg,#f59e0b,#ef4444)}
 </style>
 </head>
 <body>
@@ -526,6 +534,27 @@ const _LB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsIn
 
 render();
 
+// === DEATH SCREEN HANDLERS ===
+function _showDeathScreen(sc){
+  _lbPendingScore=sc;
+  document.getElementById('death-score').textContent='Score: '+sc;
+  document.getElementById('death-name').value=localStorage.getItem('ajgt_name')||'';
+  document.getElementById('death-screen').style.display='flex';
+}
+document.getElementById('death-submit').addEventListener('click',async function(){
+  var n=document.getElementById('death-name').value.trim()||'Anonymous';
+  localStorage.setItem('ajgt_name',n);
+  await _lbSubmit(n,_lbPendingScore);
+  this.textContent='✅ Done!';this.disabled=true;
+});
+document.getElementById('death-retry').addEventListener('click',function(){
+  document.getElementById('death-screen').style.display='none';
+  document.getElementById('death-submit').textContent='📤 Submit Score';
+  document.getElementById('death-submit').disabled=false;
+  location.reload();
+});
+document.getElementById('death-lb').addEventListener('click',function(){_lbShow();});
+document.getElementById('death-name').addEventListener('keydown',function(e){if(e.key==='Enter')document.getElementById('death-submit').click();});
 </script>
 </body>
 </html>

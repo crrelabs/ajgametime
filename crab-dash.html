@@ -42,12 +42,20 @@ canvas{display:block}
 .lb-row:nth-child(1) .lb-rank{color:#fbbf24}.lb-row:nth-child(2) .lb-rank{color:#94a3b8}.lb-row:nth-child(3) .lb-rank{color:#b45309}
 .lb-rank{width:30px;color:#64748b}.lb-name{flex:1;margin:0 8px}.lb-score{color:#22d3ee}
 #lb-close-btn{pointer-events:auto;margin-top:16px;padding:10px 30px;font-size:16px;font-weight:700;color:#fff;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:10px;cursor:pointer}
-#name-modal{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;z-index:101;background:rgba(0,0,0,0.9)}
-#name-modal h2{font-size:24px;color:#f59e0b;margin-bottom:6px;font-weight:900}
-#nm-score-text{color:#fbbf24;font-size:16px;font-weight:700;margin-bottom:10px}
-#name-input{width:220px;padding:10px 14px;font-size:18px;font-weight:700;border:2px solid #22c55e;border-radius:10px;background:#1a1a2e;color:#fff;text-align:center;outline:none}
-#name-submit{pointer-events:auto;margin-top:12px;padding:10px 30px;font-size:18px;font-weight:700;color:#fff;background:linear-gradient(135deg,#22c55e,#3b82f6);border:none;border-radius:10px;cursor:pointer}
-#name-skip{pointer-events:auto;margin-top:8px;color:#94a3b8;background:none;border:none;font-size:14px;cursor:pointer;font-weight:600}
+
+
+
+
+
+
+#death-screen{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;z-index:200;background:rgba(0,0,0,0.92)}
+#death-screen h1{font-family:'Lilita One',sans-serif;font-size:30px;color:#ef4444;margin-bottom:6px}
+#death-score{color:#fbbf24;font-size:18px;font-weight:900;margin-bottom:14px}
+#death-name{width:200px;padding:10px;font-size:16px;font-weight:700;border:2px solid #a855f7;border-radius:10px;background:#0a0a2e;color:#fff;text-align:center;outline:none;margin-bottom:10px}
+.death-btn{padding:12px 28px;font-size:16px;font-weight:900;color:#fff;border:none;border-radius:12px;cursor:pointer;margin:4px;-webkit-tap-highlight-color:transparent}
+#death-submit{background:linear-gradient(135deg,#a855f7,#ec4899)}
+#death-retry{background:linear-gradient(135deg,#f97316,#ef4444)}
+#death-lb{background:linear-gradient(135deg,#f59e0b,#ef4444)}
 </style>
 </head>
 <body>
@@ -86,7 +94,15 @@ canvas{display:block}
 </div>
 
 <div id="lb-overlay"><h2>🏆 Leaderboard</h2><div id="lb-list"></div><button id="lb-close-btn">Close</button></div>
-<div id="name-modal"><h2>🏆 Game Over!</h2><div id="nm-score-text">Score: 0</div><p style="color:#94a3b8;font-size:14px">Enter your name:</p><input type="text" id="name-input" placeholder="Your name" maxlength="16" autocomplete="off"><button id="name-submit">📤 Submit Score</button><button id="name-skip">🏆 Skip & View Leaderboard</button></div>
+<div id="death-screen">
+  <h1>💀 Game Over!</h1>
+  <div id="death-score">Score: 0</div>
+  <p style="color:#94a3b8;font-size:14px;margin-bottom:12px">Enter your name:</p>
+  <input type="text" id="death-name" placeholder="Your name" maxlength="16" autocomplete="off">
+  <button class="death-btn" id="death-submit">📤 Submit Score</button>
+  <button class="death-btn" id="death-retry">🔄 Try Again</button>
+  <button class="death-btn" id="death-lb">🏆 Leaderboard</button>
+</div><p style="color:#94a3b8;font-size:14px">Enter your name:</p><input type="text" id="name-input" placeholder="Your name" maxlength="16" autocomplete="off"><button id="name-submit">📤 Submit Score</button><button id="name-skip">🏆 Skip & View Leaderboard</button></div>
 <script>
 const C = document.getElementById('game');
 const X = C.getContext('2d');
@@ -547,7 +563,7 @@ function draw() {
 }
 
 function gameOver() {
-  _lbGameOver(typeof score !== "undefined" ? score : 0);
+  _showDeathScreen(typeof score !== "undefined" ? score : 0);
 
   playing = false;
   if (score > bestScore) {
@@ -582,11 +598,31 @@ var _lbPendingScore=0;
 async function _lbFetch(){try{var r=await fetch(_LB_URL+'/rest/v1/ajgametime_leaderboard?game=eq.'+_LB_GAME+'&order=score.desc&limit=10',{headers:{'apikey':_LB_KEY,'Authorization':'Bearer '+_LB_KEY}});return await r.json();}catch(e){return[];}}
 async function _lbSubmit(name,sc){try{await fetch(_LB_URL+'/rest/v1/ajgametime_leaderboard',{method:'POST',headers:{'apikey':_LB_KEY,'Authorization':'Bearer '+_LB_KEY,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({game:_LB_GAME,player_name:name,score:sc})});}catch(e){}}
 async function _lbShow(){var lb=document.getElementById('lb-overlay');var list=document.getElementById('lb-list');list.innerHTML='<div style="color:#64748b;text-align:center;padding:20px">Loading...</div>';lb.style.display='flex';var data=await _lbFetch();if(!data.length){list.innerHTML='<div style="color:#64748b;text-align:center;padding:20px">No scores yet!</div>';return;}list.innerHTML=data.map(function(d,i){return '<div class="lb-row"><span class="lb-rank">#'+(i+1)+'</span><span class="lb-name">'+d.player_name+'</span><span class="lb-score">'+d.score+'</span></div>';}).join('');}
-function _lbGameOver(sc){_lbPendingScore=sc;document.getElementById('nm-score-text').textContent='Score: '+sc;document.getElementById('name-input').value=localStorage.getItem('ajgt_name')||'';document.getElementById('name-modal').style.display='flex';}
 document.getElementById('lb-close-btn').addEventListener('click',function(){document.getElementById('lb-overlay').style.display='none';});
-document.getElementById('name-submit').addEventListener('click',async function(){var n=document.getElementById('name-input').value.trim()||'Anonymous';await _lbSubmit(n,_lbPendingScore);localStorage.setItem('ajgt_name',n);document.getElementById('name-modal').style.display='none';_lbShow();});
-document.getElementById('name-skip').addEventListener('click',function(){document.getElementById('name-modal').style.display='none';_lbShow();});
+
+
 document.getElementById('name-input').addEventListener('keydown',function(e){if(e.key==='Enter')document.getElementById('name-submit').click();});
+// === DEATH SCREEN HANDLERS ===
+function _showDeathScreen(sc){
+  _lbPendingScore=sc;
+  document.getElementById('death-score').textContent='Score: '+sc;
+  document.getElementById('death-name').value=localStorage.getItem('ajgt_name')||'';
+  document.getElementById('death-screen').style.display='flex';
+}
+document.getElementById('death-submit').addEventListener('click',async function(){
+  var n=document.getElementById('death-name').value.trim()||'Anonymous';
+  localStorage.setItem('ajgt_name',n);
+  await _lbSubmit(n,_lbPendingScore);
+  this.textContent='✅ Done!';this.disabled=true;
+});
+document.getElementById('death-retry').addEventListener('click',function(){
+  document.getElementById('death-screen').style.display='none';
+  document.getElementById('death-submit').textContent='📤 Submit Score';
+  document.getElementById('death-submit').disabled=false;
+  location.reload();
+});
+document.getElementById('death-lb').addEventListener('click',function(){_lbShow();});
+document.getElementById('death-name').addEventListener('keydown',function(e){if(e.key==='Enter')document.getElementById('death-submit').click();});
 </script>
 </body>
 </html>
