@@ -576,6 +576,21 @@ function boxCollide(a, b) {
   return a.x < b.x+b.w && a.x+a.w > b.x && a.y < b.y+b.h && a.y+a.h > b.y;
 }
 
+
+// Dirty floor details (generated once)
+var floorDirt=[];
+for(var di=0;di<40;di++){
+  floorDirt.push({x:Math.random()*2000,y:Math.random()*2000,type:Math.floor(Math.random()*5),size:2+Math.random()*6,rot:Math.random()*6.28,alpha:0.1+Math.random()*0.2});
+}
+var floorStains=[];
+for(var si=0;si<12;si++){
+  floorStains.push({x:Math.random()*2000,y:Math.random()*2000,r:8+Math.random()*20,alpha:0.03+Math.random()*0.06,color:['#4a3728','#3a2a1a','#2a3a28','#3a2a3a'][Math.floor(Math.random()*4)]});
+}
+var floorCrumbs=[];
+for(var ci=0;ci<25;ci++){
+  floorCrumbs.push({x:Math.random()*2000,y:Math.random()*2000,size:1+Math.random()*3,color:['#8B7355','#D2B48C','#C4A882','#6B5B45'][Math.floor(Math.random()*4)]});
+}
+
 function drawFloor() {
   // Kitchen floor tiles
   const tileSize = 50;
@@ -599,6 +614,54 @@ function drawFloor() {
   // Baseboard at top
   ctx.fillStyle = '#3d2f4a';
   ctx.fillRect(0, 40, W, 8);
+
+  // Stains
+  for(var si=0;si<floorStains.length;si++){
+    var st=floorStains[si];
+    if(st.x<W&&st.y<H){
+      ctx.globalAlpha=st.alpha;
+      ctx.fillStyle=st.color;
+      ctx.beginPath();ctx.arc(st.x,st.y,st.r,0,Math.PI*2);ctx.fill();
+    }
+  }
+  ctx.globalAlpha=1;
+
+  // Crumbs
+  for(var ci=0;ci<floorCrumbs.length;ci++){
+    var cr=floorCrumbs[ci];
+    if(cr.x<W&&cr.y<H){
+      ctx.fillStyle=cr.color;
+      ctx.globalAlpha=0.4;
+      ctx.fillRect(cr.x,cr.y,cr.size,cr.size);
+    }
+  }
+  ctx.globalAlpha=1;
+
+  // Scuff marks & dirt spots
+  for(var di=0;di<floorDirt.length;di++){
+    var d=floorDirt[di];
+    if(d.x<W&&d.y<H){
+      ctx.globalAlpha=d.alpha;
+      ctx.fillStyle='#1a1510';
+      if(d.type===0){
+        // Scuff mark
+        ctx.save();ctx.translate(d.x,d.y);ctx.rotate(d.rot);
+        ctx.fillRect(-d.size*2,-1,d.size*4,2);
+        ctx.restore();
+      } else if(d.type===1){
+        // Dirt smudge
+        ctx.beginPath();ctx.arc(d.x,d.y,d.size,0,Math.PI*2);ctx.fill();
+      } else if(d.type===2){
+        // Water spot (lighter)
+        ctx.fillStyle='rgba(255,255,255,0.03)';
+        ctx.beginPath();ctx.arc(d.x,d.y,d.size*1.5,0,Math.PI*2);ctx.fill();
+      } else {
+        // Small dirt dot
+        ctx.fillRect(d.x,d.y,d.size*0.5,d.size*0.5);
+      }
+    }
+  }
+  ctx.globalAlpha=1;
 }
 
 function spawnCheese() {
