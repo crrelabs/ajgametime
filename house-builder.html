@@ -65,8 +65,8 @@ canvas{display:block}
 <div id="overlay">
   <h1>🏗️ House Builder</h1>
   <h2>Stack it up!</h2>
-  <p>Build houses by dropping pieces at the right time! Each piece slides back and forth — tap DROP to place it. The more accurate you are, the more points you earn! 🏠</p>
-  <p style="color:#64748b;font-size:11px">Pieces get faster each house. Stack all 8 layers to finish!</p>
+  <p>Build houses by dropping pieces at the right time! Finish a house and move on to build the next one — watch your town grow! 🏘️</p>
+  <p style="color:#64748b;font-size:11px">Pieces get faster each house. Stack all 8 layers to finish! Your old houses stay on screen!</p>
   <button id="play-btn">🏗️ Start Building!</button>
   <button id="lb-show-btn" onclick="_lbShow()">🏆 Leaderboard</button>
 </div>
@@ -91,23 +91,59 @@ let playing=false,score=0,houseNum=1,frame=0;
 let particles=[],clouds=[];
 let placedPieces=[],fallingPieces=[];
 let strikes=0; // 3 strikes = game over
+let completedHouses=[]; // Array of finished houses {pieces[], x}
+let cameraX=0, targetCameraX=0;
+let townWidth=0;
+
+// Random house colors for variety
+const WALL_PALETTES=[
+  {color:'#D97706',darkColor:'#B45309'},
+  {color:'#DC2626',darkColor:'#B91C1C'},
+  {color:'#2563EB',darkColor:'#1D4ED8'},
+  {color:'#7C3AED',darkColor:'#6D28D9'},
+  {color:'#059669',darkColor:'#047857'},
+  {color:'#DB2777',darkColor:'#BE185D'},
+  {color:'#EA580C',darkColor:'#C2410C'},
+  {color:'#0891B2',darkColor:'#0E7490'},
+];
+const ROOF_PALETTES=[
+  {color:'#DC2626',darkColor:'#991B1B'},
+  {color:'#4B5563',darkColor:'#374151'},
+  {color:'#92400E',darkColor:'#78350F'},
+  {color:'#1E40AF',darkColor:'#1E3A8A'},
+  {color:'#065F46',darkColor:'#064E3B'},
+];
+
+function getHousePalette(){
+  const wallP=WALL_PALETTES[Math.floor(Math.random()*WALL_PALETTES.length)];
+  const roofP=ROOF_PALETTES[Math.floor(Math.random()*ROOF_PALETTES.length)];
+  return {wall:wallP,roof:roofP};
+}
+
+let currentPalette={wall:{color:'#D97706',darkColor:'#B45309'},roof:{color:'#DC2626',darkColor:'#991B1B'}};
 
 // House pieces - build from bottom up
-const PIECE_TYPES=[
-  {name:'Foundation',color:'#6B7280',darkColor:'#4B5563',h:20,emoji:'🧱'},
-  {name:'Wall',color:'#D97706',darkColor:'#B45309',h:40,emoji:'🧱',hasWindow:false,hasDoor:false},
-  {name:'Wall + Door',color:'#D97706',darkColor:'#B45309',h:40,emoji:'🚪',hasWindow:false,hasDoor:true},
-  {name:'Wall + Window',color:'#D97706',darkColor:'#B45309',h:40,emoji:'🪟',hasWindow:true,hasDoor:false},
-  {name:'Wall + Window',color:'#D97706',darkColor:'#B45309',h:40,emoji:'🪟',hasWindow:true,hasDoor:false},
-  {name:'Wall',color:'#D97706',darkColor:'#B45309',h:40,emoji:'🧱',hasWindow:false,hasDoor:false},
-  {name:'Roof Base',color:'#DC2626',darkColor:'#B91C1C',h:20,emoji:'🔺'},
-  {name:'Roof Top',color:'#DC2626',darkColor:'#991B1B',h:35,emoji:'🏠',isRoof:true},
-];
+function getPieceTypes(){
+  const w=currentPalette.wall, r=currentPalette.roof;
+  return [
+    {name:'Foundation',color:'#6B7280',darkColor:'#4B5563',h:20,emoji:'🧱'},
+    {name:'Wall',color:w.color,darkColor:w.darkColor,h:40,emoji:'🧱',hasWindow:false,hasDoor:false},
+    {name:'Wall + Door',color:w.color,darkColor:w.darkColor,h:40,emoji:'🚪',hasWindow:false,hasDoor:true},
+    {name:'Wall + Window',color:w.color,darkColor:w.darkColor,h:40,emoji:'🪟',hasWindow:true,hasDoor:false},
+    {name:'Wall + Window',color:w.color,darkColor:w.darkColor,h:40,emoji:'🪟',hasWindow:true,hasDoor:false},
+    {name:'Wall',color:w.color,darkColor:w.darkColor,h:40,emoji:'🧱',hasWindow:false,hasDoor:false},
+    {name:'Roof Base',color:r.color,darkColor:r.darkColor,h:20,emoji:'🔺'},
+    {name:'Roof Top',color:r.color,darkColor:r.darkColor,h:35,emoji:'🏠',isRoof:true},
+  ];
+}
+
+let PIECE_TYPES=getPieceTypes();
 
 let currentPieceIdx=0;
 let slider={x:0,dir:1,speed:3,w:100};
 let groundY=0;
 let houseX=0;
+const HOUSE_SPACING=160;
 
 // Clouds
 for(let i=0;i<6;i++) clouds.push({x:Math.random()*800,y:20+Math.random()*100,w:60+Math.random()*80,speed:0.2+Math.random()*0.3});
@@ -119,9 +155,14 @@ function startNewHouse(){
   fallingPieces=[];
   currentPieceIdx=0;
   groundY=getGroundY();
-  houseX=W/2;
-  slider.x=W/2;
+  // Place new house to the right of the last one
+  houseX=completedHouses.length*HOUSE_SPACING+HOUSE_SPACING/2+W/2;
+  // Scroll camera to new house position
+  targetCameraX=houseX-W/2;
+  slider.x=houseX;
   slider.speed=2+houseNum*0.5;
+  currentPalette=getHousePalette();
+  PIECE_TYPES=getPieceTypes();
   slider.w=PIECE_TYPES[0].name==='Foundation'?120:100;
   updatePieceHUD();
 }
@@ -252,8 +293,10 @@ function dropPiece(){
   if(currentPieceIdx>=PIECE_TYPES.length){
     const bonus=200*houseNum;
     score+=bonus;
-    showMsg('🏠 House '+houseNum+' Complete! +'+bonus,2500);
+    showMsg('🏘️ House '+houseNum+' Complete! +'+bonus+' · Town growing!',2500);
     addP(houseX,groundY-100,'#fbbf24',25);
+    // Save completed house
+    completedHouses.push({pieces:placedPieces.map(p=>({...p})),x:houseX});
     houseNum++;
     setTimeout(()=>{
       startNewHouse();
@@ -287,13 +330,19 @@ function update(){
   if(!playing)return;
   frame++;
 
-  // Slider movement
+  // Slider movement (world coords, slide within visible screen)
   if(currentPieceIdx<PIECE_TYPES.length){
     slider.x+=slider.dir*slider.speed;
     const sw=getSliderWidth();
-    if(slider.x+sw/2>W-10){slider.dir=-1;slider.x=W-10-sw/2;}
-    if(slider.x-sw/2<10){slider.dir=1;slider.x=10+sw/2;}
+    const screenLeft=cameraX+10+sw/2;
+    const screenRight=cameraX+W-10-sw/2;
+    if(slider.x>screenRight){slider.dir=-1;slider.x=screenRight;}
+    if(slider.x<screenLeft){slider.dir=1;slider.x=screenLeft;}
   }
+
+  // Smooth camera scroll
+  cameraX+=(targetCameraX-cameraX)*0.08;
+  if(Math.abs(cameraX-targetCameraX)<0.5)cameraX=targetCameraX;
 
   // Falling pieces
   fallingPieces.forEach(f=>{f.y+=f.vy;f.vy+=0.3;f.x+=f.vx;f.rotation+=f.vr;});
@@ -333,24 +382,61 @@ function draw(){
     X.fill();
   });
 
-  // Background hills
+  // Background hills (parallax)
   X.fillStyle='#4ade80';
   X.beginPath();X.moveTo(0,getGroundY());
-  for(let i=0;i<=W;i+=50)X.lineTo(i,getGroundY()-10-Math.sin(i*0.01)*15);
+  for(let i=0;i<=W;i+=50){
+    const worldI=i+cameraX*0.3;
+    X.lineTo(i,getGroundY()-10-Math.sin(worldI*0.008)*15);
+  }
   X.lineTo(W,H);X.lineTo(0,H);X.fill();
 
-  // Ground
+  // Ground (extends infinitely)
   X.fillStyle='#22c55e';
   X.fillRect(0,getGroundY(),W,H-getGroundY());
   X.fillStyle='#16a34a';
   X.fillRect(0,getGroundY(),W,4);
 
+  // Road/path at the bottom
+  X.fillStyle='#9ca3af';
+  X.fillRect(0,getGroundY()+20,W,16);
+  X.fillStyle='#fbbf24';
+  X.setLineDash([12,8]);
+  X.strokeStyle='#fbbf24';X.lineWidth=2;
+  X.beginPath();X.moveTo(0,getGroundY()+28);X.lineTo(W,getGroundY()+28);X.stroke();
+  X.setLineDash([]);
+
   // Grass
   X.fillStyle='#15803d';
   for(let i=0;i<W;i+=12){X.fillRect(i,getGroundY()-2,2,5);X.fillRect(i+6,getGroundY()-1,2,4);}
 
-  // Placed pieces
-  placedPieces.forEach((p,idx)=>{
+  // === WORLD SPACE (camera offset) ===
+  X.save();
+  X.translate(-cameraX,0);
+
+  // Draw completed houses (the town!)
+  completedHouses.forEach((house,hIdx)=>{
+    drawHousePieces(house.pieces,0.85);
+    // House number label
+    X.fillStyle='rgba(0,0,0,0.3)';
+    X.font='bold 11px Nunito, sans-serif';
+    X.textAlign='center';
+    X.fillText('#'+(hIdx+1),house.x,getGroundY()+14);
+    // Small trees/bushes between houses
+    if(hIdx<completedHouses.length-1){
+      const tx=house.x+HOUSE_SPACING/2;
+      X.font='20px sans-serif';
+      X.fillText('🌳',tx,getGroundY()-4);
+    }
+  });
+
+  // Draw current house pieces
+  drawHousePieces(placedPieces,1.0);
+
+  // Placed pieces - current house
+  function drawHousePieces(pieces,alpha){
+  pieces.forEach((p,idx)=>{
+    X.globalAlpha=alpha;
     if(p.isRoof){
       // Roof triangle
       X.fillStyle=p.color;
@@ -430,7 +516,9 @@ function draw(){
         X.strokeRect(p.x-p.actualW/2-2,p.y-2,p.actualW+4,p.h+4);
       }
     }
+    X.globalAlpha=1;
   });
+  } // end drawHousePieces
 
   // Falling debris
   fallingPieces.forEach(f=>{
@@ -481,13 +569,24 @@ function draw(){
     X.textAlign='start';
   }
 
-  // Particles
+  // Particles (in world space)
   particles.forEach(p=>{
     X.globalAlpha=p.life/p.maxLife;
     X.fillStyle=p.color;
     X.beginPath();X.arc(p.x,p.y,p.size,0,Math.PI*2);X.fill();
   });
   X.globalAlpha=1;
+
+  X.restore(); // end world space
+
+  // Town counter
+  if(completedHouses.length>0){
+    X.font='bold 12px Nunito, sans-serif';
+    X.textAlign='center';
+    X.fillStyle='rgba(255,255,255,0.7)';
+    X.fillText('🏘️ Town: '+completedHouses.length+' house'+(completedHouses.length!==1?'s':''),W/2,H-52);
+    X.textAlign='start';
+  }
 
   // Strikes display on screen
   if(strikes>0){
@@ -501,7 +600,7 @@ function draw(){
 
 function gameOver(){
   playing=false;
-  document.getElementById('death-score').textContent='Score: '+score+' · Houses: '+(houseNum-1);
+  document.getElementById('death-score').textContent='Score: '+score+' · 🏘️ Town: '+(houseNum-1)+' house'+(houseNum-1!==1?'s':'');
   document.getElementById('death-name').value=localStorage.getItem('ajgt_name')||'';
   document.getElementById('death-screen').style.display='flex';
 }
@@ -509,6 +608,7 @@ function gameOver(){
 function resetGame(){
   score=0;houseNum=1;frame=0;strikes=0;
   fallingPieces=[];particles=[];
+  completedHouses=[];cameraX=0;targetCameraX=0;
   startNewHouse();updateHUD();
 }
 
