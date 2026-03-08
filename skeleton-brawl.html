@@ -23,13 +23,14 @@ canvas{display:block}
 #wave-display{color:#22d3ee;font-size:13px;font-weight:700;text-shadow:1px 1px 2px #000}
 #controls{position:absolute;bottom:0;left:0;width:100%;display:flex;justify-content:space-between;align-items:flex-end;padding:10px 12px;pointer-events:none;z-index:10}
 .ctrl-group{display:flex;gap:8px;pointer-events:auto}
-.btn{width:64px;height:64px;border-radius:50%;border:2px solid rgba(255,255,255,0.3);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800;color:#fff;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:transform 0.1s,box-shadow 0.1s}
+.btn{width:80px;height:80px;border-radius:50%;border:2px solid rgba(255,255,255,0.3);display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:800;color:#fff;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:transform 0.1s,box-shadow 0.1s}
 .btn:active{transform:scale(0.9)}
 .btn-left{background:rgba(59,130,246,0.5)}
 .btn-right{background:rgba(59,130,246,0.5)}
 .btn-punch{background:rgba(239,68,68,0.6);box-shadow:0 0 15px rgba(239,68,68,0.3)}
 .btn-kick{background:rgba(249,115,22,0.6);box-shadow:0 0 15px rgba(249,115,22,0.3)}
-.btn-block{background:rgba(34,197,94,0.5);width:56px;height:56px;font-size:18px}
+.btn-block{background:rgba(34,197,94,0.5);width:70px;height:70px;font-size:22px}
+.btn-upper{background:rgba(168,85,247,0.6);box-shadow:0 0 15px rgba(168,85,247,0.3)}
 #overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:20;background:rgba(0,0,0,0.85)}
 #overlay h1{font-family:'Lilita One',cursive;font-size:clamp(28px,6vw,52px);background:linear-gradient(135deg,#f59e0b,#ef4444);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:4px}
 #overlay h2{color:#22d3ee;font-family:'Lilita One',cursive;font-size:clamp(16px,3vw,24px);margin-bottom:20px}
@@ -54,7 +55,7 @@ canvas{display:block}
 
 #hit-flash{position:absolute;inset:0;background:rgba(239,68,68,0.15);pointer-events:none;z-index:5;opacity:0;transition:opacity 0.1s}
 #ko-text{position:absolute;top:30%;left:50%;transform:translate(-50%,-50%);font-family:'Lilita One',cursive;font-size:64px;color:#f59e0b;text-shadow:0 0 30px rgba(245,158,11,0.6);z-index:15;display:none}
-@media(min-width:600px){.btn{width:72px;height:72px;font-size:28px}.btn-block{width:62px;height:62px}}
+@media(min-width:600px){.btn{width:88px;height:88px;font-size:32px}.btn-block{width:76px;height:76px}}
 
 #lb-overlay{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;z-index:100;background:rgba(0,0,0,0.92)}
 #lb-overlay h2{font-size:28px;color:#f59e0b;margin-bottom:12px;font-weight:900}
@@ -112,6 +113,7 @@ canvas{display:block}
   <div class="ctrl-group">
     <div class="btn btn-block" data-action="block">🛡</div>
     <div class="btn btn-kick" data-action="kick">🦵</div>
+    <div class="btn btn-upper" data-action="uppercut">🤛</div>
     <div class="btn btn-punch" data-action="punch">👊</div>
   </div>
 </div>
@@ -210,6 +212,7 @@ document.addEventListener('keydown', e => {
   if (e.key === 'ArrowLeft' || e.key === 'a') actions.left = true;
   if (e.key === 'ArrowRight' || e.key === 'd') actions.right = true;
   if (e.key === 'z' || e.key === 'j') actionQueue.push('punch');
+  if (e.key === 'c' || e.key === 'u') actionQueue.push('uppercut');
   if (e.key === 'x' || e.key === 'k') actionQueue.push('kick');
   if (e.key === 'c' || e.key === 'l') actions.block = true;
 });
@@ -221,8 +224,8 @@ document.addEventListener('keyup', e => {
 
 document.querySelectorAll('.btn').forEach(btn => {
   const act = btn.dataset.action;
-  const down = e => { e.preventDefault(); if (act === 'punch' || act === 'kick') actionQueue.push(act); else actions[act] = true; };
-  const up = e => { e.preventDefault(); if (act !== 'punch' && act !== 'kick') actions[act] = false; };
+  const down = e => { e.preventDefault(); if (act === 'punch' || act === 'kick' || act === 'uppercut') actionQueue.push(act); else actions[act] = true; };
+  const up = e => { e.preventDefault(); if (act !== 'punch' && act !== 'kick' && act !== 'uppercut') actions[act] = false; };
   btn.addEventListener('touchstart', down, { passive: false });
   btn.addEventListener('touchend', up, { passive: false });
   btn.addEventListener('touchcancel', up, { passive: false });
@@ -376,6 +379,7 @@ function drawCharacter(x, y, char, time) {
     const legSpread = char.moving ? Math.sin(char.bobTimer * 0.15) * 8 : 0;
     const kicking = char.attacking && char.attackType === 'kick' && char.attackTimer > 5;
     const punching = char.attacking && char.attackType === 'punch' && char.attackTimer > 5;
+    const uppercutting = char.attacking && char.attackType === 'uppercut' && char.attackTimer > 5;
 
     // Legs
     ctx.fillStyle = '#1e3a5f';
@@ -405,6 +409,13 @@ function drawCharacter(x, y, char, time) {
       ctx.save(); ctx.translate(facing > 0 ? 14 : -22, 5);
       ctx.fillRect(0, 0, facing * 30, 10);
       ctx.fillStyle = '#d4a574'; ctx.fillRect(facing > 0 ? 26 : -8, -2, 10, 14);
+      ctx.restore();
+    } else if (uppercutting) {
+      ctx.fillRect(-20, 0, 8, 24);
+      ctx.save(); ctx.translate(facing > 0 ? 14 : -14, -5);
+      ctx.fillRect(0, 0, 10, -35);
+      ctx.fillStyle = '#d4a574'; ctx.fillRect(-2, -40, 14, 14);
+      ctx.fillStyle = '#a855f7'; ctx.globalAlpha=0.5; ctx.fillRect(-4, -50, 18, 20); ctx.globalAlpha=1;
       ctx.restore();
     } else if (char.blocking) {
       ctx.fillRect(-20, 0, 8, 20); ctx.fillRect(12, 0, 8, 20);
@@ -500,7 +511,7 @@ function update() {
 
   if (actionQueue.length > 0 && !player.attacking) {
     const act = actionQueue.shift();
-    player.attacking = true; player.attackType = act; player.attackTimer = 15;
+    player.attacking = true; player.attackType = act; player.attackTimer = act === 'uppercut' ? 20 : 15;
   }
   actionQueue = [];
 
@@ -513,14 +524,14 @@ function update() {
   if (player.attacking) {
     player.attackTimer--;
     if (player.attackTimer <= 0) { player.attacking = false; player.attackType = ''; }
-    if (player.attackTimer === 10 && enemy && enemy.alive) {
-      const range = player.attackType === 'kick' ? 65 : 50;
+    if (((player.attackType === 'uppercut' && player.attackTimer === 13) || (player.attackType !== 'uppercut' && player.attackTimer === 10)) && enemy && enemy.alive) {
+      const range = player.attackType === 'kick' ? 65 : player.attackType === 'uppercut' ? 45 : 50;
       const dx = (enemy.x - player.x) * player.facing;
       if (dx > 0 && dx < range && Math.abs(enemy.x - player.x) < range) {
-        const dmg = player.attackType === 'kick' ? 12 + wave : 8 + Math.floor(wave / 2);
+        const dmg = player.attackType === 'uppercut' ? 20 + wave * 2 : player.attackType === 'kick' ? 12 + wave : 8 + Math.floor(wave / 2);
         enemy.hp -= dmg + combo * 2;
         enemy.hurtTimer = 12; combo++; shakeTimer = 6;
-        addParticles(enemy.x, ground - 40, '#fbbf24', 6, 4);
+        addParticles(enemy.x, ground - 40, player.attackType === 'uppercut' ? '#a855f7' : '#fbbf24', player.attackType === 'uppercut' ? 10 : 6, player.attackType === 'uppercut' ? 6 : 4);
         if (enemy.hp <= 0) {
           enemy.alive = false; enemy.deathTimer = 40;
           score += 100 * wave + combo * 10;
