@@ -66,7 +66,7 @@ canvas{display:block}
   <h1>🏗️ House Builder</h1>
   <h2>Stack it up!</h2>
   <p>Build houses by dropping pieces at the right time! Finish a house and move on to build the next one — watch your town grow! 🏘️</p>
-  <p style="color:#64748b;font-size:11px">Pieces get faster each house. Stack all 8 layers to finish! Your old houses stay on screen!</p>
+  <p style="color:#64748b;font-size:11px">Each house gets TALLER and FASTER! Build a whole town! 🏘️</p>
   <button id="play-btn">🏗️ Start Building!</button>
   <button id="lb-show-btn" onclick="_lbShow()">🏆 Leaderboard</button>
 </div>
@@ -122,19 +122,27 @@ function getHousePalette(){
 
 let currentPalette={wall:{color:'#D97706',darkColor:'#B45309'},roof:{color:'#DC2626',darkColor:'#991B1B'}};
 
-// House pieces - build from bottom up
+// House pieces - build from bottom up, taller each house!
 function getPieceTypes(){
   const w=currentPalette.wall, r=currentPalette.roof;
-  return [
+  const pieces=[
     {name:'Foundation',color:'#6B7280',darkColor:'#4B5563',h:20,emoji:'🧱'},
     {name:'Wall',color:w.color,darkColor:w.darkColor,h:40,emoji:'🧱',hasWindow:false,hasDoor:false},
     {name:'Wall + Door',color:w.color,darkColor:w.darkColor,h:40,emoji:'🚪',hasWindow:false,hasDoor:true},
     {name:'Wall + Window',color:w.color,darkColor:w.darkColor,h:40,emoji:'🪟',hasWindow:true,hasDoor:false},
-    {name:'Wall + Window',color:w.color,darkColor:w.darkColor,h:40,emoji:'🪟',hasWindow:true,hasDoor:false},
-    {name:'Wall',color:w.color,darkColor:w.darkColor,h:40,emoji:'🧱',hasWindow:false,hasDoor:false},
-    {name:'Roof Base',color:r.color,darkColor:r.darkColor,h:20,emoji:'🔺'},
-    {name:'Roof Top',color:r.color,darkColor:r.darkColor,h:35,emoji:'🏠',isRoof:true},
   ];
+  // Add extra floors based on house number (1 extra floor every 2 houses, max 6 extra)
+  const extraFloors=Math.min(6,Math.floor((houseNum-1)/2));
+  for(let i=0;i<extraFloors;i++){
+    const hasWin=i%2===0;
+    pieces.push({name:hasWin?'Wall + Window':'Wall',color:w.color,darkColor:w.darkColor,h:40,emoji:hasWin?'🪟':'🧱',hasWindow:hasWin,hasDoor:false});
+  }
+  // Top walls + roof
+  pieces.push({name:'Wall + Window',color:w.color,darkColor:w.darkColor,h:40,emoji:'🪟',hasWindow:true,hasDoor:false});
+  pieces.push({name:'Wall',color:w.color,darkColor:w.darkColor,h:40,emoji:'🧱',hasWindow:false,hasDoor:false});
+  pieces.push({name:'Roof Base',color:r.color,darkColor:r.darkColor,h:20,emoji:'🔺'});
+  pieces.push({name:'Roof Top',color:r.color,darkColor:r.darkColor,h:35,emoji:'🏠',isRoof:true});
+  return pieces;
 }
 
 let PIECE_TYPES=getPieceTypes();
@@ -160,7 +168,7 @@ function startNewHouse(){
   // Scroll camera to new house position
   targetCameraX=houseX-W/2;
   slider.x=houseX;
-  slider.speed=2+houseNum*0.5;
+  slider.speed=2+houseNum*0.8;
   currentPalette=getHousePalette();
   PIECE_TYPES=getPieceTypes();
   slider.w=PIECE_TYPES[0].name==='Foundation'?120:100;
@@ -286,14 +294,15 @@ function dropPiece(){
   });
 
   currentPieceIdx++;
-  slider.speed+=0.3;
+  slider.speed+=0.35;
   updatePieceHUD();
 
   // House complete!
   if(currentPieceIdx>=PIECE_TYPES.length){
     const bonus=200*houseNum;
     score+=bonus;
-    showMsg('🏘️ House '+houseNum+' Complete! +'+bonus+' · Town growing!',2500);
+    const floors=PIECE_TYPES.length-2; // minus foundation and roof top
+    showMsg('🏘️ House '+houseNum+' Done! ('+floors+' floors) +'+bonus,2500);
     addP(houseX,groundY-100,'#fbbf24',25);
     // Save completed house
     completedHouses.push({pieces:placedPieces.map(p=>({...p})),x:houseX});
