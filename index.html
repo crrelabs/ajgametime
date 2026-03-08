@@ -1,5 +1,4 @@
-<
-  !DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-2GR7STT4B9"></script>
@@ -475,11 +474,9 @@ let currentSort = 'newest';
 const categories = [...new Set(GAMES.map(g => g.category))].sort();
 
 function init() {
-  // Build filter buttons
-  const filterContainer = document.getElementById('filterBtns');
-  filterContainer.innerHTML = categories.map(cat =>
-    `<button class="filter-btn" data-cat="${cat}" onclick="setFilter('${cat}')">${cat}</button>`
-  ).join('');
+  // Populate category dropdown
+  var catSel=document.getElementById('catSelect');
+  categories.forEach(function(cat){var o=document.createElement('option');o.value=cat;o.textContent=cat;catSel.appendChild(o);});
 
   renderGames();
 
