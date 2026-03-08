@@ -143,24 +143,18 @@ body {
 .search-bar .clear-btn.visible { display: block; }
 .search-bar .count { font-size: 0.8rem; color: #4a4560; white-space: nowrap; }
 
-.filter-row { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
-.filter-label { font-size: 0.75rem; color: #4a4560; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 800; margin-right: 0.25rem; }
-.filter-btn {
-  padding: 0.35rem 0.85rem; border-radius: 50px; border: 1.5px solid rgba(124,58,237,0.2);
-  background: rgba(22,19,42,0.6); color: #94a3b8; font-size: 0.78rem; font-weight: 700;
-  cursor: pointer; transition: all 0.15s; font-family: 'Nunito', sans-serif;
-}
-.filter-btn:hover { border-color: var(--purple); color: #e2e8f0; }
-.filter-btn.active { background: var(--purple); border-color: var(--purple); color: white; }
+.compact-filters { display: flex; gap: 0.5rem; align-items: center; }
+.compact-filters select { background: #1a1a2e; color: #e2e8f0; border: 1px solid rgba(124,58,237,0.3); border-radius: 8px; padding: 6px 10px; font-size: 0.85rem; font-weight: 600; cursor: pointer; outline: none; -webkit-appearance: auto; }
+.compact-filters select:focus { border-color: var(--purple); }
 
-.sort-row { display: flex; gap: 0.5rem; align-items: center; }
-.sort-btn {
-  padding: 0.3rem 0.75rem; border-radius: 50px; border: 1.5px solid rgba(124,58,237,0.15);
-  background: rgba(22,19,42,0.4); color: #64748b; font-size: 0.75rem; font-weight: 700;
-  cursor: pointer; transition: all 0.15s; font-family: 'Nunito', sans-serif;
-}
-.sort-btn:hover { color: #94a3b8; border-color: rgba(124,58,237,0.3); }
-.sort-btn.active { color: var(--cyan); border-color: var(--cyan); }
+
+
+
+
+
+
+
+
 
 /* Games Grid */
 .section-title { font-family: 'Lilita One', cursive; font-size: 1.8rem; text-align: center; margin: 2rem 0 1.5rem; color: #e2e8f0; }
@@ -247,17 +241,16 @@ footer a:hover { color: #94a3b8; }
       <button class="clear-btn" id="clearBtn" onclick="clearSearch()">✕</button>
       <span class="count" id="gameCount"></span>
     </div>
-    <div class="filter-row">
-      <span class="filter-label">Filter:</span>
-      <button class="filter-btn active" data-cat="all" onclick="setFilter('all')">All</button>
-      <div id="filterBtns"></div>
-    </div>
-    <div class="sort-row">
-      <span class="filter-label">Sort:</span>
-      <button class="sort-btn active" data-sort="newest" onclick="setSort('newest')">⏰ Newest</button>
-      <button class="sort-btn" data-sort="oldest" onclick="setSort('oldest')">📅 Oldest</button>
-      <button class="sort-btn" data-sort="az" onclick="setSort('az')">A→Z</button>
-      <button class="sort-btn" data-sort="za" onclick="setSort('za')">Z→A</button>
+    <div class="compact-filters">
+      <select id="catSelect" onchange="setFilter(this.value)">
+        <option value="all">🎮 All Games</option>
+      </select>
+      <select id="sortSelect" onchange="setSort(this.value)">
+        <option value="newest">⏰ Newest</option>
+        <option value="oldest">📅 Oldest</option>
+        <option value="az">A→Z</option>
+        <option value="za">Z→A</option>
+      </select>
     </div>
   </div>
 
@@ -500,14 +493,12 @@ function clearSearch() {
 }
 
 function setFilter(cat) {
-  currentFilter = cat;
-  document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.cat === cat));
+  document.getElementById('catSelect').value=cat;
   renderGames();
 }
 
 function setSort(sort) {
-  currentSort = sort;
-  document.querySelectorAll('.sort-btn').forEach(b => b.classList.toggle('active', b.dataset.sort === sort));
+  document.getElementById('sortSelect').value=sort;
   renderGames();
 }
 
