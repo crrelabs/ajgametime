@@ -87,6 +87,23 @@ let pipes = [];
 let pipeTimer = 0;
 const PIPE_INTERVAL = 90;
 
+// Pipe types with colors and points
+const PIPE_TYPES = [
+  { name:'Green',    pts:1,  bodyLight:'#4CAF50', bodyDark:'#2E7D32', rimLight:'#43A047', rimDark:'#1B5E20', weight:40 },
+  { name:'Blue',     pts:2,  bodyLight:'#42A5F5', bodyDark:'#1565C0', rimLight:'#2196F3', rimDark:'#0D47A1', weight:25 },
+  { name:'Red',      pts:3,  bodyLight:'#EF5350', bodyDark:'#C62828', rimLight:'#E53935', rimDark:'#B71C1C', weight:15 },
+  { name:'Gold',     pts:5,  bodyLight:'#FFD54F', bodyDark:'#F9A825', rimLight:'#FFC107', rimDark:'#FF8F00', weight:8 },
+  { name:'Purple',   pts:4,  bodyLight:'#AB47BC', bodyDark:'#6A1B9A', rimLight:'#9C27B0', rimDark:'#4A148C', weight:8 },
+  { name:'Rainbow',  pts:10, bodyLight:'#FF6F00', bodyDark:'#E91E63', rimLight:'#9C27B0', rimDark:'#3F51B5', weight:3, rainbow:true },
+  { name:'Diamond',  pts:7,  bodyLight:'#80DEEA', bodyDark:'#00838F', rimLight:'#4DD0E1', rimDark:'#006064', weight:4, sparkle:true },
+];
+function pickPipeType(){
+  var total=0;for(var i=0;i<PIPE_TYPES.length;i++)total+=PIPE_TYPES[i].weight;
+  var r=Math.random()*total;
+  for(var i=0;i<PIPE_TYPES.length;i++){r-=PIPE_TYPES[i].weight;if(r<=0)return PIPE_TYPES[i];}
+  return PIPE_TYPES[0];
+}
+
 // Ground
 const GROUND_H = 70;
 let groundX = 0;
@@ -146,13 +163,15 @@ document.addEventListener('keydown', e => {
 });
 
 function spawnPipe() {
-  const minY = 80;
-  const maxY = H - GROUND_H - GAP - 80;
-  const gapY = minY + Math.random() * (maxY - minY);
+  var minY = 80;
+  var maxY = H - GROUND_H - GAP - 80;
+  var gapY = minY + Math.random() * (maxY - minY);
+  var type = pickPipeType();
   pipes.push({
     x: W + 10,
     gapY: gapY,
-    scored: false
+    scored: false,
+    type: type
   });
 }
 
@@ -189,10 +208,14 @@ function update() {
     // Score
     if (!p.scored && p.x + PIPE_W < bird.x) {
       p.scored = true;
-      score++;
+      var pts = p.type ? p.type.pts : 1;
+      score += pts;
+      if (pts >= 5) {
+        for (var pi=0;pi<8;pi++) particles.push({x:bird.x,y:bird.y,vx:(Math.random()-0.5)*4,vy:(Math.random()-0.5)*4,life:15,maxLife:15,color:'#fbbf24',size:2+Math.random()*2});
+      }
       document.getElementById('score-display').textContent = score;
       // Speed up slightly
-      if (score % 10 === 0) pipeSpeed += 0.2;
+      if (score % 10 === 0) pipeSpeed += 0.15;
     }
 
     // Remove off-screen
@@ -270,10 +293,32 @@ function draw() {
 
   // Pipes
   pipes.forEach(p => {
+    var t = p.type || PIPE_TYPES[0];
     // Top pipe
-    drawPipe(p.x, 0, PIPE_W, p.gapY, true);
+    drawPipe(p.x, 0, PIPE_W, p.gapY, true, t);
     // Bottom pipe
-    drawPipe(p.x, p.gapY + GAP, PIPE_W, H - GROUND_H - p.gapY - GAP, false);
+    drawPipe(p.x, p.gapY + GAP, PIPE_W, H - GROUND_H - p.gapY - GAP, false, t);
+    // Points label in the gap
+    if (t.pts > 1) {
+      X.font = 'bold 14px Lilita One, cursive';
+      X.textAlign = 'center';
+      X.fillStyle = t.pts >= 5 ? '#fbbf24' : '#fff';
+      X.globalAlpha = 0.8;
+      X.fillText('+' + t.pts, p.x + PIPE_W / 2, p.gapY + GAP / 2 + 5);
+      X.globalAlpha = 1;
+      X.textAlign = 'start';
+    }
+    // Sparkle effect for diamond pipes
+    if (t.sparkle && !p.scored) {
+      X.fillStyle = '#fff';
+      for (var si = 0; si < 3; si++) {
+        var sy = p.gapY + 20 + si * (GAP - 40) / 2;
+        var sx = p.x + PIPE_W / 2 + Math.sin(frame * 0.1 + si * 2) * 8;
+        X.globalAlpha = 0.5 + Math.sin(frame * 0.15 + si) * 0.3;
+        X.beginPath(); X.arc(sx, sy, 2, 0, Math.PI * 2); X.fill();
+      }
+      X.globalAlpha = 1;
+    }
   });
 
   // Ground
@@ -377,26 +422,36 @@ function draw() {
   }
 }
 
-function drawPipe(x, y, w, h, isTop) {
+function drawPipe(x, y, w, h, isTop, type) {
   if (h <= 0) return;
+  var t = type || PIPE_TYPES[0];
   // Pipe body
-  const grad = X.createLinearGradient(x, 0, x + w, 0);
-  grad.addColorStop(0, '#388E3C');
-  grad.addColorStop(0.3, '#4CAF50');
-  grad.addColorStop(0.7, '#4CAF50');
-  grad.addColorStop(1, '#2E7D32');
+  var grad = X.createLinearGradient(x, 0, x + w, 0);
+  if (t.rainbow) {
+    grad.addColorStop(0, '#FF6F00');
+    grad.addColorStop(0.2, '#F44336');
+    grad.addColorStop(0.4, '#E91E63');
+    grad.addColorStop(0.6, '#9C27B0');
+    grad.addColorStop(0.8, '#3F51B5');
+    grad.addColorStop(1, '#2196F3');
+  } else {
+    grad.addColorStop(0, t.bodyDark);
+    grad.addColorStop(0.3, t.bodyLight);
+    grad.addColorStop(0.7, t.bodyLight);
+    grad.addColorStop(1, t.bodyDark);
+  }
   X.fillStyle = grad;
   X.fillRect(x, y, w, h);
 
   // Pipe rim
-  const rimH = 26;
-  const rimW = w + 8;
-  const rimX = x - 4;
-  const rimGrad = X.createLinearGradient(rimX, 0, rimX + rimW, 0);
-  rimGrad.addColorStop(0, '#2E7D32');
-  rimGrad.addColorStop(0.3, '#43A047');
-  rimGrad.addColorStop(0.7, '#43A047');
-  rimGrad.addColorStop(1, '#1B5E20');
+  var rimH = 26;
+  var rimW = w + 8;
+  var rimX = x - 4;
+  var rimGrad = X.createLinearGradient(rimX, 0, rimX + rimW, 0);
+  rimGrad.addColorStop(0, t.rimDark);
+  rimGrad.addColorStop(0.3, t.rimLight);
+  rimGrad.addColorStop(0.7, t.rimLight);
+  rimGrad.addColorStop(1, t.rimDark);
   X.fillStyle = rimGrad;
   if (isTop) {
     X.fillRect(rimX, y + h - rimH, rimW, rimH);
@@ -405,8 +460,14 @@ function drawPipe(x, y, w, h, isTop) {
   }
 
   // Highlight
-  X.fillStyle = 'rgba(255,255,255,0.1)';
+  X.fillStyle = 'rgba(255,255,255,0.15)';
   X.fillRect(x + 6, y, 8, h);
+
+  // Gold pipes get extra shine
+  if (t.pts >= 5 && !t.rainbow) {
+    X.fillStyle = 'rgba(255,255,255,0.08)';
+    X.fillRect(x + 2, y, w - 4, h);
+  }
 }
 
 function gameOver() {
