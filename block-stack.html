@@ -15,7 +15,7 @@ body{background:#0a0a1a;overflow:hidden;touch-action:none;font-family:'Nunito',s
 #score-box{color:#fbbf24;font-family:'Lilita One',cursive;font-size:16px}
 #level-box{color:#22d3ee}
 #lines-box{color:#22c55e}
-#board-wrap{position:relative;border:2px solid #4f46e5;box-shadow:0 0 20px rgba(79,70,229,0.4);background:#060818}
+#board-wrap{position:relative;border:3px solid #6366f1;box-shadow:0 0 25px rgba(99,102,241,0.5);background:#0f1225}
 canvas{display:block}
 #next-wrap{position:absolute;top:0;right:-58px;width:54px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:4px;text-align:center}
 #next-wrap span{color:#94a3b8;font-size:9px;font-weight:700;display:block;margin-bottom:2px}
@@ -115,8 +115,8 @@ var CELL, bW, bH;
 
 function sizeBoard(){
   var ww=window.innerWidth, wh=window.innerHeight;
-  var availH=wh-140;
-  var availW=ww-80;
+  var availH=wh-120;
+  var availW=ww-70;
   CELL=Math.floor(Math.min(availW/COLS, availH/ROWS));
   if(CELL<12)CELL=12;
   if(CELL>30)CELL=30;
