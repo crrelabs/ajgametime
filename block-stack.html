@@ -15,7 +15,7 @@ body{background:#0a0a1a;overflow:hidden;touch-action:none;font-family:'Nunito',s
 #score-box{color:#fbbf24;font-family:'Lilita One',cursive;font-size:16px}
 #level-box{color:#22d3ee}
 #lines-box{color:#22c55e}
-#board-wrap{position:relative;border:3px solid #6366f1;box-shadow:0 0 25px rgba(99,102,241,0.5);background:#0f1225}
+#board-wrap{position:relative;border:3px solid #6366f1;box-shadow:0 0 25px rgba(99,102,241,0.5);background:#1a1a3a}
 canvas{display:block}
 #next-wrap{position:absolute;top:0;right:-58px;width:54px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:4px;text-align:center}
 #next-wrap span{color:#94a3b8;font-size:9px;font-weight:700;display:block;margin-bottom:2px}
@@ -271,19 +271,25 @@ function update(){
 
 // ===== DRAW =====
 function drawCell(ctx,x,y,sz,color,dark){
-  ctx.fillStyle=color;
+  // White outline for visibility
+  ctx.fillStyle='rgba(255,255,255,0.6)';
   ctx.fillRect(x,y,sz-1,sz-1);
-  ctx.fillStyle='rgba(255,255,255,0.25)';
-  ctx.fillRect(x,y,sz-1,2);ctx.fillRect(x,y,2,sz-1);
+  // Main color fill (inset 1px)
+  ctx.fillStyle=color;
+  ctx.fillRect(x+1,y+1,sz-3,sz-3);
+  // Highlight top-left
+  ctx.fillStyle='rgba(255,255,255,0.35)';
+  ctx.fillRect(x+1,y+1,sz-3,3);ctx.fillRect(x+1,y+1,3,sz-3);
+  // Shadow bottom-right
   ctx.fillStyle=dark;
-  ctx.fillRect(x,y+sz-3,sz-1,2);ctx.fillRect(x+sz-3,y,2,sz-1);
+  ctx.fillRect(x+1,y+sz-5,sz-3,3);ctx.fillRect(x+sz-5,y+1,3,sz-3);
 }
 
 function draw(){
   bx.fillStyle='#060818';
   bx.fillRect(0,0,bW,bH);
   
-  bx.strokeStyle='rgba(255,255,255,0.04)';bx.lineWidth=1;
+  bx.strokeStyle='rgba(255,255,255,0.1)';bx.lineWidth=1;
   for(var r=0;r<=ROWS;r++){bx.beginPath();bx.moveTo(0,r*CELL);bx.lineTo(bW,r*CELL);bx.stroke();}
   for(var c=0;c<=COLS;c++){bx.beginPath();bx.moveTo(c*CELL,0);bx.lineTo(c*CELL,bH);bx.stroke();}
   
