@@ -578,7 +578,7 @@ function draw(){
         const wGlow=palette.windowGlow||'#93c5fd';
         const ws=palette.windowStyle||'cross';
         const ww=14,wh=14;
-        const drawWin=function(wx,wy){
+        var drawWin=function(wx,wy){
           X.fillStyle=wGlow;
           if(ws==='circle'){
             X.beginPath();X.arc(wx,wy,ww/2,0,Math.PI*2);X.fill();
