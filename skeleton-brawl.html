@@ -626,7 +626,7 @@ function gameOver() {
 }
 
 playBtn.addEventListener('click', () => {
-  overlay.style.display = 'none'; playing = true; resetGame();
+  overlay.style.display = 'none'; playing = true; resetGame(); requestAnimationFrame(gameLoop);
   overlay.querySelector('h1').textContent = '☠️ Skeleton Brawl';
   overlay.querySelector('h2').textContent = 'Ghost Pirate Ship';
   playBtn.textContent = '⚔️ Fight!';
