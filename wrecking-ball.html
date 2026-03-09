@@ -101,6 +101,7 @@ canvas{display:block}
   <button class="death-btn" id="death-submit">📤 Submit Score</button>
   <button class="death-btn" id="death-retry">💥 Play Again</button>
   <button class="death-btn" id="death-lb">🏆 Leaderboard</button>
+  <button class="death-btn" id="death-shop" style="background:linear-gradient(135deg,#8b5cf6,#3b82f6)">🛒 Shop</button>
 </div>
 <script>
 var cv=document.getElementById('c'),cx=cv.getContext('2d');
@@ -574,7 +575,7 @@ function renderShop(){
   });
 }
 document.getElementById('shop-btn').addEventListener('click',function(){renderShop();document.getElementById('shop-overlay').style.display='flex';});
-document.getElementById('shop-close').addEventListener('click',function(){document.getElementById('shop-overlay').style.display='none';document.getElementById('menu-coins').textContent='🪙 '+coins;});
+document.getElementById('shop-close').addEventListener('click',function(){document.getElementById('shop-overlay').style.display='none';document.getElementById('menu-coins').textContent='🪙 '+coins;document.getElementById('overlay').style.display='flex';});
 
 // === LEADERBOARD ===
 var _LB_URL='https://adudgrfxwildzwpcvyil.supabase.co';
@@ -587,6 +588,7 @@ document.getElementById('lb-close-btn').addEventListener('click',function(){docu
 document.getElementById('death-submit').addEventListener('click',async function(){var n=document.getElementById('death-name').value.trim()||'Anonymous';localStorage.setItem('ajgt_name',n);await _lbSubmit(n,score);this.textContent='✅ Done!';this.disabled=true;});
 document.getElementById('death-retry').addEventListener('click',function(){document.getElementById('death-screen').style.display='none';document.getElementById('death-submit').textContent='📤 Submit Score';document.getElementById('death-submit').disabled=false;startGame();});
 document.getElementById('death-lb').addEventListener('click',function(){_lbShow();});
+document.getElementById('death-shop').addEventListener('click',function(){document.getElementById('death-screen').style.display='none';document.getElementById('death-submit').textContent='📤 Submit Score';document.getElementById('death-submit').disabled=false;renderShop();document.getElementById('shop-overlay').style.display='flex';});
 document.getElementById('death-name').addEventListener('keydown',function(e){if(e.key==='Enter')document.getElementById('death-submit').click();});
 document.getElementById('menu-coins').textContent='🪙 '+coins;
 </script>
