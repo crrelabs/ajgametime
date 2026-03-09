@@ -111,6 +111,8 @@ button.play-btn:hover { transform: scale(1.05); }
     <button class="tower-btn" data-tower="frost"><span class="emoji">❄️</span>Frost<span class="cost">💰 75</span></button>
     <button class="tower-btn" data-tower="laser"><span class="emoji">⚡</span>Laser<span class="cost">💰 150</span></button>
     <button class="tower-btn" data-tower="fire"><span class="emoji">🔥</span>Fire<span class="cost">💰 125</span></button>
+    <button class="tower-btn" data-tower="sell" id="sellBtn" style="border-color:rgba(239,68,68,0.4);display:none"><span class="emoji">💰</span>Sell<span class="cost" id="sellCost">+0</span></button>
+    <button class="tower-btn" data-tower="upgrade" id="upgradeBtn" style="border-color:rgba(251,191,36,0.4);display:none"><span class="emoji">⬆️</span>Upgrade<span class="cost" id="upgradeCost">💰 0</span></button>
   </div>
 </div>
 
@@ -676,18 +678,15 @@ canvas.addEventListener('click', (e) => {
   
   if (row < 0 || row >= ROWS || col < 0 || col >= COLS) return;
   
-  // Check if clicking existing tower (upgrade)
+  // Check if clicking existing tower - select it
   const existing = towers.find(t => t.col === col && t.row === row);
   if (existing) {
-    const upgradeCost = TOWER_DEFS[existing.type].cost * existing.level;
-    if (gold >= upgradeCost && existing.level < 3) {
-      gold -= upgradeCost;
-      existing.level++;
-      updateHUD();
-      updateTowerButtons();
-    }
+    selectTowerOnMap(existing);
     return;
   }
+  
+  // Deselect if clicking empty non-path tile
+  deselectTowerOnMap();
   
   // Can't place on path
   if (isOnPath(col, row)) return;
@@ -714,6 +713,63 @@ canvas.addEventListener('touchstart', (e) => {
   const touch = e.touches[0];
   const click = new MouseEvent('click', { clientX: touch.clientX, clientY: touch.clientY });
   canvas.dispatchEvent(click);
+});
+
+let selectedMapTower = null;
+
+function selectTowerOnMap(t) {
+  // Deselect previous
+  towers.forEach(tw => tw.selected = false);
+  t.selected = true;
+  selectedMapTower = t;
+  
+  const def = TOWER_DEFS[t.type];
+  const sellValue = Math.floor(def.cost * t.level * 0.6);
+  const upgradeCost = def.cost * t.level;
+  
+  document.getElementById('sellBtn').style.display = '';
+  document.getElementById('sellCost').textContent = '+' + sellValue;
+  
+  if (t.level < 3) {
+    document.getElementById('upgradeBtn').style.display = '';
+    document.getElementById('upgradeCost').textContent = '💰 ' + upgradeCost;
+    document.getElementById('upgradeBtn').classList.toggle('locked', gold < upgradeCost);
+  } else {
+    document.getElementById('upgradeBtn').style.display = 'none';
+  }
+}
+
+function deselectTowerOnMap() {
+  towers.forEach(tw => tw.selected = false);
+  selectedMapTower = null;
+  document.getElementById('sellBtn').style.display = 'none';
+  document.getElementById('upgradeBtn').style.display = 'none';
+}
+
+document.getElementById('sellBtn').addEventListener('click', (e) => {
+  e.stopPropagation();
+  if (!selectedMapTower) return;
+  const def = TOWER_DEFS[selectedMapTower.type];
+  const sellValue = Math.floor(def.cost * selectedMapTower.level * 0.6);
+  gold += sellValue;
+  const idx = towers.indexOf(selectedMapTower);
+  if (idx !== -1) towers.splice(idx, 1);
+  deselectTowerOnMap();
+  updateHUD();
+  updateTowerButtons();
+});
+
+document.getElementById('upgradeBtn').addEventListener('click', (e) => {
+  e.stopPropagation();
+  if (!selectedMapTower || selectedMapTower.level >= 3) return;
+  const def = TOWER_DEFS[selectedMapTower.type];
+  const upgradeCost = def.cost * selectedMapTower.level;
+  if (gold < upgradeCost) return;
+  gold -= upgradeCost;
+  selectedMapTower.level++;
+  updateHUD();
+  selectTowerOnMap(selectedMapTower); // refresh buttons
+  updateTowerButtons();
 });
 
 function loop() {
