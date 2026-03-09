@@ -399,6 +399,19 @@ function spawnFruit() {
 }
 
 function update() {
+  // Always update particles (for death explosions)
+  for (var pi = particles.length - 1; pi >= 0; pi--) {
+    var p = particles[pi]; p.x += p.vx; p.y += p.vy; p.vy += 0.15; p.life--;
+    if (p.life <= 0) particles.splice(pi, 1);
+  }
+  for (var tri = trailParticles.length - 1; tri >= 0; tri--) {
+    var tp = trailParticles[tri]; tp.x += tp.vx; tp.y += tp.vy; tp.life--;
+    if (tp.life <= 0) trailParticles.splice(tri, 1);
+  }
+  for (var ti = textPops.length - 1; ti >= 0; ti--) {
+    textPops[ti].y -= 1.5; textPops[ti].life--;
+    if (textPops[ti].life <= 0) textPops.splice(ti, 1);
+  }
   if (!gameRunning) return;
   difficulty = Math.min(score / 50, 1.5);
   spawnTimer--;
@@ -415,28 +428,17 @@ function update() {
     if (f.y > H + 60 && !f.sliced) {
       if (!f.isBomb && !f.missed) {
         f.missed = true; strikes++; playMissSound(); updateHUD();
-        if (strikes >= 3) { gameOver(); return; }
+        if (strikes >= 3) { spawnDeathParticles(W/2, H/2); gameRunning = false; setTimeout(gameOver, 1000); return; }
       }
       fruits.splice(fi, 1);
     }
     if (f.sliced && f.y > H + 100) fruits.splice(fi, 1);
   }
 
-  for (var pi = particles.length - 1; pi >= 0; pi--) {
-    var p = particles[pi]; p.x += p.vx; p.y += p.vy; p.vy += 0.15; p.life--;
-    if (p.life <= 0) particles.splice(pi, 1);
-  }
-  for (var ti = textPops.length - 1; ti >= 0; ti--) {
-    textPops[ti].y -= 1.5; textPops[ti].life--;
-    if (textPops[ti].life <= 0) textPops.splice(ti, 1);
-  }
+  // Particles updated at top of update()
   for (var si = sliceTrail.length - 1; si >= 0; si--) {
     sliceTrail[si].life--;
     if (sliceTrail[si].life <= 0) sliceTrail.splice(si, 1);
-  }
-  for (var tri = trailParticles.length - 1; tri >= 0; tri--) {
-    var tp = trailParticles[tri]; tp.x += tp.vx; tp.y += tp.vy; tp.life--;
-    if (tp.life <= 0) trailParticles.splice(tri, 1);
   }
 }
 
@@ -592,7 +594,7 @@ function sliceFruit(f) {
     playBombSound();
     spawnDeathParticles(f.x, f.y);
     textPops.push({x:f.x, y:f.y, text:'💥 BOOM!', color:'#ef4444', size:40, life:50});
-    gameOver(); return;
+    gameRunning = false; setTimeout(gameOver, 1000); return;
   }
   playSliceSound();
 
