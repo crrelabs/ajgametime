@@ -450,28 +450,41 @@ function draw() {
       
       // Warning flash
       if (row.warningTimer > 0 && !row.trainActive) {
-        if (Math.floor(row.warningTimer / 8) % 2 === 0) {
-          ctx.fillStyle = 'rgba(239,68,68,0.3)';
-          ctx.fillRect(0, screenY, W, TILE);
-        }
-        // Warning lights
-        const fontSize = TILE * 0.5;
+        const flash = Math.floor(row.warningTimer / 6) % 2 === 0;
+        // Flashing red overlay
+        ctx.fillStyle = flash ? 'rgba(239,68,68,0.4)' : 'rgba(239,68,68,0.15)';
+        ctx.fillRect(0, screenY, W, TILE);
+        // Crossing barriers
+        ctx.fillStyle = flash ? '#fbbf24' : '#ef4444';
+        ctx.fillRect(0, screenY, 6, TILE);
+        ctx.fillRect(W - 6, screenY, 6, TILE);
+        // Warning signs both sides
+        const fontSize = TILE * 0.7;
         ctx.font = `${fontSize}px sans-serif`;
         ctx.textAlign = 'center';
-        if (Math.floor(row.warningTimer / 10) % 2 === 0) {
-          ctx.fillText('⚠️', TILE, screenY + TILE * 0.65);
-          ctx.fillText('⚠️', W - TILE, screenY + TILE * 0.65);
-        }
+        ctx.fillText(flash ? '🔴' : '⚠️', TILE * 0.8, screenY + TILE * 0.7);
+        ctx.fillText(flash ? '🔴' : '⚠️', W - TILE * 0.8, screenY + TILE * 0.7);
+        // "TRAIN" text
+        ctx.fillStyle = '#ef4444';
+        ctx.font = `bold ${TILE * 0.35}px sans-serif`;
+        ctx.fillText('⚡ TRAIN ⚡', W / 2, screenY + TILE * 0.45);
       }
       
       // Draw train
       if (row.trainActive) {
-        const trainEmojis = '🚂🚃🚃🚃🚃🚃🚃🚃';
-        const fontSize = TILE * 0.8;
+        // Train body background
+        ctx.fillStyle = '#1e293b';
+        ctx.fillRect(row.trainX - 4, screenY + TILE * 0.05, 8 * TILE + 8, TILE * 0.9);
+        ctx.strokeStyle = '#ef4444';
+        ctx.lineWidth = 3;
+        ctx.strokeRect(row.trainX - 4, screenY + TILE * 0.05, 8 * TILE + 8, TILE * 0.9);
+        
+        const trainEmojis = ['🚂','🚃','🚃','🚃','🚃','🚃','🚃','🚃'];
+        const fontSize = TILE * 1.1;
         ctx.font = `${fontSize}px sans-serif`;
-        ctx.textAlign = 'left';
+        ctx.textAlign = 'center';
         for (let t = 0; t < 8; t++) {
-          ctx.fillText(trainEmojis[t], row.trainX + t * TILE, screenY + TILE * 0.75);
+          ctx.fillText(trainEmojis[t], row.trainX + t * TILE + TILE / 2, screenY + TILE * 0.85);
         }
       }
     }
