@@ -519,40 +519,89 @@ function draw() {
     }
     ctx.stroke(); ctx.globalAlpha = 1; ctx.shadowBlur = 0;
 
-    // Blade tip at end of trail
+    // Knife at tip of trail
     var last = sliceTrail[sliceTrail.length - 1];
     var prev = sliceTrail[Math.max(0, sliceTrail.length - 3)];
     var dx = last.x - prev.x, dy = last.y - prev.y;
     var ang = Math.atan2(dy, dx);
-    var bladeLen = 28 + blade.width * 2;
-    var bladeW = 6 + blade.width;
     ctx.save();
     ctx.translate(last.x, last.y);
     ctx.rotate(ang);
-    // Blade shape: pointed triangle with a sharp tip
-    ctx.beginPath();
-    ctx.moveTo(bladeLen, 0); // tip
-    ctx.lineTo(-4, -bladeW/2); // top back
-    ctx.lineTo(0, 0); // notch
-    ctx.lineTo(-4, bladeW/2); // bottom back
-    ctx.closePath();
+
+    var bColor;
     if (blade.color === 'rainbow') {
       var rc2 = ['#ef4444','#f97316','#fbbf24','#22c55e','#3b82f6','#8b5cf6'];
-      ctx.fillStyle = rc2[Math.floor(Date.now()/80) % rc2.length];
-    } else {
-      ctx.fillStyle = blade.color;
-    }
-    ctx.shadowColor = ctx.fillStyle;
-    ctx.shadowBlur = 15;
-    ctx.globalAlpha = 0.9;
-    ctx.fill();
-    // Blade edge highlight
-    ctx.strokeStyle = 'rgba(255,255,255,0.6)';
-    ctx.lineWidth = 1;
+      bColor = rc2[Math.floor(Date.now()/80) % rc2.length];
+    } else { bColor = blade.color; }
+
+    // Blade (curved knife shape)
     ctx.beginPath();
-    ctx.moveTo(bladeLen, 0);
-    ctx.lineTo(-4, -bladeW/2);
+    ctx.moveTo(32, 0);          // sharp tip
+    ctx.quadraticCurveTo(20, -7, 2, -5);  // top curve (spine)
+    ctx.lineTo(0, -5);          // to guard
+    ctx.lineTo(0, 3);           // guard bottom
+    ctx.quadraticCurveTo(18, 4, 32, 0);   // bottom edge (sharp)
+    ctx.closePath();
+    ctx.fillStyle = bColor;
+    ctx.shadowColor = bColor;
+    ctx.shadowBlur = 12;
+    ctx.globalAlpha = 0.95;
+    ctx.fill();
+
+    // Blade shine (highlight along top)
+    ctx.beginPath();
+    ctx.moveTo(30, -1);
+    ctx.quadraticCurveTo(18, -5, 4, -4);
+    ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+    ctx.lineWidth = 1.5;
     ctx.stroke();
+
+    // Edge line (sharp bottom)
+    ctx.beginPath();
+    ctx.moveTo(32, 0);
+    ctx.quadraticCurveTo(18, 3, 2, 2);
+    ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+    ctx.lineWidth = 0.8;
+    ctx.stroke();
+
+    ctx.shadowBlur = 0;
+
+    // Guard (cross guard)
+    ctx.fillStyle = '#d4af37';
+    ctx.fillRect(-2, -7, 4, 14);
+    // Guard detail
+    ctx.fillStyle = '#b8962e';
+    ctx.fillRect(-1, -7, 2, 14);
+
+    // Handle (wood/leather grip)
+    ctx.beginPath();
+    ctx.moveTo(-2, -5);
+    ctx.lineTo(-18, -4);
+    ctx.lineTo(-20, -2);
+    ctx.lineTo(-20, 2);
+    ctx.lineTo(-18, 4);
+    ctx.lineTo(-2, 5);
+    ctx.closePath();
+    ctx.fillStyle = '#5c3a1e';
+    ctx.fill();
+    ctx.strokeStyle = '#3d2510';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // Handle grip lines
+    ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+    ctx.lineWidth = 1;
+    for (var gi = 0; gi < 3; gi++) {
+      var gx = -6 - gi * 5;
+      ctx.beginPath(); ctx.moveTo(gx, -4); ctx.lineTo(gx, 4); ctx.stroke();
+    }
+
+    // Pommel (end cap)
+    ctx.beginPath();
+    ctx.arc(-19, 0, 3, 0, Math.PI * 2);
+    ctx.fillStyle = '#d4af37';
+    ctx.fill();
+
     ctx.restore();
     ctx.globalAlpha = 1; ctx.shadowBlur = 0;
   }
