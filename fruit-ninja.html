@@ -778,12 +778,12 @@ canvas.addEventListener('touchstart', function(e) { e.preventDefault(); startSli
 canvas.addEventListener('touchmove', function(e) { e.preventDefault(); moveSlice(e.touches[0].clientX, e.touches[0].clientY); });
 canvas.addEventListener('touchend', function(e) { e.preventDefault(); endSlice(); });
 
-var _intervalId=0;
+window._fnLoop=0;
 function loop() { update(); draw(); }
 
 document.getElementById('startBtn').addEventListener('click', function() {
   document.getElementById('startScreen').classList.add('hidden');
-  initAudio(); startMusic(); init(); if(_intervalId)clearInterval(_intervalId); _intervalId=setInterval(loop,1000/30);
+  initAudio(); startMusic(); init(); if(window._fnLoop)clearInterval(window._fnLoop); window._fnLoop=setInterval(loop,1000/30);
 });
 
 // === LEADERBOARD ===
@@ -804,7 +804,7 @@ document.getElementById('death-retry').addEventListener('click',function(){
   document.getElementById('death-screen').style.display='none';
   document.getElementById('death-submit').textContent='📤 Submit Score';
   document.getElementById('death-submit').disabled=false;
-  canvas.style.pointerEvents=''; startMusic(); init();
+  canvas.style.pointerEvents=''; startMusic(); init(); if(window._fnLoop)clearInterval(window._fnLoop); window._fnLoop=setInterval(loop,1000/30);
 });
 document.getElementById('death-lb').addEventListener('click',function(){_lbShow();});
 document.getElementById('death-name').addEventListener('keydown',function(e){if(e.key==='Enter')document.getElementById('death-submit').click();});
