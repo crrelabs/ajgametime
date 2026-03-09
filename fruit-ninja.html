@@ -385,8 +385,8 @@ function spawnFruit() {
   var baseSize = 50 + (fruitDef ? fruitDef.size * 20 : 0);
   fruits.push({
     x: 80 + Math.random() * (W - 160), y: H + 30,
-    vx: (Math.random() - 0.5) * 4, vy: -(10 + Math.random() * 4 + difficulty * 1.5),
-    gravity: 0.22, radius: baseSize / 2,
+    vx: (Math.random() - 0.5) * 4, vy: -(H * 0.022 + Math.random() * (H * 0.008) + difficulty * 2),
+    gravity: H * 0.0004, radius: baseSize / 2,
     emoji: isBomb ? '💣' : fruitDef.emoji,
     points: isBomb ? -1 : fruitDef.points,
     color: isBomb ? '#1f2937' : fruitDef.color,
