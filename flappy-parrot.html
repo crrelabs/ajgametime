@@ -51,10 +51,12 @@ canvas{display:block}
 #death-submit{background:linear-gradient(135deg,#22c55e,#3b82f6)}
 #death-retry{background:linear-gradient(135deg,#f97316,#ef4444)}
 #death-lb{background:linear-gradient(135deg,#f59e0b,#ef4444)}
+#music-btn{position:fixed;bottom:12px;right:12px;z-index:30;width:44px;height:44px;border-radius:50%;border:2px solid rgba(255,255,255,0.3);background:rgba(0,0,0,0.4);color:#fff;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center}
 </style>
 </head>
 <body>
 <a id="back" href="index.html">← Back</a>
+<button id="music-btn">🔊</button>
 <canvas id="game"></canvas>
 <div id="score-display">0</div>
 
@@ -650,6 +652,198 @@ document.getElementById('death-retry').addEventListener('click', function(){
 });
 document.getElementById('death-lb').addEventListener('click', function(){ _lbShow(); });
 document.getElementById('death-name').addEventListener('keydown', function(e){ if(e.key==='Enter') document.getElementById('death-submit').click(); });
+
+// === AUDIO SYSTEM ===
+let audioCtx = null;
+let musicOn = true;
+let musicNodes = [];
+let musicTimer = null;
+
+function getAudioCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+
+// Sound effects
+function sfxFlap() {
+  try {
+    const ctx = getAudioCtx();
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(600, ctx.currentTime);
+    o.frequency.exponentialRampToValueAtTime(900, ctx.currentTime + 0.08);
+    o.frequency.exponentialRampToValueAtTime(500, ctx.currentTime + 0.15);
+    g.gain.setValueAtTime(0.15, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
+    o.connect(g); g.connect(ctx.destination);
+    o.start(); o.stop(ctx.currentTime + 0.15);
+  } catch(e){}
+}
+
+function sfxScore(pts) {
+  try {
+    const ctx = getAudioCtx();
+    const notes = pts >= 5 ? [523, 659, 784, 1047] : pts >= 3 ? [523, 659, 784] : [523, 659];
+    notes.forEach((f, i) => {
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.type = 'triangle';
+      o.frequency.value = f;
+      g.gain.setValueAtTime(0.12, ctx.currentTime + i * 0.08);
+      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.08 + 0.2);
+      o.connect(g); g.connect(ctx.destination);
+      o.start(ctx.currentTime + i * 0.08);
+      o.stop(ctx.currentTime + i * 0.08 + 0.2);
+    });
+  } catch(e){}
+}
+
+function sfxCrash() {
+  try {
+    const ctx = getAudioCtx();
+    // Noise burst
+    const buf = ctx.createBuffer(1, ctx.sampleRate * 0.3, ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.08));
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.2, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+    src.connect(g); g.connect(ctx.destination);
+    src.start();
+    // Low thud
+    const o = ctx.createOscillator();
+    const g2 = ctx.createGain();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(150, ctx.currentTime);
+    o.frequency.exponentialRampToValueAtTime(40, ctx.currentTime + 0.2);
+    g2.gain.setValueAtTime(0.25, ctx.currentTime);
+    g2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25);
+    o.connect(g2); g2.connect(ctx.destination);
+    o.start(); o.stop(ctx.currentTime + 0.25);
+  } catch(e){}
+}
+
+// Tropical background music — calypso/island vibe
+function startMusic() {
+  if (!musicOn) return;
+  try {
+    const ctx = getAudioCtx();
+    stopMusic();
+    const masterGain = ctx.createGain();
+    masterGain.gain.value = 0.18;
+    masterGain.connect(ctx.destination);
+    musicNodes.push(masterGain);
+
+    // Steel drum melody — tropical pentatonic (C E G A C5)
+    const scale = [523.25, 659.25, 783.99, 880, 1046.5, 783.99, 659.25, 523.25, 440, 523.25, 659.25, 783.99, 880, 783.99, 659.25, 523.25];
+    let noteIdx = 0;
+    const tempo = 200; // ms per note
+
+    function playNote() {
+      if (!musicOn) return;
+      const freq = scale[noteIdx % scale.length];
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      // Steel drum timbre: triangle + quick decay
+      o.type = 'triangle';
+      o.frequency.value = freq;
+      g.gain.setValueAtTime(0.6, ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.18);
+      o.connect(g); g.connect(masterGain);
+      o.start(); o.stop(ctx.currentTime + 0.2);
+      noteIdx++;
+
+      // Add harmony on every other note
+      if (noteIdx % 2 === 0) {
+        const o2 = ctx.createOscillator();
+        const g2 = ctx.createGain();
+        o2.type = 'sine';
+        o2.frequency.value = freq * 0.5; // octave below
+        g2.gain.setValueAtTime(0.3, ctx.currentTime);
+        g2.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
+        o2.connect(g2); g2.connect(masterGain);
+        o2.start(); o2.stop(ctx.currentTime + 0.18);
+      }
+
+      // Rhythm variation
+      const nextDelay = noteIdx % 4 === 0 ? tempo * 1.5 : noteIdx % 3 === 0 ? tempo * 0.75 : tempo;
+      musicTimer = setTimeout(playNote, nextDelay);
+    }
+
+    // Gentle wave/ocean pad
+    const pad = ctx.createOscillator();
+    const padG = ctx.createGain();
+    pad.type = 'sine';
+    pad.frequency.value = 130.81; // C3
+    padG.gain.value = 0.15;
+    pad.connect(padG); padG.connect(masterGain);
+    pad.start();
+    musicNodes.push(pad, padG);
+
+    // Second pad note for fullness
+    const pad2 = ctx.createOscillator();
+    const padG2 = ctx.createGain();
+    pad2.type = 'sine';
+    pad2.frequency.value = 196; // G3
+    padG2.gain.value = 0.1;
+    pad2.connect(padG2); padG2.connect(masterGain);
+    pad2.start();
+    musicNodes.push(pad2, padG2);
+
+    playNote();
+  } catch(e){}
+}
+
+function stopMusic() {
+  if (musicTimer) { clearTimeout(musicTimer); musicTimer = null; }
+  musicNodes.forEach(n => { try { n.stop ? n.stop() : null; } catch(e){} try { n.disconnect(); } catch(e){} });
+  musicNodes = [];
+}
+
+document.getElementById('music-btn').addEventListener('click', () => {
+  musicOn = !musicOn;
+  document.getElementById('music-btn').textContent = musicOn ? '🔊' : '🔇';
+  if (musicOn && playing) startMusic();
+  else stopMusic();
+});
+
+// Hook sounds into game
+const _origFlap = flap;
+flap = function() {
+  if (!dead && playing) sfxFlap();
+  _origFlap();
+  if (playing && !dead && musicOn && !musicTimer) startMusic();
+};
+
+const _origDie = die;
+die = function() {
+  sfxCrash();
+  stopMusic();
+  _origDie();
+};
+
+// Hook score sound
+const _origScoreDisplay = document.getElementById('score-display');
+const _scoreObserver = new MutationObserver(() => {
+  if (playing && !dead) sfxScore(1);
+});
+_scoreObserver.observe(_origScoreDisplay, { childList: true, characterData: true, subtree: true });
+
+// Start music on play
+const _origPlayBtn = document.getElementById('play-btn');
+_origPlayBtn.addEventListener('click', () => {
+  if (musicOn) setTimeout(startMusic, 100);
+});
+// Also on retry
+const _origRetryBtn = document.getElementById('death-retry');
+_origRetryBtn.addEventListener('click', () => {
+  if (musicOn) setTimeout(startMusic, 100);
+});
+// === END AUDIO ===
 </script>
 </body>
 </html>
