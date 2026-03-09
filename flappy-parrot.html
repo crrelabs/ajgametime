@@ -29,6 +29,20 @@ canvas{display:block}
 .lb-rank{width:30px;color:#64748b}.lb-name{flex:1;margin:0 8px}.lb-score{color:#22d3ee}
 #lb-close-btn{pointer-events:auto;margin-top:16px;padding:10px 30px;font-size:16px;font-weight:700;color:#fff;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:10px;cursor:pointer}
 #death-screen{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;z-index:200;background:rgba(0,0,0,0.85)}
+#shop-screen{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;z-index:150;background:rgba(0,0,0,0.92);overflow-y:auto;padding:20px 0}
+#shop-screen h1{font-family:'Lilita One',cursive;font-size:32px;color:#fbbf24;margin:16px 0 4px;text-shadow:2px 3px 0 #000}
+#shop-coins{font-size:18px;font-weight:800;color:#22d3ee;margin-bottom:16px}
+.skin-grid{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;max-width:400px;padding:0 16px}
+.skin-card{width:100px;padding:12px 8px;border-radius:14px;border:2px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.05);display:flex;flex-direction:column;align-items:center;cursor:pointer;transition:all 0.2s}
+.skin-card:hover{border-color:rgba(251,191,36,0.4);background:rgba(255,255,255,0.1)}
+.skin-card.selected{border-color:#22c55e;background:rgba(34,197,94,0.15);box-shadow:0 0 12px rgba(34,197,94,0.3)}
+.skin-card.locked{opacity:0.5}
+.skin-preview{width:48px;height:48px;margin-bottom:6px}
+.skin-name{color:#fff;font-size:11px;font-weight:700;text-align:center}
+.skin-cost{color:#fbbf24;font-size:11px;font-weight:700;margin-top:2px}
+.skin-owned{color:#22c55e;font-size:10px;font-weight:700;margin-top:2px}
+#shop-close{margin:16px 0 20px;padding:10px 30px;font-family:'Lilita One',cursive;font-size:16px;color:#fff;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:10px;cursor:pointer}
+#shop-btn{pointer-events:auto;padding:8px 20px;font-size:14px;font-weight:700;color:#fff;background:linear-gradient(135deg,#a855f7,#ec4899);border:none;border-radius:8px;cursor:pointer;margin-top:6px}
 #death-screen h1{font-family:'Lilita One',cursive;font-size:36px;color:#ef4444;margin-bottom:4px;text-shadow:2px 3px 0 #000}
 #death-screen h2{font-family:'Lilita One',cursive;font-size:20px;color:#fbbf24;margin-bottom:4px}
 #death-best{color:#22d3ee;font-size:14px;font-weight:700;margin-bottom:14px}
@@ -50,6 +64,8 @@ canvas{display:block}
   <p>Tap anywhere or press Space to flap! Fly through the pipes and don't crash. How far can you go?</p>
   <button id="play-btn">▶ Play</button>
   <button id="lb-show-btn" onclick="_lbShow()">🏆 Leaderboard</button>
+  <button id="shop-btn">🛍️ Skins Shop</button>
+  <div id="coin-display" style="color:#22d3ee;font-weight:800;font-size:14px;margin-top:8px">🪙 0 coins</div>
 </div>
 
 <div id="lb-overlay"><h2>🏆 Leaderboard</h2><div id="lb-list"></div><button id="lb-close-btn">Close</button></div>
@@ -62,6 +78,13 @@ canvas{display:block}
   <button class="death-btn" id="death-submit">📤 Submit</button>
   <button class="death-btn" id="death-retry">🔄 Retry</button>
   <button class="death-btn" id="death-lb">🏆 Ranks</button>
+</div>
+
+<div id="shop-screen">
+  <h1>🛍️ Skins Shop</h1>
+  <div id="shop-coins">🪙 0 coins</div>
+  <div class="skin-grid" id="skin-grid"></div>
+  <button id="shop-close">← Back</button>
 </div>
 
 <script>
@@ -118,6 +141,98 @@ for (let i = 0; i < 5; i++) {
 
 // Particles
 let particles = [];
+
+// === SKINS SYSTEM ===
+const SKINS = [
+  { id:'default', name:'Parrot', cost:0, body:'#4CAF50', belly:'#81C784', wing:'#388E3C', tail:'#2E7D32', beak:'#FF9800' },
+  { id:'blue', name:'Blue Jay', cost:50, body:'#42A5F5', belly:'#90CAF9', wing:'#1E88E5', tail:'#1565C0', beak:'#FFB300' },
+  { id:'red', name:'Cardinal', cost:75, body:'#EF5350', belly:'#EF9A9A', wing:'#C62828', tail:'#B71C1C', beak:'#FF6F00' },
+  { id:'gold', name:'Golden', cost:150, body:'#FFD54F', belly:'#FFF176', wing:'#F9A825', tail:'#F57F17', beak:'#E65100' },
+  { id:'purple', name:'Royal', cost:200, body:'#AB47BC', belly:'#CE93D8', wing:'#7B1FA2', tail:'#6A1B9A', beak:'#FFD600' },
+  { id:'pink', name:'Flamingo', cost:100, body:'#F48FB1', belly:'#FCE4EC', wing:'#EC407A', tail:'#C2185B', beak:'#FF6F00' },
+  { id:'ice', name:'Ice Bird', cost:250, body:'#80DEEA', belly:'#E0F7FA', wing:'#00ACC1', tail:'#00838F', beak:'#B0BEC5' },
+  { id:'fire', name:'Phoenix', cost:300, body:'#FF7043', belly:'#FFAB91', wing:'#F4511E', tail:'#BF360C', beak:'#FFD600' },
+  { id:'shadow', name:'Shadow', cost:400, body:'#424242', belly:'#616161', wing:'#212121', tail:'#000', beak:'#9E9E9E' },
+  { id:'rainbow', name:'Rainbow', cost:500, body:'rainbow', belly:'#fff', wing:'rainbow', tail:'rainbow', beak:'#FF9800' },
+  { id:'galaxy', name:'Galaxy', cost:750, body:'#1A237E', belly:'#311B92', wing:'#4A148C', tail:'#0D47A1', beak:'#7C4DFF', eye:'#E040FB' },
+  { id:'diamond', name:'Diamond', cost:1000, body:'#B2EBF2', belly:'#E0F7FA', wing:'#4DD0E1', tail:'#00BCD4', beak:'#FFD600', sparkle:true },
+];
+
+let totalCoins = parseInt(localStorage.getItem('fp_coins') || '0');
+let ownedSkins = JSON.parse(localStorage.getItem('fp_skins') || '["default"]');
+let activeSkin = localStorage.getItem('fp_active_skin') || 'default';
+function getSkin() { return SKINS.find(s => s.id === activeSkin) || SKINS[0]; }
+function saveShop() {
+  localStorage.setItem('fp_coins', totalCoins);
+  localStorage.setItem('fp_skins', JSON.stringify(ownedSkins));
+  localStorage.setItem('fp_active_skin', activeSkin);
+}
+function updateCoinDisplays() {
+  document.getElementById('coin-display').textContent = '🪙 ' + totalCoins + ' coins';
+  document.getElementById('shop-coins').textContent = '🪙 ' + totalCoins + ' coins';
+}
+function renderShop() {
+  const grid = document.getElementById('skin-grid');
+  grid.innerHTML = '';
+  SKINS.forEach(s => {
+    const owned = ownedSkins.includes(s.id);
+    const selected = activeSkin === s.id;
+    const canBuy = totalCoins >= s.cost;
+    const card = document.createElement('div');
+    card.className = 'skin-card' + (selected ? ' selected' : '') + (!owned && !canBuy ? ' locked' : '');
+    // Preview canvas
+    const pc = document.createElement('canvas');
+    pc.width = 48; pc.height = 48; pc.className = 'skin-preview';
+    drawSkinPreview(pc, s);
+    card.appendChild(pc);
+    const nm = document.createElement('div'); nm.className = 'skin-name'; nm.textContent = s.name; card.appendChild(nm);
+    if (selected) {
+      const tag = document.createElement('div'); tag.className = 'skin-owned'; tag.textContent = '✅ Equipped'; card.appendChild(tag);
+    } else if (owned) {
+      const tag = document.createElement('div'); tag.className = 'skin-owned'; tag.textContent = '✓ Owned'; card.appendChild(tag);
+    } else {
+      const tag = document.createElement('div'); tag.className = 'skin-cost'; tag.textContent = '🪙 ' + s.cost; card.appendChild(tag);
+    }
+    card.addEventListener('click', () => {
+      if (owned) { activeSkin = s.id; saveShop(); renderShop(); }
+      else if (canBuy) { totalCoins -= s.cost; ownedSkins.push(s.id); activeSkin = s.id; saveShop(); updateCoinDisplays(); renderShop(); }
+    });
+    grid.appendChild(card);
+  });
+}
+function drawSkinPreview(canvas, skin) {
+  const cx = canvas.getContext('2d');
+  const sz = 16, px = 24, py = 24;
+  // Body
+  if (skin.body === 'rainbow') {
+    const g = cx.createLinearGradient(px-sz,py-sz,px+sz,py+sz);
+    g.addColorStop(0,'#f44336');g.addColorStop(0.2,'#ff9800');g.addColorStop(0.4,'#ffeb3b');g.addColorStop(0.6,'#4caf50');g.addColorStop(0.8,'#2196f3');g.addColorStop(1,'#9c27b0');
+    cx.fillStyle = g;
+  } else { cx.fillStyle = skin.body; }
+  cx.beginPath(); cx.arc(px, py, sz, 0, Math.PI*2); cx.fill();
+  // Belly
+  cx.fillStyle = skin.belly; cx.beginPath(); cx.arc(px+3, py+3, sz*0.55, 0, Math.PI*2); cx.fill();
+  // Eye
+  cx.fillStyle = '#fff'; cx.beginPath(); cx.arc(px+6, py-5, 5, 0, Math.PI*2); cx.fill();
+  cx.fillStyle = skin.eye || '#000'; cx.beginPath(); cx.arc(px+7, py-4, 2.5, 0, Math.PI*2); cx.fill();
+  // Beak
+  cx.fillStyle = skin.beak; cx.beginPath(); cx.moveTo(px+sz-2, py-1); cx.lineTo(px+sz+7, py+2); cx.lineTo(px+sz-2, py+4); cx.closePath(); cx.fill();
+  // Sparkle
+  if (skin.sparkle) {
+    cx.fillStyle = '#fff'; cx.globalAlpha = 0.7;
+    cx.beginPath(); cx.arc(px-8, py-10, 2, 0, Math.PI*2); cx.fill();
+    cx.beginPath(); cx.arc(px+12, py-12, 1.5, 0, Math.PI*2); cx.fill();
+    cx.globalAlpha = 1;
+  }
+}
+document.getElementById('shop-btn').addEventListener('click', () => {
+  updateCoinDisplays(); renderShop();
+  document.getElementById('shop-screen').style.display = 'flex';
+});
+document.getElementById('shop-close').addEventListener('click', () => {
+  document.getElementById('shop-screen').style.display = 'none';
+});
+updateCoinDisplays();
 
 function resetGame() {
   bird.x = W * 0.25;
@@ -212,6 +327,8 @@ function update() {
       p.scored = true;
       var pts = p.type ? p.type.pts : 1;
       score += pts;
+      totalCoins += pts;
+      saveShop();
       if (pts >= 5) {
         for (var pi=0;pi<8;pi++) particles.push({x:bird.x,y:bird.y,vx:(Math.random()-0.5)*4,vy:(Math.random()-0.5)*4,life:15,maxLife:15,color:'#fbbf24',size:2+Math.random()*2});
       }
@@ -271,6 +388,7 @@ function die() {
     best = score;
     localStorage.setItem('fp_best', best);
   }
+  updateCoinDisplays();
   setTimeout(gameOver, 600);
 }
 
@@ -348,20 +466,36 @@ function draw() {
     X.rotate(bird.rotation);
 
     // Body
-    X.fillStyle = '#4CAF50';
+    var sk = getSkin();
+    if (sk.body === 'rainbow') {
+      var rg = X.createLinearGradient(-bird.size,-bird.size,bird.size,bird.size);
+      rg.addColorStop(0,'#f44336');rg.addColorStop(0.2,'#ff9800');rg.addColorStop(0.4,'#ffeb3b');rg.addColorStop(0.6,'#4caf50');rg.addColorStop(0.8,'#2196f3');rg.addColorStop(1,'#9c27b0');
+      X.fillStyle = rg;
+    } else { X.fillStyle = sk.body; }
     X.beginPath();
     X.arc(0, 0, bird.size, 0, Math.PI * 2);
     X.fill();
 
     // Belly
-    X.fillStyle = '#81C784';
+    X.fillStyle = sk.belly;
     X.beginPath();
     X.arc(4, 4, bird.size * 0.6, 0, Math.PI * 2);
     X.fill();
+    // Sparkle
+    if (sk.sparkle) {
+      X.fillStyle = '#fff'; X.globalAlpha = 0.5 + Math.sin(frame*0.15)*0.3;
+      X.beginPath(); X.arc(-6, -12, 2, 0, Math.PI*2); X.fill();
+      X.beginPath(); X.arc(10, -14, 1.5, 0, Math.PI*2); X.fill();
+      X.globalAlpha = 1;
+    }
 
     // Wing
     const wingY = Math.sin(bird.wingFrame * 3) * 6;
-    X.fillStyle = '#388E3C';
+    if (sk.wing === 'rainbow') {
+      var wg = X.createLinearGradient(-18,-4,0,8);
+      wg.addColorStop(0,'#f44336');wg.addColorStop(0.5,'#ffeb3b');wg.addColorStop(1,'#2196f3');
+      X.fillStyle = wg;
+    } else { X.fillStyle = sk.wing; }
     X.beginPath();
     X.moveTo(-6, 0);
     X.quadraticCurveTo(-18, -4 + wingY, -14, 8 + wingY);
@@ -373,7 +507,7 @@ function draw() {
     X.beginPath();
     X.arc(8, -6, 7, 0, Math.PI * 2);
     X.fill();
-    X.fillStyle = '#000';
+    X.fillStyle = sk.eye || '#000';
     X.beginPath();
     X.arc(10, -5, 3.5, 0, Math.PI * 2);
     X.fill();
@@ -383,7 +517,7 @@ function draw() {
     X.fill();
 
     // Beak
-    X.fillStyle = '#FF9800';
+    X.fillStyle = sk.beak;
     X.beginPath();
     X.moveTo(bird.size - 2, -2);
     X.lineTo(bird.size + 10, 2);
@@ -392,7 +526,11 @@ function draw() {
     X.fill();
 
     // Tail feathers
-    X.fillStyle = '#2E7D32';
+    if (sk.tail === 'rainbow') {
+      var tg = X.createLinearGradient(-bird.size-10,-6,-bird.size+2,4);
+      tg.addColorStop(0,'#9c27b0');tg.addColorStop(0.5,'#e91e63');tg.addColorStop(1,'#ff5722');
+      X.fillStyle = tg;
+    } else { X.fillStyle = sk.tail; }
     X.beginPath();
     X.moveTo(-bird.size + 2, -2);
     X.lineTo(-bird.size - 8, -6);
