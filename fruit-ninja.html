@@ -611,9 +611,11 @@ function draw() {
     var tp = trailParticles[tpi];
     ctx.globalAlpha = tp.life / tp.maxLife;
     ctx.fillStyle = tp.color;
+    ctx.shadowColor = tp.color;
+    ctx.shadowBlur = 8;
     ctx.beginPath(); ctx.arc(tp.x, tp.y, tp.size, 0, Math.PI*2); ctx.fill();
   }
-  ctx.globalAlpha = 1;
+  ctx.globalAlpha = 1; ctx.shadowBlur = 0;
 
   // Accessory (drawn in corner)
   var acc = getAcc();
@@ -746,6 +748,22 @@ function moveSlice(x, y) {
       var f = fruits[i];
       if (f.sliced) continue;
       if (Math.sqrt((f.x-x)*(f.x-x)+(f.y-y)*(f.y-y)) < f.radius+15) { sliceFruit(f); resetComboTimer(); }
+    }
+  }
+  // Spawn trail effect particles along swipe
+  var trail = getTrail();
+  if (trail.colors && speed > 3) {
+    for (var ti = 0; ti < 2; ti++) {
+      trailParticles.push({
+        x: x + (Math.random()-0.5)*10,
+        y: y + (Math.random()-0.5)*10,
+        vx: (Math.random()-0.5)*2,
+        vy: (Math.random()-0.5)*2 + 0.5,
+        life: 25 + Math.random()*15,
+        maxLife: 40,
+        color: trail.colors[Math.floor(Math.random()*trail.colors.length)],
+        size: 3 + Math.random()*4
+      });
     }
   }
   lastSliceX = x; lastSliceY = y;
