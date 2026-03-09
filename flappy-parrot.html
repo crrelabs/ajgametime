@@ -111,7 +111,7 @@ function resize() { W = C.width = window.innerWidth; H = C.height = window.inner
 resize(); window.addEventListener('resize', resize);
 
 // Game
-let playing = false, dead = false, started = false;
+let playing = false, dead = false, started = false, nukeFlash = 0;
 let score = 0, best = parseInt(localStorage.getItem('fp_best') || '0');
 let frame = 0;
 
@@ -648,7 +648,8 @@ function update() {
 
 function spawnDeathParticles() {
   var ex = getExplo().id;
-  var count = ex === 'nuke' ? 40 : ex === 'portal' ? 30 : 20;
+  var count = ex === 'nuke' ? 80 : ex === 'portal' ? 30 : 20;
+  if (ex === 'nuke') { nukeFlash = 30; }
   for (var i = 0; i < count; i++) {
     var ang = (i / count) * Math.PI * 2;
     var spd = 2 + Math.random() * 6;
@@ -670,12 +671,12 @@ function spawnDeathParticles() {
       p.color = ['#1a1a1a','#4a4a4a','#9e9e9e','#fff'][i % 4];
       p.size = 4 + Math.random() * 3;
     } else if (ex === 'nuke') {
-      var ring = i < 20;
-      p.vx = ring ? Math.cos(ang) * 8 : (Math.random()-0.5) * 12;
-      p.vy = ring ? Math.sin(ang) * 8 : (Math.random()-0.5) * 12;
-      p.color = ['#ff4500','#ff8c00','#ffd700','#fff'][i % 4];
-      p.size = ring ? 5 + Math.random() * 3 : 2 + Math.random() * 6;
-      p.life = 50; p.maxLife = 50;
+      var ring = i < 30; var mid = i >= 30 && i < 55;
+      p.vx = ring ? Math.cos(ang) * 15 : mid ? Math.cos(ang) * 10 + (Math.random()-0.5)*4 : (Math.random()-0.5) * 20;
+      p.vy = ring ? Math.sin(ang) * 15 : mid ? Math.sin(ang) * 10 + (Math.random()-0.5)*4 : (Math.random()-0.5) * 20;
+      p.color = ['#ff4500','#ff8c00','#ffd700','#fff','#ff0000'][i % 5];
+      p.size = ring ? 8 + Math.random() * 6 : mid ? 5 + Math.random() * 8 : 3 + Math.random() * 10;
+      p.life = 60; p.maxLife = 60;
     } else if (ex === 'glitch') {
       p.vx = (Math.random()-0.5) * 10; p.vy = (Math.random()-0.5) * 10;
       p.color = ['#00ff00','#ff00ff','#00ffff','#ffff00'][i % 4];
@@ -1032,6 +1033,15 @@ function draw() {
     X.fill();
   });
   X.globalAlpha = 1;
+
+  // Nuke screen flash
+  if (nukeFlash > 0) {
+    X.globalAlpha = nukeFlash / 30;
+    X.fillStyle = nukeFlash > 20 ? '#fff' : nukeFlash > 10 ? '#ffd700' : '#ff4500';
+    X.fillRect(0, 0, W, H);
+    X.globalAlpha = 1;
+    nukeFlash--;
+  }
 
   // "Tap to start" hint
   if (playing && !started && !dead) {
