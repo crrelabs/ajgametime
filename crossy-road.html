@@ -703,9 +703,14 @@ function draw() {
 
   // Character
   ctx.globalAlpha = 1;
+  ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0;
+  // Highlight circle behind player
+  ctx.fillStyle = 'rgba(255,255,255,0.15)';
+  ctx.beginPath(); ctx.arc(px + TILE / 2, py + TILE * 0.5, TILE * 0.45, 0, Math.PI * 2); ctx.fill();
   var skin = getSkin();
-  ctx.font = (TILE * 0.9) + 'px sans-serif'; ctx.textAlign = 'center';
-  ctx.fillText(skin.emoji, px + TILE / 2, py + TILE * 0.8);
+  ctx.font = (TILE * 1.0) + 'px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(skin.emoji, px + TILE / 2, py + TILE * 0.5);
+  ctx.textBaseline = 'alphabetic';
   ctx.shadowBlur = 0;
 
   // Accessory
