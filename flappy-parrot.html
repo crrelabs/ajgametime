@@ -237,8 +237,13 @@ document.getElementById('shop-btn').addEventListener('click', () => {
   updateCoinDisplays(); renderShop();
   document.getElementById('shop-screen').style.display = 'flex';
 });
+let shopOpenedFromDeath = false;
 document.getElementById('shop-close').addEventListener('click', () => {
   document.getElementById('shop-screen').style.display = 'none';
+  if (shopOpenedFromDeath) {
+    shopOpenedFromDeath = false;
+    document.getElementById('death-screen').style.display = 'flex';
+  }
 });
 updateCoinDisplays();
 
@@ -659,6 +664,7 @@ document.getElementById('death-retry').addEventListener('click', function(){
 document.getElementById('death-lb').addEventListener('click', function(){ _lbShow(); });
 document.getElementById('death-shop').addEventListener('click', function(){
   document.getElementById('death-screen').style.display = 'none';
+  shopOpenedFromDeath = true;
   updateCoinDisplays(); renderShop();
   document.getElementById('shop-screen').style.display = 'flex';
 });
