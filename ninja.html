@@ -629,8 +629,19 @@ function draw() {
     var f = fruits[fdi];
     ctx.save(); ctx.translate(f.x, f.y); ctx.rotate(f.rotation);
     if (f.sliced) ctx.globalAlpha = 0.5;
-    ctx.font = (f.radius*2)+'px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText(f.emoji, 0, 0); ctx.restore();
+    // Draw as colored circle (works on all devices)
+    ctx.beginPath(); ctx.arc(0, 0, f.radius, 0, Math.PI * 2);
+    ctx.fillStyle = f.color || '#22c55e';
+    ctx.fill();
+    // Highlight
+    ctx.beginPath(); ctx.arc(-f.radius*0.25, -f.radius*0.25, f.radius*0.4, 0, Math.PI*2);
+    ctx.fillStyle = 'rgba(255,255,255,0.3)';
+    ctx.fill();
+    // Emoji label on top (small, as decoration)
+    ctx.font = Math.max(14, f.radius*0.8) + 'px sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(f.emoji, 0, 2);
+    ctx.restore();
   }
 
   // Particles
