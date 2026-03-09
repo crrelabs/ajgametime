@@ -365,6 +365,7 @@ function update(){
     
     // Ball stopped or off screen
     if(!waitingForReset&&(ballX>W+80||ballX<-80||(ballY>=ground-BALL_R-2&&Math.abs(ballVY)<0.8&&Math.abs(ballVX)<0.3))){
+      waitingForReset=true;
       combo=0;
       var allDead=true;
       for(var j2=0;j2<blocks.length;j2++){if(blocks[j2].alive){allDead=false;break;}}
