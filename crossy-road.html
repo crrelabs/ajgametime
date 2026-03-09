@@ -183,8 +183,8 @@ function generateRow(index) {
   } else if (type === 'train') {
     row.trainTimer = 0;
     row.trainActive = false;
-    row.trainX = -COLS * TILE;
     row.trainDir = Math.random() < 0.5 ? 1 : -1;
+    row.trainX = row.trainDir > 0 ? -(COLS + 10) * TILE : (COLS + 10) * TILE;
     row.trainInterval = 180 + Math.floor(Math.random() * 120);
     row.warningTimer = 0;
   } else if (type === 'grass') {
@@ -330,11 +330,12 @@ function update() {
       if (row.trainTimer >= row.trainInterval) {
         row.trainActive = true;
         row.trainX += row.trainDir * 12;
-        if (Math.abs(row.trainX) > (COLS + 5) * TILE) {
+        if ((row.trainDir > 0 && row.trainX > (COLS + 2) * TILE) || (row.trainDir < 0 && row.trainX + 8 * TILE < -2 * TILE)) {
           row.trainActive = false;
           row.trainTimer = 0;
           row.warningTimer = 0;
-          row.trainX = row.trainDir > 0 ? -(COLS + 3) * TILE : (COLS + 3) * TILE;
+          row.trainDir = Math.random() < 0.5 ? 1 : -1;
+          row.trainX = row.trainDir > 0 ? -(COLS + 10) * TILE : (COLS + 10) * TILE;
           row.trainDir = Math.random() < 0.5 ? 1 : -1;
         }
       }
@@ -384,11 +385,10 @@ function update() {
     // Train
     if (currentRow.type === 'train' && currentRow.trainActive) {
       const px = player.col * TILE + TILE / 2;
-      const trainLeft = currentRow.trainX;
-      const trainRight = currentRow.trainX + (COLS + 6) * TILE;
-      const tl = Math.min(trainLeft, trainRight);
-      const tr = Math.max(trainLeft, trainRight);
-      if (px > tl && px < tr) {
+      const trainLen = 8 * TILE; // 8 cars long
+      const tl = currentRow.trainX;
+      const tr = currentRow.trainX + trainLen;
+      if (px > Math.min(tl, tr) && px < Math.max(tl, tr)) {
         die('🚂 Hit by a train!');
       }
     }
