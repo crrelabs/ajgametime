@@ -645,6 +645,7 @@ function updateTowerButtons() {
   document.querySelectorAll('.tower-btn').forEach(btn => {
     const type = btn.dataset.tower;
     const def = TOWER_DEFS[type];
+    if (!def) return; // skip sell/upgrade buttons
     if (gold < def.cost) {
       btn.classList.add('locked');
     } else {
@@ -662,7 +663,9 @@ function updateTowerButtons() {
 document.querySelectorAll('.tower-btn').forEach(btn => {
   btn.addEventListener('click', (e) => {
     e.stopPropagation();
-    selectedTower = btn.dataset.tower;
+    const type = btn.dataset.tower;
+    if (type === 'sell' || type === 'upgrade') return; // handled separately
+    selectedTower = type;
     updateTowerButtons();
   });
 });
