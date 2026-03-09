@@ -302,7 +302,8 @@ function tryMove(dx, dy) {
 function die(msg) {
   gameRunning = false;
   deathType = msg;
-  _showDeathScreen(score);
+  canvas.style.pointerEvents = 'none';
+  setTimeout(() => _showDeathScreen(score), 300);
 }
 
 function update() {
@@ -686,6 +687,7 @@ document.getElementById('death-retry').addEventListener('click',function(){
   document.getElementById('death-screen').style.display='none';
   document.getElementById('death-submit').textContent='📤 Submit Score';
   document.getElementById('death-submit').disabled=false;
+  canvas.style.pointerEvents = '';
   init();
 });
 document.getElementById('death-lb').addEventListener('click',function(){_lbShow();});
