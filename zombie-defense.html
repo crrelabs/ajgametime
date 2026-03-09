@@ -340,7 +340,7 @@ function update() {
       const dy = ty - z.y;
       const dist = Math.sqrt(dx * dx + dy * dy);
       
-      if (dist < z.speed * 2) {
+      if (dist < z.speed * 2 || dist === 0) {
         z.pathIdx++;
         z.x = tx;
         z.y = ty;
@@ -665,13 +665,8 @@ document.querySelectorAll('.tower-btn').forEach(btn => {
   });
 });
 
-// Place tower on canvas click
-canvas.addEventListener('click', (e) => {
+function handleCanvasClick(mx, my) {
   if (!gameRunning) return;
-  
-  const rect = canvas.getBoundingClientRect();
-  const mx = e.clientX - rect.left;
-  const my = e.clientY - rect.top;
   
   const col = Math.floor(mx / TILE);
   const row = Math.floor((my - MAP_OFFSET_Y) / TILE);
@@ -705,14 +700,22 @@ canvas.addEventListener('click', (e) => {
   });
   updateHUD();
   updateTowerButtons();
+}
+
+// Place tower on canvas click
+canvas.addEventListener('click', (e) => {
+  const rect = canvas.getBoundingClientRect();
+  handleCanvasClick(e.clientX - rect.left, e.clientY - rect.top);
 });
 
 // Touch support
 canvas.addEventListener('touchstart', (e) => {
   e.preventDefault();
   const touch = e.touches[0];
-  const click = new MouseEvent('click', { clientX: touch.clientX, clientY: touch.clientY });
-  canvas.dispatchEvent(click);
+  const rect = canvas.getBoundingClientRect();
+  const mx = touch.clientX - rect.left;
+  const my = touch.clientY - rect.top;
+  handleCanvasClick(mx, my);
 });
 
 let selectedMapTower = null;
