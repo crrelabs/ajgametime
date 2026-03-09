@@ -1096,29 +1096,41 @@ function sfxCrash() {
   } catch(e){}
 }
 
-// Tropical background music — calypso/island vibe
+// World-specific music themes
+const WORLD_MUSIC = {
+  default: { scale:[523.25,659.25,783.99,880,1046.5,783.99,659.25,523.25,440,523.25,659.25,783.99,880,783.99,659.25,523.25], tempo:200, type:'triangle', pad1:130.81, pad2:196, padType:'sine', vol:0.18 },
+  space: { scale:[220,261.63,329.63,392,440,523.25,440,392,329.63,261.63,220,196,220,261.63,329.63,392], tempo:350, type:'sine', pad1:55, pad2:82.41, padType:'sine', vol:0.15 },
+  volcano: { scale:[146.83,174.61,196,233.08,261.63,233.08,196,174.61,146.83,196,233.08,261.63,293.66,261.63,233.08,196], tempo:180, type:'sawtooth', pad1:73.42, pad2:98, padType:'sawtooth', vol:0.12 },
+  heaven: { scale:[523.25,587.33,659.25,783.99,880,783.99,659.25,587.33,523.25,659.25,783.99,880,1046.5,880,783.99,659.25], tempo:400, type:'sine', pad1:261.63, pad2:392, padType:'sine', vol:0.14 },
+  beach: { scale:[392,440,523.25,587.33,659.25,587.33,523.25,440,392,349.23,392,440,523.25,440,392,349.23], tempo:220, type:'triangle', pad1:130.81, pad2:196, padType:'sine', vol:0.18 },
+  factory: { scale:[196,220,261.63,293.66,329.63,293.66,261.63,220,196,174.61,196,220,261.63,220,196,174.61], tempo:150, type:'square', pad1:65.41, pad2:98, padType:'square', vol:0.10 },
+  dino: { scale:[261.63,293.66,329.63,392,440,392,329.63,293.66,261.63,220,196,220,261.63,293.66,329.63,392], tempo:250, type:'triangle', pad1:98, pad2:146.83, padType:'triangle', vol:0.16 },
+  haunted: { scale:[233.08,246.94,261.63,277.18,293.66,277.18,261.63,246.94,233.08,220,207.65,220,233.08,246.94,261.63,277.18], tempo:320, type:'sine', pad1:58.27, pad2:87.31, padType:'sine', vol:0.13 },
+};
+
 function startMusic() {
   if (!musicOn) return;
   try {
     const ctx = getAudioCtx();
     stopMusic();
+    const bgId = activeBG || 'default';
+    const wm = WORLD_MUSIC[bgId] || WORLD_MUSIC.default;
+
     const masterGain = ctx.createGain();
-    masterGain.gain.value = 0.18;
+    masterGain.gain.value = wm.vol;
     masterGain.connect(ctx.destination);
     musicNodes.push(masterGain);
 
-    // Steel drum melody — tropical pentatonic (C E G A C5)
-    const scale = [523.25, 659.25, 783.99, 880, 1046.5, 783.99, 659.25, 523.25, 440, 523.25, 659.25, 783.99, 880, 783.99, 659.25, 523.25];
+    const scale = wm.scale;
     let noteIdx = 0;
-    const tempo = 200; // ms per note
+    const tempo = wm.tempo;
 
     function playNote() {
       if (!musicOn) return;
       const freq = scale[noteIdx % scale.length];
       const o = ctx.createOscillator();
       const g = ctx.createGain();
-      // Steel drum timbre: triangle + quick decay
-      o.type = 'triangle';
+      o.type = wm.type;
       o.frequency.value = freq;
       g.gain.setValueAtTime(0.6, ctx.currentTime);
       g.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.18);
@@ -1126,42 +1138,74 @@ function startMusic() {
       o.start(); o.stop(ctx.currentTime + 0.2);
       noteIdx++;
 
-      // Add harmony on every other note
       if (noteIdx % 2 === 0) {
         const o2 = ctx.createOscillator();
         const g2 = ctx.createGain();
         o2.type = 'sine';
-        o2.frequency.value = freq * 0.5; // octave below
+        o2.frequency.value = freq * 0.5;
         g2.gain.setValueAtTime(0.3, ctx.currentTime);
         g2.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
         o2.connect(g2); g2.connect(masterGain);
         o2.start(); o2.stop(ctx.currentTime + 0.18);
       }
 
-      // Rhythm variation
-      const nextDelay = noteIdx % 4 === 0 ? tempo * 1.5 : noteIdx % 3 === 0 ? tempo * 0.75 : tempo;
+      // Haunted: add dissonant ghost note
+      if (bgId === 'haunted' && noteIdx % 3 === 0) {
+        const gh = ctx.createOscillator();
+        const gg = ctx.createGain();
+        gh.type = 'sine';
+        gh.frequency.value = freq * 1.06; // slightly detuned = creepy
+        gg.gain.setValueAtTime(0.15, ctx.currentTime);
+        gg.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+        gh.connect(gg); gg.connect(masterGain);
+        gh.start(); gh.stop(ctx.currentTime + 0.4);
+      }
+
+      // Factory: add rhythmic clank
+      if (bgId === 'factory' && noteIdx % 4 === 0) {
+        const buf = ctx.createBuffer(1, ctx.sampleRate * 0.05, ctx.sampleRate);
+        const d = buf.getChannelData(0);
+        for (let i = 0; i < d.length; i++) d[i] = (Math.random()*2-1) * Math.exp(-i/(ctx.sampleRate*0.01));
+        const src = ctx.createBufferSource(); src.buffer = buf;
+        const cg = ctx.createGain(); cg.gain.value = 0.3;
+        src.connect(cg); cg.connect(masterGain); src.start();
+      }
+
+      // Space: longer delays, more ethereal
+      const nextDelay = bgId === 'space' ? tempo + Math.sin(noteIdx*0.3)*100 :
+                        bgId === 'haunted' ? tempo + Math.random()*200 :
+                        noteIdx % 4 === 0 ? tempo * 1.5 : noteIdx % 3 === 0 ? tempo * 0.75 : tempo;
       musicTimer = setTimeout(playNote, nextDelay);
     }
 
-    // Gentle wave/ocean pad
+    // Pad drones
     const pad = ctx.createOscillator();
     const padG = ctx.createGain();
-    pad.type = 'sine';
-    pad.frequency.value = 130.81; // C3
-    padG.gain.value = 0.15;
+    pad.type = wm.padType;
+    pad.frequency.value = wm.pad1;
+    padG.gain.value = bgId === 'factory' ? 0.06 : 0.15;
     pad.connect(padG); padG.connect(masterGain);
     pad.start();
     musicNodes.push(pad, padG);
 
-    // Second pad note for fullness
     const pad2 = ctx.createOscillator();
     const padG2 = ctx.createGain();
-    pad2.type = 'sine';
-    pad2.frequency.value = 196; // G3
-    padG2.gain.value = 0.1;
+    pad2.type = wm.padType;
+    pad2.frequency.value = wm.pad2;
+    padG2.gain.value = bgId === 'haunted' ? 0.12 : 0.1;
     pad2.connect(padG2); padG2.connect(masterGain);
     pad2.start();
     musicNodes.push(pad2, padG2);
+
+    // Volcano: rumble LFO
+    if (bgId === 'volcano') {
+      const lfo = ctx.createOscillator();
+      const lfoG = ctx.createGain();
+      lfo.type = 'sine'; lfo.frequency.value = 3;
+      lfoG.gain.value = 0.08;
+      lfo.connect(lfoG); lfoG.connect(masterGain);
+      lfo.start(); musicNodes.push(lfo, lfoG);
+    }
 
     playNote();
   } catch(e){}
