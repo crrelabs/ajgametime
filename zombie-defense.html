@@ -314,6 +314,7 @@ function update() {
   }
   
   // Move zombies
+  let hudDirty = false;
   for (let i = zombies.length - 1; i >= 0; i--) {
     const z = zombies[i];
     
@@ -354,7 +355,7 @@ function update() {
     if (z.pathIdx >= path.length - 1) {
       lives--;
       zombies.splice(i, 1);
-      updateHUD();
+      hudDirty = true;
       if (lives <= 0) {
         gameOver();
         return;
@@ -378,10 +379,11 @@ function update() {
         });
       }
       zombies.splice(i, 1);
-      updateHUD();
-      updateTowerButtons();
+      hudDirty = true;
+      continue;
     }
   }
+  if (hudDirty) { updateHUD(); updateTowerButtons(); }
   
   // Tower shooting
   for (const t of towers) {
@@ -431,7 +433,7 @@ function update() {
     const dy = p.ty - p.y;
     const dist = Math.sqrt(dx * dx + dy * dy);
     
-    if (dist < p.speed * 2) {
+    if (dist < p.speed * 2 || dist === 0) {
       // Hit - apply damage
       if (p.splash > 0) {
         const splashR = p.splash * TILE;
