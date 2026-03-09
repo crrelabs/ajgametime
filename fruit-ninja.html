@@ -744,7 +744,7 @@ function renderGrid(tab) {
         else if(tab==='trails')activeTrail=item.id;
         else if(tab==='explo')activeExplo=item.id;
         saveShop(); renderGrid(tab);
-      } else if (canBuy) {
+      } else if (totalCoins >= item.cost) {
         totalCoins -= item.cost; owned.push(item.id);
         if(tab==='blades'){activeBlade=item.id;ownedBlades=owned;}
         else if(tab==='dojos'){activeDojo=item.id;ownedDojos=owned;stopMusic();startMusic();}

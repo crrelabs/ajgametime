@@ -939,7 +939,7 @@ function renderGrid(tab) {
         else if (tab === 'efx') activeEfx = item.id;
         else if (tab === 'explo') activeExplo = item.id;
         saveShop(); renderGrid(tab);
-      } else if (canBuy) {
+      } else if (totalCoins >= item.cost) {
         totalCoins -= item.cost; owned.push(item.id);
         if (tab === 'skins') { activeSkin = item.id; ownedSkins = owned; }
         else if (tab === 'bgs') { activeBg = item.id; ownedBgs = owned; stopMusic(); startMusic(); }
