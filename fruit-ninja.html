@@ -117,7 +117,7 @@ function initAudio() {
   if (audioCtx) return;
   audioCtx = new AudioCtx();
   musicGain = audioCtx.createGain();
-  musicGain.gain.value = 0.15;
+  musicGain.gain.value = 0.35;
   musicGain.connect(audioCtx.destination);
 }
 
@@ -157,37 +157,81 @@ function playMissSound() {
   playNote(150, 0.4, 'sawtooth', 0.08);
 }
 
-// Background music - looping melody
+// Background music - Japanese pentatonic dojo style
+// Notes: C D E G A (pentatonic) in different octaves for that zen feel
 const MELODY = [
-  [392, 0.2], [440, 0.2], [494, 0.2], [523, 0.4],
-  [494, 0.2], [440, 0.2], [392, 0.4],
-  [330, 0.2], [349, 0.2], [392, 0.2], [440, 0.4],
-  [392, 0.2], [349, 0.2], [330, 0.4],
-  [262, 0.2], [294, 0.2], [330, 0.2], [349, 0.4],
-  [392, 0.2], [440, 0.2], [494, 0.4],
-  [523, 0.3], [494, 0.2], [440, 0.2], [392, 0.6],
+  // Phrase 1 - slow contemplative
+  [262, 0.5], [294, 0.3], [330, 0.6], [0, 0.2],
+  [392, 0.4], [330, 0.3], [294, 0.7], [0, 0.3],
+  [440, 0.5], [392, 0.3], [330, 0.4], [294, 0.6], [0, 0.2],
+  [262, 0.8], [0, 0.4],
+  // Phrase 2 - rising tension
+  [392, 0.3], [440, 0.3], [523, 0.5], [440, 0.3],
+  [392, 0.6], [0, 0.2], [330, 0.3], [392, 0.4], [440, 0.7],
+  [0, 0.3],
+  // Phrase 3 - descending resolve
+  [523, 0.4], [440, 0.3], [392, 0.5], [0, 0.15],
+  [330, 0.3], [294, 0.4], [262, 0.8], [0, 0.4],
+  // Phrase 4 - low drone section
+  [196, 0.6], [220, 0.4], [262, 0.5], [220, 0.3],
+  [196, 0.8], [0, 0.5],
+  [262, 0.3], [330, 0.3], [392, 0.6], [330, 0.4],
+  [262, 0.7], [0, 0.4],
 ];
+
+let droneOsc = null;
+let droneGain = null;
 
 function startMusic() {
   if (musicPlaying) return;
   initAudio();
   musicPlaying = true;
+  
+  // Low drone for atmosphere
+  droneOsc = audioCtx.createOscillator();
+  droneGain = audioCtx.createGain();
+  droneOsc.type = 'sine';
+  droneOsc.frequency.value = 131; // Low C
+  droneGain.gain.value = 0.08;
+  droneOsc.connect(droneGain);
+  droneGain.connect(musicGain);
+  droneOsc.start();
+  
+  // Second drone a fifth up
+  const drone2 = audioCtx.createOscillator();
+  const drone2g = audioCtx.createGain();
+  drone2.type = 'sine';
+  drone2.frequency.value = 196; // G
+  drone2g.gain.value = 0.04;
+  drone2.connect(drone2g);
+  drone2g.connect(musicGain);
+  drone2.start();
+  
   let noteIdx = 0;
   function playNext() {
     if (!musicPlaying) return;
     const [freq, dur] = MELODY[noteIdx % MELODY.length];
-    const osc = audioCtx.createOscillator();
-    const g = audioCtx.createGain();
-    osc.type = 'triangle';
-    osc.frequency.value = freq;
-    g.gain.setValueAtTime(0.06, audioCtx.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur * 0.9);
-    osc.connect(g);
-    g.connect(musicGain);
-    osc.start();
-    osc.stop(audioCtx.currentTime + dur);
+    if (freq > 0) {
+      // Koto-like pluck sound
+      const osc = audioCtx.createOscillator();
+      const osc2 = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.value = freq;
+      osc2.type = 'sine';
+      osc2.frequency.value = freq * 2; // Octave harmonic
+      g.gain.setValueAtTime(0.12, audioCtx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + dur * 0.85);
+      osc.connect(g);
+      osc2.connect(g);
+      g.connect(musicGain);
+      osc.start();
+      osc2.start();
+      osc.stop(audioCtx.currentTime + dur);
+      osc2.stop(audioCtx.currentTime + dur);
+    }
     noteIdx++;
-    musicInterval = setTimeout(playNext, dur * 1000 * 0.85);
+    musicInterval = setTimeout(playNext, dur * 1000);
   }
   playNext();
   document.getElementById('musicBtn').textContent = '🔊';
@@ -196,6 +240,8 @@ function startMusic() {
 function stopMusic() {
   musicPlaying = false;
   if (musicInterval) clearTimeout(musicInterval);
+  try { if (droneOsc) droneOsc.stop(); } catch(e) {}
+  droneOsc = null;
   document.getElementById('musicBtn').textContent = '🔇';
 }
 
