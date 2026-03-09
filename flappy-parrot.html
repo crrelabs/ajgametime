@@ -537,6 +537,8 @@ function spawnPipe() {
 }
 
 function update() {
+  // Always update particles (for death explosions)
+  particles = particles.filter(function(p) { p.x += p.vx; p.y += p.vy; p.vy += 0.1; p.life--; return p.life > 0; });
   if (!playing || dead) return;
   frame++;
 
@@ -641,8 +643,7 @@ function update() {
   // Clouds
   clouds.forEach(c => { c.x -= c.speed; if (c.x + c.w < 0) { c.x = W + 20; c.y = 30 + Math.random() * 150; } });
 
-  // Particles
-  particles = particles.filter(p => { p.x += p.vx; p.y += p.vy; p.life--; return p.life > 0; });
+  // Particles updated at top of update()
 }
 
 function spawnDeathParticles() {
@@ -715,7 +716,7 @@ function die() {
     localStorage.setItem('fp_best', best);
   }
   updateCoinDisplays();
-  setTimeout(gameOver, 600);
+  setTimeout(gameOver, 1200);
 }
 
 function draw() {
