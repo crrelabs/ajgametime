@@ -702,22 +702,25 @@ function draw() {
   }
 
   // Character
+  ctx.save();
   ctx.globalAlpha = 1;
   ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0;
-  // Highlight circle behind player
-  ctx.fillStyle = 'rgba(255,255,255,0.15)';
-  ctx.beginPath(); ctx.arc(px + TILE / 2, py + TILE * 0.5, TILE * 0.45, 0, Math.PI * 2); ctx.fill();
+  ctx.globalCompositeOperation = 'source-over';
   var skin = getSkin();
-  ctx.font = (TILE * 1.0) + 'px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText(skin.emoji, px + TILE / 2, py + TILE * 0.5);
-  ctx.textBaseline = 'alphabetic';
-  ctx.shadowBlur = 0;
+  var charSize = Math.round(TILE * 1.0);
+  var charX = Math.round(px + TILE / 2);
+  var charY = Math.round(py + TILE * 0.5);
+  ctx.font = charSize + 'px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#000';
+  ctx.fillText(skin.emoji, charX, charY);
+  ctx.restore();
 
   // Accessory
   var acc = getAcc();
   if (acc.emoji) {
-    ctx.font = (TILE * 0.45) + 'px sans-serif';
-    ctx.fillText(acc.emoji, px + TILE / 2, py + TILE * (acc.dy || -0.5));
+    ctx.globalAlpha = 1;
+    ctx.font = (TILE * 0.45) + 'px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText(acc.emoji, px + TILE / 2, py + TILE * (acc.dy || -0.1));
   }
 
   ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0;
