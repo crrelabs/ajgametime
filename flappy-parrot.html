@@ -93,11 +93,13 @@ canvas{display:block}
     <button class="shop-tab" data-tab="bgs" style="padding:8px 20px;font-weight:700;border-radius:8px;border:2px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.05);color:#fff;cursor:pointer;font-size:14px">🎨 Backgrounds</button>
     <button class="shop-tab" data-tab="accs" style="padding:8px 20px;font-weight:700;border-radius:8px;border:2px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.05);color:#fff;cursor:pointer;font-size:14px">🎩 Accessories</button>
     <button class="shop-tab" data-tab="efx" style="padding:8px 20px;font-weight:700;border-radius:8px;border:2px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.05);color:#fff;cursor:pointer;font-size:14px">✨ Effects</button>
+    <button class="shop-tab" data-tab="explo" style="padding:8px 20px;font-weight:700;border-radius:8px;border:2px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.05);color:#fff;cursor:pointer;font-size:14px">💥 Deaths</button>
   </div>
   <div class="skin-grid" id="skin-grid"></div>
   <div class="skin-grid" id="bg-grid" style="display:none"></div>
   <div class="skin-grid" id="acc-grid" style="display:none"></div>
   <div class="skin-grid" id="efx-grid" style="display:none"></div>
+  <div class="skin-grid" id="explo-grid" style="display:none"></div>
   <button id="shop-close">← Back</button>
 </div>
 
@@ -227,6 +229,25 @@ let activeEfx = localStorage.getItem('fp_active_efx') || 'none';
 function getEfx() { return EFFECTS.find(e => e.id === activeEfx) || EFFECTS[0]; }
 let trailParticles = [];
 
+// === DEATH EXPLOSIONS SYSTEM ===
+const EXPLOSIONS = [
+  { id:'default', name:'Classic', cost:0, emoji:'💥' },
+  { id:'fireworks', name:'Fireworks', cost:80, emoji:'🎆' },
+  { id:'confetti', name:'Confetti', cost:90, emoji:'🎊' },
+  { id:'hearts', name:'Hearts', cost:100, emoji:'💕' },
+  { id:'skull', name:'Skull Pop', cost:120, emoji:'💀' },
+  { id:'nuke', name:'Nuke', cost:200, emoji:'☢️' },
+  { id:'glitch', name:'Glitch', cost:150, emoji:'📺' },
+  { id:'feathers', name:'Feathers', cost:75, emoji:'🪶' },
+  { id:'ice', name:'Ice Shatter', cost:130, emoji:'🧊' },
+  { id:'lava', name:'Lava Burst', cost:175, emoji:'🌋' },
+  { id:'portal', name:'Portal', cost:250, emoji:'🌀' },
+  { id:'pixel', name:'Pixel Break', cost:110, emoji:'👾' },
+];
+let ownedExplo = JSON.parse(localStorage.getItem('fp_explo') || '["default"]');
+let activeExplo = localStorage.getItem('fp_active_explo') || 'default';
+function getExplo() { return EXPLOSIONS.find(e => e.id === activeExplo) || EXPLOSIONS[0]; }
+
 let totalCoins = parseInt(localStorage.getItem('fp_coins') || '0');
 let ownedSkins = JSON.parse(localStorage.getItem('fp_skins') || '["default"]');
 let activeSkin = localStorage.getItem('fp_active_skin') || 'default';
@@ -241,6 +262,8 @@ function saveShop() {
   localStorage.setItem('fp_active_acc', activeAcc);
   localStorage.setItem('fp_efx', JSON.stringify(ownedEfx));
   localStorage.setItem('fp_active_efx', activeEfx);
+  localStorage.setItem('fp_explo', JSON.stringify(ownedExplo));
+  localStorage.setItem('fp_active_explo', activeExplo);
 }
 function updateCoinDisplays() {
   document.getElementById('coin-display').textContent = '🪙 ' + totalCoins + ' coins';
@@ -384,6 +407,28 @@ function renderEfxShop() {
   });
 }
 
+function renderExploShop() {
+  const grid = document.getElementById('explo-grid');
+  grid.innerHTML = '';
+  EXPLOSIONS.forEach(e => {
+    const owned = ownedExplo.includes(e.id);
+    const selected = activeExplo === e.id;
+    const canBuy = totalCoins >= e.cost;
+    const card = document.createElement('div');
+    card.className = 'skin-card' + (selected ? ' selected' : '') + (!owned && !canBuy ? ' locked' : '');
+    const em = document.createElement('div'); em.style.fontSize = '28px'; em.textContent = e.emoji; card.appendChild(em);
+    const nm = document.createElement('div'); nm.className = 'skin-name'; nm.textContent = e.name; card.appendChild(nm);
+    if (selected) { const t = document.createElement('div'); t.className = 'skin-owned'; t.textContent = '✅ Active'; card.appendChild(t); }
+    else if (owned) { const t = document.createElement('div'); t.className = 'skin-owned'; t.textContent = '✓ Owned'; card.appendChild(t); }
+    else { const t = document.createElement('div'); t.className = 'skin-cost'; t.textContent = '🪙 ' + e.cost; card.appendChild(t); }
+    card.addEventListener('click', () => {
+      if (owned) { activeExplo = e.id; saveShop(); renderExploShop(); }
+      else if (canBuy) { totalCoins -= e.cost; ownedExplo.push(e.id); activeExplo = e.id; saveShop(); updateCoinDisplays(); renderExploShop(); }
+    });
+    grid.appendChild(card);
+  });
+}
+
 // Shop tab switching
 document.querySelectorAll('.shop-tab').forEach(tab => {
   tab.addEventListener('click', () => {
@@ -394,15 +439,17 @@ document.querySelectorAll('.shop-tab').forEach(tab => {
     document.getElementById('bg-grid').style.display = which === 'bgs' ? '' : 'none';
     document.getElementById('acc-grid').style.display = which === 'accs' ? '' : 'none';
     document.getElementById('efx-grid').style.display = which === 'efx' ? '' : 'none';
+    document.getElementById('explo-grid').style.display = which === 'explo' ? '' : 'none';
     if (which === 'skins') renderShop();
     else if (which === 'bgs') renderBGShop();
     else if (which === 'accs') renderAccShop();
     else if (which === 'efx') renderEfxShop();
+    else if (which === 'explo') renderExploShop();
   });
 });
 
 document.getElementById('shop-btn').addEventListener('click', () => {
-  updateCoinDisplays(); renderShop(); renderBGShop(); renderAccShop(); renderEfxShop();
+  updateCoinDisplays(); renderShop(); renderBGShop(); renderAccShop(); renderEfxShop(); renderExploShop();
   document.getElementById('shop-screen').style.display = 'flex';
 });
 let shopOpenedFromDeath = false;
@@ -583,18 +630,71 @@ function update() {
   particles = particles.filter(p => { p.x += p.vx; p.y += p.vy; p.life--; return p.life > 0; });
 }
 
+function spawnDeathParticles() {
+  var ex = getExplo().id;
+  var count = ex === 'nuke' ? 40 : ex === 'portal' ? 30 : 20;
+  for (var i = 0; i < count; i++) {
+    var ang = (i / count) * Math.PI * 2;
+    var spd = 2 + Math.random() * 6;
+    var p = { x: bird.x, y: bird.y, life: 25 + Math.random() * 20, maxLife: 45, size: 3 + Math.random() * 4 };
+
+    if (ex === 'fireworks') {
+      p.vx = Math.cos(ang) * spd * 1.5; p.vy = Math.sin(ang) * spd * 1.5;
+      p.color = ['#ff0000','#ffd700','#00ff00','#00bfff','#ff00ff','#ff8c00'][i % 6];
+      p.size = 2 + Math.random() * 3;
+    } else if (ex === 'confetti') {
+      p.vx = (Math.random()-0.5) * 8; p.vy = -2 - Math.random() * 4;
+      p.color = ['#ff0000','#ff9800','#ffeb3b','#4caf50','#2196f3','#9c27b0','#e91e63'][i % 7];
+      p.size = 3 + Math.random() * 4; p.life = 40 + Math.random() * 20; p.maxLife = 60;
+    } else if (ex === 'hearts') {
+      p.vx = (Math.random()-0.5) * 6; p.vy = -1 - Math.random() * 5;
+      p.color = ['#ff69b4','#ff1493','#ff4081','#e91e63'][i % 4];
+    } else if (ex === 'skull') {
+      p.vx = Math.cos(ang) * spd; p.vy = Math.sin(ang) * spd;
+      p.color = ['#1a1a1a','#4a4a4a','#9e9e9e','#fff'][i % 4];
+      p.size = 4 + Math.random() * 3;
+    } else if (ex === 'nuke') {
+      var ring = i < 20;
+      p.vx = ring ? Math.cos(ang) * 8 : (Math.random()-0.5) * 12;
+      p.vy = ring ? Math.sin(ang) * 8 : (Math.random()-0.5) * 12;
+      p.color = ['#ff4500','#ff8c00','#ffd700','#fff'][i % 4];
+      p.size = ring ? 5 + Math.random() * 3 : 2 + Math.random() * 6;
+      p.life = 50; p.maxLife = 50;
+    } else if (ex === 'glitch') {
+      p.vx = (Math.random()-0.5) * 10; p.vy = (Math.random()-0.5) * 10;
+      p.color = ['#00ff00','#ff00ff','#00ffff','#ffff00'][i % 4];
+      p.size = 4 + Math.random() * 6;
+    } else if (ex === 'feathers') {
+      p.vx = (Math.random()-0.5) * 4; p.vy = -1 + Math.random() * 2;
+      p.color = ['#fff','#e0e0e0','#a5d6a7','#c8e6c9'][i % 4];
+      p.size = 2 + Math.random() * 3; p.life = 40; p.maxLife = 40;
+    } else if (ex === 'ice') {
+      p.vx = Math.cos(ang) * spd * 1.2; p.vy = Math.sin(ang) * spd * 1.2;
+      p.color = ['#e0f7fa','#b2ebf2','#80deea','#4dd0e1','#fff'][i % 5];
+      p.size = 2 + Math.random() * 5;
+    } else if (ex === 'lava') {
+      p.vx = (Math.random()-0.5) * 6; p.vy = -3 - Math.random() * 5;
+      p.color = ['#ff4500','#ff6600','#ff8c00','#ffd600'][i % 4];
+      p.size = 3 + Math.random() * 5; p.life = 35; p.maxLife = 35;
+    } else if (ex === 'portal') {
+      p.vx = Math.cos(ang + i*0.3) * (2 + i*0.2); p.vy = Math.sin(ang + i*0.3) * (2 + i*0.2);
+      p.color = ['#7c4dff','#e040fb','#536dfe','#448aff'][i % 4];
+      p.size = 2 + Math.random() * 4;
+    } else if (ex === 'pixel') {
+      p.vx = Math.cos(ang) * spd; p.vy = Math.sin(ang) * spd;
+      p.color = ['#4caf50','#8bc34a','#388e3c','#fff','#ff9800'][i % 5];
+      p.size = 5 + Math.random() * 3;
+    } else {
+      p.vx = (Math.random()-0.5) * 8; p.vy = (Math.random()-0.5) * 8;
+      p.color = ['#fbbf24','#ef4444','#22c55e','#fff'][i % 4];
+    }
+    particles.push(p);
+  }
+}
+
 function die() {
   dead = true;
-  // Explosion particles
-  for (let i = 0; i < 15; i++) {
-    particles.push({
-      x: bird.x, y: bird.y,
-      vx: (Math.random()-0.5)*8, vy: (Math.random()-0.5)*8,
-      life: 20+Math.random()*15, maxLife: 35,
-      color: ['#fbbf24','#ef4444','#22c55e','#fff'][Math.floor(Math.random()*4)],
-      size: 3+Math.random()*4
-    });
-  }
+  spawnDeathParticles();
   if (score > best) {
     best = score;
     localStorage.setItem('fp_best', best);
@@ -1017,7 +1117,7 @@ document.getElementById('death-lb').addEventListener('click', function(){ _lbSho
 document.getElementById('death-shop').addEventListener('click', function(){
   document.getElementById('death-screen').style.display = 'none';
   shopOpenedFromDeath = true;
-  updateCoinDisplays(); renderShop(); renderBGShop(); renderAccShop(); renderEfxShop();
+  updateCoinDisplays(); renderShop(); renderBGShop(); renderAccShop(); renderEfxShop(); renderExploShop();
   document.getElementById('shop-screen').style.display = 'flex';
 });
 document.getElementById('death-name').addEventListener('keydown', function(e){ if(e.key==='Enter') document.getElementById('death-submit').click(); });
