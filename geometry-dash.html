@@ -273,35 +273,52 @@ function generateLevel() {
   
   while (x < LEVEL_LENGTH) {
     const r = Math.random();
-    const gap = 120 + Math.random() * 80;
+    const gap = 200 + Math.random() * 120;
     
-    if (r < 0.3) {
+    // Difficulty ramps up through the level
+    const progress = x / LEVEL_LENGTH;
+    
+    if (r < 0.35) {
       // Single spike
       level.push({ type: 'spike', x, y: groundY, w: 30, h: 30 });
       x += gap;
-    } else if (r < 0.5) {
-      // Double spike
-      level.push({ type: 'spike', x, y: groundY, w: 30, h: 30 });
-      level.push({ type: 'spike', x: x + 35, y: groundY, w: 30, h: 30 });
-      x += gap + 50;
-    } else if (r < 0.65) {
-      // Triple spike
-      for (let i = 0; i < 3; i++) {
-        level.push({ type: 'spike', x: x + i * 35, y: groundY, w: 30, h: 30 });
+    } else if (r < 0.55) {
+      // Double spike (only after 20%)
+      if (progress > 0.2) {
+        level.push({ type: 'spike', x, y: groundY, w: 30, h: 30 });
+        level.push({ type: 'spike', x: x + 40, y: groundY, w: 30, h: 30 });
+        x += gap + 60;
+      } else {
+        level.push({ type: 'spike', x, y: groundY, w: 30, h: 30 });
+        x += gap;
       }
-      x += gap + 90;
+    } else if (r < 0.65) {
+      // Triple spike (only after 40%)
+      if (progress > 0.4) {
+        for (let i = 0; i < 3; i++) {
+          level.push({ type: 'spike', x: x + i * 40, y: groundY, w: 30, h: 30 });
+        }
+        x += gap + 100;
+      } else {
+        level.push({ type: 'spike', x, y: groundY, w: 30, h: 30 });
+        x += gap;
+      }
     } else if (r < 0.78) {
       // Gap (pit)
-      const gapW = 80 + Math.random() * 60;
+      const gapW = 60 + Math.random() * 50;
       level.push({ type: 'gap', x, w: gapW });
       x += gapW + gap;
     } else if (r < 0.88) {
-      // Block obstacle
-      const bh = 40 + Math.random() * 30;
-      level.push({ type: 'block', x, y: groundY - bh, w: 40, h: bh });
-      // Spike on top
-      level.push({ type: 'spike', x: x + 5, y: groundY - bh, w: 30, h: 30 });
-      x += gap + 40;
+      // Block obstacle (only after 30%)
+      if (progress > 0.3) {
+        const bh = 40 + Math.random() * 30;
+        level.push({ type: 'block', x, y: groundY - bh, w: 40, h: bh });
+        level.push({ type: 'spike', x: x + 5, y: groundY - bh, w: 30, h: 30 });
+        x += gap + 60;
+      } else {
+        level.push({ type: 'spike', x, y: groundY, w: 30, h: 30 });
+        x += gap;
+      }
     } else {
       // Jump orb (yellow ring in air)
       orbs.push({ x: x + 20, y: groundY - 100 - Math.random() * 60, r: 15, collected: false });
