@@ -269,7 +269,8 @@ function tryMove(dx, dy) {
   }
   
   // Collect coins
-  const ci = targetRow.coins.indexOf(newCol);
+  const roundedCol = Math.round(newCol);
+  const ci = targetRow.coins.indexOf(roundedCol);
   if (ci !== -1) {
     targetRow.coins.splice(ci, 1);
     coins++;
