@@ -518,6 +518,43 @@ function draw() {
       ctx.lineTo(sliceTrail[sti].x, sliceTrail[sti].y);
     }
     ctx.stroke(); ctx.globalAlpha = 1; ctx.shadowBlur = 0;
+
+    // Blade tip at end of trail
+    var last = sliceTrail[sliceTrail.length - 1];
+    var prev = sliceTrail[Math.max(0, sliceTrail.length - 3)];
+    var dx = last.x - prev.x, dy = last.y - prev.y;
+    var ang = Math.atan2(dy, dx);
+    var bladeLen = 28 + blade.width * 2;
+    var bladeW = 6 + blade.width;
+    ctx.save();
+    ctx.translate(last.x, last.y);
+    ctx.rotate(ang);
+    // Blade shape: pointed triangle with a sharp tip
+    ctx.beginPath();
+    ctx.moveTo(bladeLen, 0); // tip
+    ctx.lineTo(-4, -bladeW/2); // top back
+    ctx.lineTo(0, 0); // notch
+    ctx.lineTo(-4, bladeW/2); // bottom back
+    ctx.closePath();
+    if (blade.color === 'rainbow') {
+      var rc2 = ['#ef4444','#f97316','#fbbf24','#22c55e','#3b82f6','#8b5cf6'];
+      ctx.fillStyle = rc2[Math.floor(Date.now()/80) % rc2.length];
+    } else {
+      ctx.fillStyle = blade.color;
+    }
+    ctx.shadowColor = ctx.fillStyle;
+    ctx.shadowBlur = 15;
+    ctx.globalAlpha = 0.9;
+    ctx.fill();
+    // Blade edge highlight
+    ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(bladeLen, 0);
+    ctx.lineTo(-4, -bladeW/2);
+    ctx.stroke();
+    ctx.restore();
+    ctx.globalAlpha = 1; ctx.shadowBlur = 0;
   }
 
   // Trail particles
