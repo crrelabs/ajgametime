@@ -702,9 +702,11 @@ function draw() {
   }
 
   // Character
+  ctx.globalAlpha = 1;
   var skin = getSkin();
   ctx.font = (TILE * 0.9) + 'px sans-serif'; ctx.textAlign = 'center';
   ctx.fillText(skin.emoji, px + TILE / 2, py + TILE * 0.8);
+  ctx.shadowBlur = 0;
 
   // Accessory
   var acc = getAcc();
