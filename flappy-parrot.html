@@ -86,9 +86,14 @@ canvas{display:block}
 </div>
 
 <div id="shop-screen">
-  <h1>🛍️ Skins Shop</h1>
+  <h1>🛍️ Shop</h1>
   <div id="shop-coins">🪙 0 coins</div>
+  <div id="shop-tabs" style="display:flex;gap:8px;margin:10px 0">
+    <button class="shop-tab active" data-tab="skins" style="padding:8px 20px;font-weight:700;border-radius:8px;border:2px solid #22c55e;background:rgba(34,197,94,0.2);color:#fff;cursor:pointer;font-size:14px">🦜 Skins</button>
+    <button class="shop-tab" data-tab="bgs" style="padding:8px 20px;font-weight:700;border-radius:8px;border:2px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.05);color:#fff;cursor:pointer;font-size:14px">🎨 Backgrounds</button>
+  </div>
   <div class="skin-grid" id="skin-grid"></div>
+  <div class="skin-grid" id="bg-grid" style="display:none"></div>
   <button id="shop-close">← Back</button>
 </div>
 
@@ -163,6 +168,22 @@ const SKINS = [
   { id:'diamond', name:'Diamond', cost:1000, body:'#B2EBF2', belly:'#E0F7FA', wing:'#4DD0E1', tail:'#00BCD4', beak:'#FFD600', sparkle:true },
 ];
 
+// === BACKGROUNDS SYSTEM ===
+const BACKGROUNDS = [
+  { id:'default', name:'Sky', cost:0, emoji:'☁️', sky1:'#4dc9f6', sky2:'#a0e4ff', ground1:'#8BC34A', ground2:'#795548', cloudColor:'rgba(255,255,255,0.7)' },
+  { id:'space', name:'Space', cost:100, emoji:'🚀', sky1:'#0a0a2e', sky2:'#1a1a4e', ground1:'#333', ground2:'#1a1a1a', cloudColor:'rgba(255,255,255,0)', stars:true },
+  { id:'volcano', name:'Volcano', cost:150, emoji:'🌋', sky1:'#1a0000', sky2:'#4a1500', ground1:'#5c3a1e', ground2:'#2a1a0a', cloudColor:'rgba(200,50,0,0.3)', lava:true },
+  { id:'heaven', name:'Heaven', cost:200, emoji:'😇', sky1:'#fffde7', sky2:'#fff9c4', ground1:'#e8d5b7', ground2:'#d4b896', cloudColor:'rgba(255,255,255,0.9)', halos:true },
+  { id:'beach', name:'Beach', cost:125, emoji:'🏖️', sky1:'#ff9a56', sky2:'#ffcc80', ground1:'#f5deb3', ground2:'#deb887', cloudColor:'rgba(255,200,150,0.5)', waves:true },
+  { id:'factory', name:'Factory', cost:175, emoji:'🏭', sky1:'#37474f', sky2:'#546e7a', ground1:'#616161', ground2:'#424242', cloudColor:'rgba(100,100,100,0.5)', gears:true },
+  { id:'dino', name:'Dinosaurs', cost:250, emoji:'🦕', sky1:'#2e7d32', sky2:'#66bb6a', ground1:'#5d4037', ground2:'#3e2723', cloudColor:'rgba(200,230,200,0.5)', dinos:true },
+  { id:'haunted', name:'Haunted', cost:300, emoji:'👻', sky1:'#1a1a2e', sky2:'#2d1b4e', ground1:'#2e2e2e', ground2:'#1a1a1a', cloudColor:'rgba(100,50,150,0.3)', ghosts:true },
+];
+
+let ownedBGs = JSON.parse(localStorage.getItem('fp_bgs') || '["default"]');
+let activeBG = localStorage.getItem('fp_active_bg') || 'default';
+function getBG() { return BACKGROUNDS.find(b => b.id === activeBG) || BACKGROUNDS[0]; }
+
 let totalCoins = parseInt(localStorage.getItem('fp_coins') || '0');
 let ownedSkins = JSON.parse(localStorage.getItem('fp_skins') || '["default"]');
 let activeSkin = localStorage.getItem('fp_active_skin') || 'default';
@@ -171,6 +192,8 @@ function saveShop() {
   localStorage.setItem('fp_coins', totalCoins);
   localStorage.setItem('fp_skins', JSON.stringify(ownedSkins));
   localStorage.setItem('fp_active_skin', activeSkin);
+  localStorage.setItem('fp_bgs', JSON.stringify(ownedBGs));
+  localStorage.setItem('fp_active_bg', activeBG);
 }
 function updateCoinDisplays() {
   document.getElementById('coin-display').textContent = '🪙 ' + totalCoins + ' coins';
@@ -233,8 +256,58 @@ function drawSkinPreview(canvas, skin) {
     cx.globalAlpha = 1;
   }
 }
+function renderBGShop() {
+  const grid = document.getElementById('bg-grid');
+  grid.innerHTML = '';
+  BACKGROUNDS.forEach(b => {
+    const owned = ownedBGs.includes(b.id);
+    const selected = activeBG === b.id;
+    const canBuy = totalCoins >= b.cost;
+    const card = document.createElement('div');
+    card.className = 'skin-card' + (selected ? ' selected' : '') + (!owned && !canBuy ? ' locked' : '');
+    // Preview
+    const pc = document.createElement('canvas');
+    pc.width = 48; pc.height = 48; pc.className = 'skin-preview';
+    const cx = pc.getContext('2d');
+    const g = cx.createLinearGradient(0,0,0,48);
+    g.addColorStop(0, b.sky1); g.addColorStop(1, b.sky2);
+    cx.fillStyle = g; cx.fillRect(0,0,48,38);
+    cx.fillStyle = b.ground1; cx.fillRect(0,38,48,4);
+    cx.fillStyle = b.ground2; cx.fillRect(0,42,48,6);
+    cx.font = '18px serif'; cx.textAlign = 'center';
+    cx.fillText(b.emoji, 24, 26);
+    card.appendChild(pc);
+    const nm = document.createElement('div'); nm.className = 'skin-name'; nm.textContent = b.name; card.appendChild(nm);
+    if (selected) {
+      const tag = document.createElement('div'); tag.className = 'skin-owned'; tag.textContent = '✅ Active'; card.appendChild(tag);
+    } else if (owned) {
+      const tag = document.createElement('div'); tag.className = 'skin-owned'; tag.textContent = '✓ Owned'; card.appendChild(tag);
+    } else {
+      const tag = document.createElement('div'); tag.className = 'skin-cost'; tag.textContent = '🪙 ' + b.cost; card.appendChild(tag);
+    }
+    card.addEventListener('click', () => {
+      if (owned) { activeBG = b.id; saveShop(); renderBGShop(); }
+      else if (canBuy) { totalCoins -= b.cost; ownedBGs.push(b.id); activeBG = b.id; saveShop(); updateCoinDisplays(); renderBGShop(); }
+    });
+    grid.appendChild(card);
+  });
+}
+
+// Shop tab switching
+document.querySelectorAll('.shop-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.shop-tab').forEach(t => { t.classList.remove('active'); t.style.borderColor = 'rgba(255,255,255,0.2)'; t.style.background = 'rgba(255,255,255,0.05)'; });
+    tab.classList.add('active'); tab.style.borderColor = '#22c55e'; tab.style.background = 'rgba(34,197,94,0.2)';
+    const which = tab.dataset.tab;
+    document.getElementById('skin-grid').style.display = which === 'skins' ? '' : 'none';
+    document.getElementById('bg-grid').style.display = which === 'bgs' ? '' : 'none';
+    if (which === 'bgs') renderBGShop();
+    else renderShop();
+  });
+});
+
 document.getElementById('shop-btn').addEventListener('click', () => {
-  updateCoinDisplays(); renderShop();
+  updateCoinDisplays(); renderShop(); renderBGShop();
   document.getElementById('shop-screen').style.display = 'flex';
 });
 let shopOpenedFromDeath = false;
@@ -406,17 +479,88 @@ function die() {
 }
 
 function draw() {
-  // Sky gradient
+  // Sky gradient (uses active background)
+  var bg = getBG();
   const sky = X.createLinearGradient(0, 0, 0, H - GROUND_H);
-  sky.addColorStop(0, '#4dc9f6');
-  sky.addColorStop(0.5, '#70d6ff');
-  sky.addColorStop(1, '#a0e4ff');
+  sky.addColorStop(0, bg.sky1);
+  sky.addColorStop(1, bg.sky2);
   X.fillStyle = sky;
   X.fillRect(0, 0, W, H - GROUND_H);
 
+  // Background-specific decorations
+  if (bg.stars) {
+    X.fillStyle = '#fff';
+    for (var si = 0; si < 40; si++) {
+      var sx = (si * 137 + frame * 0.1) % W;
+      var sy = (si * 97) % (H - GROUND_H - 40) + 10;
+      X.globalAlpha = 0.3 + Math.sin(frame * 0.05 + si) * 0.3;
+      X.beginPath(); X.arc(sx, sy, si % 3 === 0 ? 2 : 1, 0, Math.PI * 2); X.fill();
+    }
+    X.globalAlpha = 1;
+  }
+  if (bg.lava) {
+    X.fillStyle = '#ff4400';
+    for (var li = 0; li < 8; li++) {
+      var lx = (li * 80 + frame * 0.5) % (W + 40) - 20;
+      var ly = H - GROUND_H - 15 + Math.sin(frame * 0.03 + li) * 5;
+      X.globalAlpha = 0.4 + Math.sin(frame * 0.05 + li) * 0.2;
+      X.beginPath(); X.arc(lx, ly, 8 + Math.sin(frame * 0.08 + li) * 3, 0, Math.PI * 2); X.fill();
+    }
+    X.globalAlpha = 1;
+  }
+  if (bg.halos) {
+    X.fillStyle = 'rgba(255,215,0,0.15)';
+    for (var hi = 0; hi < 5; hi++) {
+      var hx = (hi * 120 + 40) % W;
+      var hy = 40 + Math.sin(frame * 0.02 + hi) * 10;
+      X.beginPath(); X.arc(hx, hy, 20 + Math.sin(frame * 0.03 + hi) * 5, 0, Math.PI * 2); X.fill();
+    }
+  }
+  if (bg.waves) {
+    X.strokeStyle = 'rgba(0,150,255,0.3)'; X.lineWidth = 2;
+    for (var wi = 0; wi < 3; wi++) {
+      var wy = H - GROUND_H - 10 - wi * 15;
+      X.beginPath();
+      for (var wx = 0; wx < W; wx += 4) {
+        var wvy = wy + Math.sin((wx + frame * 2) * 0.02 + wi) * 5;
+        wx === 0 ? X.moveTo(wx, wvy) : X.lineTo(wx, wvy);
+      }
+      X.stroke();
+    }
+  }
+  if (bg.gears) {
+    X.strokeStyle = 'rgba(200,200,200,0.15)'; X.lineWidth = 3;
+    for (var gi = 0; gi < 4; gi++) {
+      var gx = (gi * 150 + 60) % W;
+      var gy = 60 + gi * 50;
+      var gr = 25 + gi * 5;
+      X.beginPath(); X.arc(gx, gy, gr, frame * 0.01 + gi, frame * 0.01 + gi + Math.PI * 1.8); X.stroke();
+    }
+  }
+  if (bg.dinos) {
+    X.font = '24px serif'; X.globalAlpha = 0.3;
+    var dinos = ['🦕','🦖','🌿','🌴'];
+    for (var di = 0; di < 4; di++) {
+      var dx = (di * 130 + frame * 0.2) % (W + 60) - 30;
+      var dy = H - GROUND_H - 30 - di * 20;
+      X.fillText(dinos[di % dinos.length], dx, dy);
+    }
+    X.globalAlpha = 1;
+  }
+  if (bg.ghosts) {
+    X.font = '20px serif';
+    for (var ghi = 0; ghi < 6; ghi++) {
+      var ghx = (ghi * 110 + frame * 0.3) % (W + 40) - 20;
+      var ghy = 40 + ghi * 30 + Math.sin(frame * 0.04 + ghi) * 15;
+      X.globalAlpha = 0.15 + Math.sin(frame * 0.06 + ghi) * 0.1;
+      X.fillText('👻', ghx, ghy);
+    }
+    X.globalAlpha = 1;
+  }
+
   // Clouds
   clouds.forEach(c => {
-    X.fillStyle = 'rgba(255,255,255,0.7)';
+    X.fillStyle = bg.cloudColor;
     X.beginPath();
     X.arc(c.x, c.y, c.w * 0.25, 0, Math.PI * 2);
     X.arc(c.x + c.w * 0.3, c.y - c.w * 0.1, c.w * 0.3, 0, Math.PI * 2);
@@ -455,21 +599,25 @@ function draw() {
   });
 
   // Ground
-  X.fillStyle = '#8BC34A';
+  X.fillStyle = bg.ground1;
   X.fillRect(0, H - GROUND_H, W, 8);
-  X.fillStyle = '#795548';
+  X.fillStyle = bg.ground2;
   X.fillRect(0, H - GROUND_H + 8, W, GROUND_H - 8);
   // Ground texture
-  X.fillStyle = '#6D4C41';
+  X.fillStyle = bg.ground2;
+  X.globalAlpha = 0.5;
   for (let gx = -groundX; gx < W + 24; gx += 24) {
     X.fillRect(gx, H - GROUND_H + 10, 12, 3);
     X.fillRect(gx + 10, H - GROUND_H + 20, 8, 3);
   }
-  // Grass tufts
-  X.fillStyle = '#7CB342';
-  for (let gx = -groundX; gx < W + 24; gx += 16) {
-    X.fillRect(gx, H - GROUND_H - 2, 3, 6);
-    X.fillRect(gx + 8, H - GROUND_H - 1, 2, 4);
+  X.globalAlpha = 1;
+  // Grass tufts (only for non-industrial backgrounds)
+  if (!bg.gears && !bg.stars && !bg.lava) {
+    X.fillStyle = bg.ground1;
+    for (let gx = -groundX; gx < W + 24; gx += 16) {
+      X.fillRect(gx, H - GROUND_H - 2, 3, 6);
+      X.fillRect(gx + 8, H - GROUND_H - 1, 2, 4);
+    }
   }
 
   // Bird
@@ -665,7 +813,7 @@ document.getElementById('death-lb').addEventListener('click', function(){ _lbSho
 document.getElementById('death-shop').addEventListener('click', function(){
   document.getElementById('death-screen').style.display = 'none';
   shopOpenedFromDeath = true;
-  updateCoinDisplays(); renderShop();
+  updateCoinDisplays(); renderShop(); renderBGShop();
   document.getElementById('shop-screen').style.display = 'flex';
 });
 document.getElementById('death-name').addEventListener('keydown', function(e){ if(e.key==='Enter') document.getElementById('death-submit').click(); });
