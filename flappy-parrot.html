@@ -91,9 +91,13 @@ canvas{display:block}
   <div id="shop-tabs" style="display:flex;gap:8px;margin:10px 0">
     <button class="shop-tab active" data-tab="skins" style="padding:8px 20px;font-weight:700;border-radius:8px;border:2px solid #22c55e;background:rgba(34,197,94,0.2);color:#fff;cursor:pointer;font-size:14px">🦜 Skins</button>
     <button class="shop-tab" data-tab="bgs" style="padding:8px 20px;font-weight:700;border-radius:8px;border:2px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.05);color:#fff;cursor:pointer;font-size:14px">🎨 Backgrounds</button>
+    <button class="shop-tab" data-tab="accs" style="padding:8px 20px;font-weight:700;border-radius:8px;border:2px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.05);color:#fff;cursor:pointer;font-size:14px">🎩 Accessories</button>
+    <button class="shop-tab" data-tab="efx" style="padding:8px 20px;font-weight:700;border-radius:8px;border:2px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.05);color:#fff;cursor:pointer;font-size:14px">✨ Effects</button>
   </div>
   <div class="skin-grid" id="skin-grid"></div>
   <div class="skin-grid" id="bg-grid" style="display:none"></div>
+  <div class="skin-grid" id="acc-grid" style="display:none"></div>
+  <div class="skin-grid" id="efx-grid" style="display:none"></div>
   <button id="shop-close">← Back</button>
 </div>
 
@@ -184,6 +188,45 @@ let ownedBGs = JSON.parse(localStorage.getItem('fp_bgs') || '["default"]');
 let activeBG = localStorage.getItem('fp_active_bg') || 'default';
 function getBG() { return BACKGROUNDS.find(b => b.id === activeBG) || BACKGROUNDS[0]; }
 
+// === ACCESSORIES SYSTEM ===
+const ACCESSORIES = [
+  { id:'none', name:'None', cost:0, emoji:'❌' },
+  { id:'crown', name:'Crown', cost:75, emoji:'👑' },
+  { id:'tophat', name:'Top Hat', cost:100, emoji:'🎩' },
+  { id:'sunglasses', name:'Shades', cost:60, emoji:'😎' },
+  { id:'headband', name:'Headband', cost:50, emoji:'🔴' },
+  { id:'bowtie', name:'Bow Tie', cost:80, emoji:'🎀' },
+  { id:'pirate', name:'Pirate Hat', cost:150, emoji:'🏴‍☠️' },
+  { id:'wizard', name:'Wizard Hat', cost:200, emoji:'🧙' },
+  { id:'halo', name:'Halo', cost:175, emoji:'😇' },
+  { id:'santa', name:'Santa Hat', cost:125, emoji:'🎅' },
+  { id:'viking', name:'Viking Helm', cost:250, emoji:'⚔️' },
+  { id:'antenna', name:'Antenna', cost:90, emoji:'📡' },
+];
+let ownedAccs = JSON.parse(localStorage.getItem('fp_accs') || '["none"]');
+let activeAcc = localStorage.getItem('fp_active_acc') || 'none';
+function getAcc() { return ACCESSORIES.find(a => a.id === activeAcc) || ACCESSORIES[0]; }
+
+// === EFFECTS SYSTEM ===
+const EFFECTS = [
+  { id:'none', name:'None', cost:0, emoji:'❌' },
+  { id:'sparkle', name:'Sparkle', cost:80, emoji:'✨', color:'#ffd700', color2:'#fff' },
+  { id:'fire', name:'Fire', cost:120, emoji:'🔥', color:'#ff4500', color2:'#ff8c00' },
+  { id:'rainbow', name:'Rainbow', cost:200, emoji:'🌈', color:'rainbow', color2:'rainbow' },
+  { id:'bubble', name:'Bubbles', cost:100, emoji:'🫧', color:'rgba(100,200,255,0.6)', color2:'rgba(200,230,255,0.4)' },
+  { id:'lightning', name:'Lightning', cost:150, emoji:'⚡', color:'#00e5ff', color2:'#7c4dff' },
+  { id:'snow', name:'Snow', cost:90, emoji:'❄️', color:'#fff', color2:'#b3e5fc' },
+  { id:'hearts', name:'Hearts', cost:130, emoji:'💕', color:'#ff69b4', color2:'#ff1493' },
+  { id:'stars', name:'Stars', cost:110, emoji:'⭐', color:'#ffd700', color2:'#ffeb3b' },
+  { id:'smoke', name:'Smoke', cost:70, emoji:'💨', color:'rgba(150,150,150,0.5)', color2:'rgba(100,100,100,0.3)' },
+  { id:'confetti', name:'Confetti', cost:160, emoji:'🎊', color:'multi', color2:'multi' },
+  { id:'galaxy', name:'Galaxy', cost:300, emoji:'🌌', color:'#7c4dff', color2:'#e040fb' },
+];
+let ownedEfx = JSON.parse(localStorage.getItem('fp_efx') || '["none"]');
+let activeEfx = localStorage.getItem('fp_active_efx') || 'none';
+function getEfx() { return EFFECTS.find(e => e.id === activeEfx) || EFFECTS[0]; }
+let trailParticles = [];
+
 let totalCoins = parseInt(localStorage.getItem('fp_coins') || '0');
 let ownedSkins = JSON.parse(localStorage.getItem('fp_skins') || '["default"]');
 let activeSkin = localStorage.getItem('fp_active_skin') || 'default';
@@ -194,6 +237,10 @@ function saveShop() {
   localStorage.setItem('fp_active_skin', activeSkin);
   localStorage.setItem('fp_bgs', JSON.stringify(ownedBGs));
   localStorage.setItem('fp_active_bg', activeBG);
+  localStorage.setItem('fp_accs', JSON.stringify(ownedAccs));
+  localStorage.setItem('fp_active_acc', activeAcc);
+  localStorage.setItem('fp_efx', JSON.stringify(ownedEfx));
+  localStorage.setItem('fp_active_efx', activeEfx);
 }
 function updateCoinDisplays() {
   document.getElementById('coin-display').textContent = '🪙 ' + totalCoins + ' coins';
@@ -293,6 +340,50 @@ function renderBGShop() {
   });
 }
 
+function renderAccShop() {
+  const grid = document.getElementById('acc-grid');
+  grid.innerHTML = '';
+  ACCESSORIES.forEach(a => {
+    const owned = ownedAccs.includes(a.id);
+    const selected = activeAcc === a.id;
+    const canBuy = totalCoins >= a.cost;
+    const card = document.createElement('div');
+    card.className = 'skin-card' + (selected ? ' selected' : '') + (!owned && !canBuy ? ' locked' : '');
+    const em = document.createElement('div'); em.style.fontSize = '28px'; em.textContent = a.emoji; card.appendChild(em);
+    const nm = document.createElement('div'); nm.className = 'skin-name'; nm.textContent = a.name; card.appendChild(nm);
+    if (selected) { const t = document.createElement('div'); t.className = 'skin-owned'; t.textContent = '✅ Active'; card.appendChild(t); }
+    else if (owned) { const t = document.createElement('div'); t.className = 'skin-owned'; t.textContent = '✓ Owned'; card.appendChild(t); }
+    else { const t = document.createElement('div'); t.className = 'skin-cost'; t.textContent = '🪙 ' + a.cost; card.appendChild(t); }
+    card.addEventListener('click', () => {
+      if (owned) { activeAcc = a.id; saveShop(); renderAccShop(); }
+      else if (canBuy) { totalCoins -= a.cost; ownedAccs.push(a.id); activeAcc = a.id; saveShop(); updateCoinDisplays(); renderAccShop(); }
+    });
+    grid.appendChild(card);
+  });
+}
+
+function renderEfxShop() {
+  const grid = document.getElementById('efx-grid');
+  grid.innerHTML = '';
+  EFFECTS.forEach(e => {
+    const owned = ownedEfx.includes(e.id);
+    const selected = activeEfx === e.id;
+    const canBuy = totalCoins >= e.cost;
+    const card = document.createElement('div');
+    card.className = 'skin-card' + (selected ? ' selected' : '') + (!owned && !canBuy ? ' locked' : '');
+    const em = document.createElement('div'); em.style.fontSize = '28px'; em.textContent = e.emoji; card.appendChild(em);
+    const nm = document.createElement('div'); nm.className = 'skin-name'; nm.textContent = e.name; card.appendChild(nm);
+    if (selected) { const t = document.createElement('div'); t.className = 'skin-owned'; t.textContent = '✅ Active'; card.appendChild(t); }
+    else if (owned) { const t = document.createElement('div'); t.className = 'skin-owned'; t.textContent = '✓ Owned'; card.appendChild(t); }
+    else { const t = document.createElement('div'); t.className = 'skin-cost'; t.textContent = '🪙 ' + e.cost; card.appendChild(t); }
+    card.addEventListener('click', () => {
+      if (owned) { activeEfx = e.id; saveShop(); renderEfxShop(); }
+      else if (canBuy) { totalCoins -= e.cost; ownedEfx.push(e.id); activeEfx = e.id; saveShop(); updateCoinDisplays(); renderEfxShop(); }
+    });
+    grid.appendChild(card);
+  });
+}
+
 // Shop tab switching
 document.querySelectorAll('.shop-tab').forEach(tab => {
   tab.addEventListener('click', () => {
@@ -301,13 +392,17 @@ document.querySelectorAll('.shop-tab').forEach(tab => {
     const which = tab.dataset.tab;
     document.getElementById('skin-grid').style.display = which === 'skins' ? '' : 'none';
     document.getElementById('bg-grid').style.display = which === 'bgs' ? '' : 'none';
-    if (which === 'bgs') renderBGShop();
-    else renderShop();
+    document.getElementById('acc-grid').style.display = which === 'accs' ? '' : 'none';
+    document.getElementById('efx-grid').style.display = which === 'efx' ? '' : 'none';
+    if (which === 'skins') renderShop();
+    else if (which === 'bgs') renderBGShop();
+    else if (which === 'accs') renderAccShop();
+    else if (which === 'efx') renderEfxShop();
   });
 });
 
 document.getElementById('shop-btn').addEventListener('click', () => {
-  updateCoinDisplays(); renderShop(); renderBGShop();
+  updateCoinDisplays(); renderShop(); renderBGShop(); renderAccShop(); renderEfxShop();
   document.getElementById('shop-screen').style.display = 'flex';
 });
 let shopOpenedFromDeath = false;
@@ -330,6 +425,7 @@ function resetGame() {
   pipeTimer = PIPE_INTERVAL - 30;
   score = 0;
   dead = false;
+  trailParticles = [];
   started = false;
   pipeSpeed = 2.5;
   particles = [];
@@ -396,6 +492,35 @@ function update() {
   // Rotation based on velocity
   bird.rotation = Math.max(-0.5, Math.min(Math.PI / 2, bird.vy * 0.08));
   bird.wingFrame += 0.3;
+
+  // Trail effect particles
+  var efx = getEfx();
+  if (efx.id !== 'none' && frame % 2 === 0) {
+    var tc1 = efx.color, tc2 = efx.color2;
+    if (efx.id === 'rainbow' || efx.id === 'confetti') {
+      var hues = ['#ff0000','#ff9800','#ffeb3b','#4caf50','#2196f3','#9c27b0','#e91e63'];
+      tc1 = hues[Math.floor(Math.random()*hues.length)];
+      tc2 = hues[Math.floor(Math.random()*hues.length)];
+    }
+    for (var ti = 0; ti < (efx.id === 'confetti' ? 3 : 2); ti++) {
+      trailParticles.push({
+        x: bird.x - bird.size + Math.random()*6 - 3,
+        y: bird.y + Math.random()*10 - 5,
+        vx: -1.5 - Math.random()*2,
+        vy: (Math.random()-0.5)*2 + (efx.id === 'bubble' ? -1 : efx.id === 'snow' ? 0.5 : 0),
+        life: 1,
+        decay: 0.03 + Math.random()*0.02,
+        size: efx.id === 'bubble' ? 3+Math.random()*4 : efx.id === 'confetti' ? 2+Math.random()*3 : 2+Math.random()*3,
+        color: Math.random()>0.5 ? tc1 : tc2,
+        shape: efx.id === 'hearts' ? 'heart' : efx.id === 'stars' ? 'star' : efx.id === 'snow' ? 'snow' : efx.id === 'confetti' ? 'rect' : 'circle'
+      });
+    }
+  }
+  for (var ti = trailParticles.length - 1; ti >= 0; ti--) {
+    var tp = trailParticles[ti];
+    tp.x += tp.vx; tp.y += tp.vy; tp.life -= tp.decay;
+    if (tp.life <= 0) trailParticles.splice(ti, 1);
+  }
 
   // Pipes
   pipeTimer++;
@@ -620,6 +745,25 @@ function draw() {
     }
   }
 
+  // Trail effect particles
+  trailParticles.forEach(tp => {
+    X.globalAlpha = tp.life;
+    X.fillStyle = tp.color;
+    if (tp.shape === 'heart') {
+      X.font = (tp.size*3)+'px serif'; X.fillText('❤', tp.x, tp.y);
+    } else if (tp.shape === 'star') {
+      X.font = (tp.size*3)+'px serif'; X.fillText('⭐', tp.x, tp.y);
+    } else if (tp.shape === 'snow') {
+      X.font = (tp.size*3)+'px serif'; X.fillText('❄', tp.x, tp.y);
+    } else if (tp.shape === 'rect') {
+      X.save(); X.translate(tp.x, tp.y); X.rotate(tp.life*4);
+      X.fillRect(-tp.size/2, -tp.size/2, tp.size, tp.size*2); X.restore();
+    } else {
+      X.beginPath(); X.arc(tp.x, tp.y, tp.size * tp.life, 0, Math.PI*2); X.fill();
+    }
+  });
+  X.globalAlpha = 1;
+
   // Bird
   if (!dead || frame % 4 < 3) {
     X.save();
@@ -699,6 +843,66 @@ function draw() {
     X.lineTo(-bird.size - 10, 4);
     X.lineTo(-bird.size + 2, 2);
     X.fill();
+
+    // === ACCESSORY DRAWING ===
+    var acc = getAcc();
+    if (acc.id === 'crown') {
+      X.fillStyle = '#ffd700';
+      X.beginPath(); X.moveTo(-8, -bird.size-2); X.lineTo(-10, -bird.size-14); X.lineTo(-4, -bird.size-8);
+      X.lineTo(0, -bird.size-16); X.lineTo(4, -bird.size-8); X.lineTo(10, -bird.size-14); X.lineTo(8, -bird.size-2); X.closePath(); X.fill();
+      X.fillStyle = '#ff0000'; X.beginPath(); X.arc(0, -bird.size-10, 2, 0, Math.PI*2); X.fill();
+    } else if (acc.id === 'tophat') {
+      X.fillStyle = '#1a1a1a';
+      X.fillRect(-10, -bird.size-2, 20, 4);
+      X.fillRect(-6, -bird.size-18, 12, 16);
+      X.fillStyle = '#c0392b'; X.fillRect(-6, -bird.size-6, 12, 3);
+    } else if (acc.id === 'sunglasses') {
+      X.fillStyle = '#1a1a1a'; X.lineWidth = 2;
+      X.fillRect(2, -8, 10, 6); X.fillRect(-8, -8, 8, 6);
+      X.strokeStyle = '#1a1a1a'; X.beginPath(); X.moveTo(-8, -5); X.lineTo(-14, -6); X.stroke();
+      X.beginPath(); X.moveTo(0, -5); X.lineTo(2, -5); X.stroke();
+    } else if (acc.id === 'headband') {
+      X.strokeStyle = '#ff0000'; X.lineWidth = 3;
+      X.beginPath(); X.arc(0, 0, bird.size+1, -Math.PI*0.8, -Math.PI*0.2); X.stroke();
+      X.fillStyle = '#ff0000'; X.beginPath(); X.arc(-bird.size+2, -bird.size+6, 4, 0, Math.PI*2); X.fill();
+    } else if (acc.id === 'bowtie') {
+      X.fillStyle = '#e91e63';
+      X.beginPath(); X.moveTo(-2, 8); X.lineTo(-10, 4); X.lineTo(-10, 14); X.closePath(); X.fill();
+      X.beginPath(); X.moveTo(2, 8); X.lineTo(10, 4); X.lineTo(10, 14); X.closePath(); X.fill();
+      X.fillStyle = '#c2185b'; X.beginPath(); X.arc(0, 9, 3, 0, Math.PI*2); X.fill();
+    } else if (acc.id === 'pirate') {
+      X.fillStyle = '#1a1a1a';
+      X.beginPath(); X.arc(0, -4, bird.size+3, Math.PI, 0); X.fill();
+      X.fillStyle = '#fff'; X.font = '10px serif'; X.textAlign = 'center'; X.fillText('☠', 0, -bird.size+2);
+    } else if (acc.id === 'wizard') {
+      X.fillStyle = '#4a148c';
+      X.beginPath(); X.moveTo(-12, -bird.size); X.lineTo(0, -bird.size-22); X.lineTo(12, -bird.size); X.closePath(); X.fill();
+      X.fillStyle = '#ffd700'; X.font = '8px serif'; X.textAlign = 'center'; X.fillText('⭐', 0, -bird.size-8);
+    } else if (acc.id === 'halo') {
+      X.strokeStyle = 'rgba(255,215,0,0.8)'; X.lineWidth = 2;
+      X.beginPath(); X.ellipse(0, -bird.size-6, 12, 4, 0, 0, Math.PI*2); X.stroke();
+      X.strokeStyle = 'rgba(255,215,0,0.3)';
+      X.beginPath(); X.ellipse(0, -bird.size-6, 14, 5, 0, 0, Math.PI*2); X.stroke();
+    } else if (acc.id === 'santa') {
+      X.fillStyle = '#d32f2f';
+      X.beginPath(); X.arc(0, -4, bird.size+2, Math.PI, 0); X.fill();
+      X.beginPath(); X.moveTo(8, -bird.size); X.quadraticCurveTo(14, -bird.size-14, 16, -bird.size-8); X.lineTo(8, -bird.size+2); X.fill();
+      X.fillStyle = '#fff'; X.beginPath(); X.arc(16, -bird.size-8, 4, 0, Math.PI*2); X.fill();
+      X.fillRect(-bird.size-2, -bird.size, bird.size*2+4, 4);
+    } else if (acc.id === 'viking') {
+      X.fillStyle = '#795548';
+      X.beginPath(); X.arc(0, -4, bird.size+3, Math.PI, 0); X.fill();
+      X.fillStyle = '#e0e0e0';
+      X.beginPath(); X.moveTo(-12, -bird.size+2); X.quadraticCurveTo(-16, -bird.size-12, -10, -bird.size-14); X.lineTo(-8, -bird.size+2); X.fill();
+      X.beginPath(); X.moveTo(12, -bird.size+2); X.quadraticCurveTo(16, -bird.size-12, 10, -bird.size-14); X.lineTo(8, -bird.size+2); X.fill();
+    } else if (acc.id === 'antenna') {
+      X.strokeStyle = '#666'; X.lineWidth = 2;
+      X.beginPath(); X.moveTo(0, -bird.size); X.lineTo(0, -bird.size-16); X.stroke();
+      X.fillStyle = '#ff0000'; X.beginPath(); X.arc(0, -bird.size-16, 4, 0, Math.PI*2); X.fill();
+      X.fillStyle = '#ff0000'; X.globalAlpha = 0.3 + Math.sin(frame*0.2)*0.3;
+      X.beginPath(); X.arc(0, -bird.size-16, 7, 0, Math.PI*2); X.fill();
+      X.globalAlpha = 1;
+    }
 
     X.restore();
   }
@@ -813,7 +1017,7 @@ document.getElementById('death-lb').addEventListener('click', function(){ _lbSho
 document.getElementById('death-shop').addEventListener('click', function(){
   document.getElementById('death-screen').style.display = 'none';
   shopOpenedFromDeath = true;
-  updateCoinDisplays(); renderShop(); renderBGShop();
+  updateCoinDisplays(); renderShop(); renderBGShop(); renderAccShop(); renderEfxShop();
   document.getElementById('shop-screen').style.display = 'flex';
 });
 document.getElementById('death-name').addEventListener('keydown', function(e){ if(e.key==='Enter') document.getElementById('death-submit').click(); });
