@@ -59,6 +59,7 @@ canvas{display:block}
 <button id="music-btn">🔊</button>
 <canvas id="game"></canvas>
 <div id="score-display">0</div>
+<div id="coin-hud" style="position:absolute;top:10px;right:12px;font-family:'Lilita One',cursive;font-size:16px;color:#22d3ee;text-shadow:1px 2px 0 #000;z-index:10;pointer-events:none">🪙 0</div>
 
 <div id="overlay">
   <h1>🦜 Flappy Parrot</h1>
@@ -77,9 +78,11 @@ canvas{display:block}
   <h2 id="death-score">Score: 0</h2>
   <div id="death-best">Best: 0</div>
   <input type="text" id="death-name" placeholder="Your name" maxlength="16" autocomplete="off">
+  <div id="death-coins" style="color:#22d3ee;font-weight:800;font-size:16px;margin-bottom:10px">🪙 0 coins</div>
   <button class="death-btn" id="death-submit">📤 Submit</button>
   <button class="death-btn" id="death-retry">🔄 Retry</button>
   <button class="death-btn" id="death-lb">🏆 Ranks</button>
+  <button class="death-btn" id="death-shop" style="background:linear-gradient(135deg,#a855f7,#ec4899)">🛍️ Skins</button>
 </div>
 
 <div id="shop-screen">
@@ -172,6 +175,9 @@ function saveShop() {
 function updateCoinDisplays() {
   document.getElementById('coin-display').textContent = '🪙 ' + totalCoins + ' coins';
   document.getElementById('shop-coins').textContent = '🪙 ' + totalCoins + ' coins';
+  document.getElementById('coin-hud').textContent = '🪙 ' + totalCoins;
+  var dc = document.getElementById('death-coins');
+  if (dc) dc.textContent = '🪙 ' + totalCoins + ' coins';
 }
 function renderShop() {
   const grid = document.getElementById('skin-grid');
@@ -651,6 +657,11 @@ document.getElementById('death-retry').addEventListener('click', function(){
   resetGame();
 });
 document.getElementById('death-lb').addEventListener('click', function(){ _lbShow(); });
+document.getElementById('death-shop').addEventListener('click', function(){
+  document.getElementById('death-screen').style.display = 'none';
+  updateCoinDisplays(); renderShop();
+  document.getElementById('shop-screen').style.display = 'flex';
+});
 document.getElementById('death-name').addEventListener('keydown', function(e){ if(e.key==='Enter') document.getElementById('death-submit').click(); });
 
 // === AUDIO SYSTEM ===
