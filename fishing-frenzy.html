@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Play Fishing Frenzy - cast your line, catch fish, earn coins! Free browser game at AJ GameTime.">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://ajgametime.com/fishing-frenzy.html">
+<meta property="og:title" content="Fishing Frenzy — AJ GameTime">
+<meta property="og:description" content="Cast your line and catch fish! Rare fish worth more coins!">
+<title>Fishing Frenzy — AJ GameTime</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{min-height:100vh;display:flex;flex-direction:column;align-items:center;font-family:-apple-system,sans-serif;background:#001a2a;color:#e2e8f0;overflow:hidden;user-select:none;-webkit-user-select:none}
+#header{width:100%;padding:0.5rem 1rem;display:flex;justify-content:space-between;align-items:center;z-index:10;position:fixed;top:0;background:rgba(0,26,42,0.85)}
+#header a{color:#64748b;text-decoration:none;font-size:0.85rem}
+#header a:hover{color:#e2e8f0}
+#hud{display:flex;gap:1.2rem;align-items:center}
+.stat{text-align:center}.stat-val{font-size:1.3rem;font-weight:800}.stat-label{font-size:0.55rem;text-transform:uppercase;letter-spacing:0.1em;color:#64748b}
+#scoreVal{color:#fbbf24}#coinsVal{color:#fbbf24}#catchVal{color:#22c55e}#bestVal{color:#a78bfa}
+canvas{display:block;touch-action:none}
+#startScreen{position:fixed;inset:0;background:rgba(0,20,35,0.97);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:30}
+#startScreen.hidden{display:none}
+#startScreen h1{font-size:2.5rem;margin-bottom:0.5rem}
+#startScreen .emoji{font-size:5rem;margin-bottom:1rem}
+#startScreen p{color:#94a3b8;margin-bottom:0.5rem;font-size:0.9rem;text-align:center;max-width:340px}
+button.play-btn{margin-top:1rem;padding:0.8rem 2rem;font-size:1rem;font-weight:700;background:linear-gradient(135deg,#0ea5e9,#22d3ee);color:white;border:none;border-radius:12px;cursor:pointer;transition:0.2s}
+button.play-btn:hover{transform:scale(1.05)}
+.menu-btn{padding:8px 20px;font-size:14px;font-weight:700;color:#fff;border:none;border-radius:8px;cursor:pointer;margin-top:8px}
+#musicBtn{position:fixed;bottom:16px;right:16px;z-index:20;width:44px;height:44px;border-radius:50%;border:2px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.08);color:#e2e8f0;font-size:1.2rem;cursor:pointer;display:flex;align-items:center;justify-content:center}
+#castBtn{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:15;display:none;padding:14px 40px;font-size:1.1rem;font-weight:700;background:linear-gradient(135deg,#0ea5e9,#22d3ee);color:#fff;border:none;border-radius:14px;cursor:pointer}
+#reelBar{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:15;display:none;width:min(300px,80vw);height:40px;border-radius:20px;background:rgba(255,255,255,0.1);border:2px solid rgba(255,255,255,0.2);overflow:hidden}
+#reelFill{height:100%;width:0%;background:linear-gradient(90deg,#22c55e,#fbbf24,#ef4444);border-radius:18px;transition:width 0.05s}
+#reelZone{position:absolute;height:100%;background:rgba(34,197,94,0.3);border-left:2px solid #22c55e;border-right:2px solid #22c55e;pointer-events:none}
+#lb-overlay{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;z-index:100;background:rgba(0,0,0,0.92)}
+#lb-overlay h2{font-size:28px;color:#f59e0b;margin-bottom:12px;font-weight:900}
+#lb-list{width:min(340px,90vw);max-height:50vh;overflow-y:auto}
+.lb-row{display:flex;justify-content:space-between;padding:8px 14px;border-bottom:1px solid rgba(255,255,255,0.08);color:#e2e8f0;font-size:14px;font-weight:600}
+.lb-row:nth-child(1) .lb-rank{color:#fbbf24}.lb-row:nth-child(2) .lb-rank{color:#94a3b8}.lb-row:nth-child(3) .lb-rank{color:#b45309}
+.lb-rank{width:30px;color:#64748b}.lb-name{flex:1;margin:0 8px}.lb-score{color:#22d3ee}
+#lb-close-btn{margin-top:16px;padding:10px 30px;font-size:16px;font-weight:700;color:#fff;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:10px;cursor:pointer}
+#end-screen{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;z-index:90;background:rgba(0,20,35,0.97)}
+#end-screen h1{font-size:2.5rem;margin-bottom:0.5rem;color:#e2e8f0}
+#end-score{font-size:3rem;font-weight:900;color:#fbbf24;margin-bottom:4px}
+#end-catch{font-size:1.1rem;color:#22c55e;font-weight:700;margin-bottom:4px}
+#end-coins{color:#fbbf24;font-size:1rem;font-weight:700;margin-bottom:12px}
+#end-screen input{padding:10px 16px;font-size:16px;border-radius:8px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.1);color:#fff;text-align:center;width:200px;margin-bottom:12px}
+#end-screen button{margin:4px;padding:10px 24px;font-size:14px;font-weight:700;border:none;border-radius:10px;cursor:pointer;color:#fff}
+#end-submit{background:linear-gradient(135deg,#22c55e,#16a34a)}
+#end-retry{background:linear-gradient(135deg,#0ea5e9,#22d3ee)}
+#end-lb{background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2)!important}
+#shop-screen{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;z-index:95;background:rgba(0,20,35,0.98);overflow-y:auto;padding:20px 10px}
+#shop-screen h2{font-size:1.8rem;margin-bottom:4px;color:#fbbf24}
+#shop-coins-display{color:#fbbf24;font-size:1.1rem;font-weight:700;margin-bottom:12px}
+.shop-tabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;justify-content:center}
+.shop-tab{padding:8px 16px;font-weight:700;border-radius:8px;border:2px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.05);color:#fff;cursor:pointer;font-size:13px}
+.shop-tab.active{background:linear-gradient(135deg,#0ea5e9,#22d3ee);border-color:transparent}
+.shop-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:10px;width:min(500px,95vw);margin-bottom:16px}
+.shop-card{background:rgba(255,255,255,0.08);border-radius:12px;padding:12px 8px;text-align:center;cursor:pointer;border:2px solid transparent;transition:0.2s}
+.shop-card:hover{background:rgba(255,255,255,0.15)}
+.shop-card.selected{border-color:#22c55e;background:rgba(34,197,94,0.15)}
+.shop-card.locked{opacity:0.5}
+.shop-card .item-emoji{font-size:2rem;margin-bottom:4px}
+.shop-card .item-name{font-size:0.75rem;font-weight:700;color:#e2e8f0;margin-bottom:2px}
+.shop-card .item-cost{font-size:0.7rem;color:#fbbf24}
+.shop-card .item-owned{font-size:0.7rem;color:#22c55e}
+#shop-close{margin-top:12px;padding:10px 30px;font-size:16px;font-weight:700;color:#fff;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:10px;cursor:pointer;margin-bottom:30px}
+#catch-popup{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:25;display:none;flex-direction:column;align-items:center;background:rgba(0,0,0,0.85);padding:30px 40px;border-radius:20px;border:2px solid rgba(255,255,255,0.2)}
+#catch-popup .fish-emoji{font-size:4rem;margin-bottom:8px}
+#catch-popup .fish-name{font-size:1.5rem;font-weight:900;margin-bottom:4px}
+#catch-popup .fish-pts{font-size:1rem;color:#fbbf24;font-weight:700}
+#timer-bar{position:fixed;top:48px;left:0;width:100%;height:4px;z-index:11;background:rgba(255,255,255,0.1)}
+#timer-fill{height:100%;width:100%;background:linear-gradient(90deg,#ef4444,#fbbf24,#22c55e);transition:width 0.5s linear}
+</style>
+</head>
+<body>
+<div id="header">
+  <a href="index.html">← AJ GameTime</a>
+  <div id="hud">
+    <div class="stat"><div class="stat-val" id="scoreVal">0</div><div class="stat-label">Score</div></div>
+    <div class="stat"><div class="stat-val" id="coinsVal">0</div><div class="stat-label">🪙</div></div>
+    <div class="stat"><div class="stat-val" id="catchVal">0</div><div class="stat-label">Catch</div></div>
+    <div class="stat"><div class="stat-val" id="bestVal">0</div><div class="stat-label">Best</div></div>
+  </div>
+</div>
+<div id="timer-bar"><div id="timer-fill"></div></div>
+
+<div id="startScreen">
+  <div class="emoji">🎣</div>
+  <h1>Fishing Frenzy</h1>
+  <p>Cast your line and catch fish! Rare fish are worth more. You have 90 seconds — catch as many as you can! 🐟</p>
+  <p style="color:#94a3b8;font-size:0.8rem">Tap/click to cast, then keep the bar in the green zone to reel in!</p>
+  <p id="start-coins" style="color:#fbbf24;font-weight:700">🪙 0</p>
+  <button class="play-btn" id="startBtn">🎣 Cast Off!</button>
+  <button class="menu-btn" id="lb-show-btn" style="background:linear-gradient(135deg,#f59e0b,#ef4444)">🏆 Leaderboard</button>
+  <button class="menu-btn" id="shop-show-btn" style="background:linear-gradient(135deg,#a855f7,#ec4899)">🛍️ Shop</button>
+</div>
+
+<canvas id="game"></canvas>
+<button id="musicBtn">🔊</button>
+<button id="castBtn">🎣 Cast!</button>
+<div id="reelBar"><div id="reelZone"></div><div id="reelFill"></div></div>
+
+<div id="catch-popup"><div class="fish-emoji"></div><div class="fish-name"></div><div class="fish-pts"></div></div>
+
+<div id="lb-overlay"><h2>🏆 Leaderboard</h2><div id="lb-list"></div><button id="lb-close-btn">Close</button></div>
+
+<div id="end-screen">
+  <h1>🎣 Time's Up!</h1>
+  <div id="end-score">0</div>
+  <div id="end-catch">Fish Caught: 0</div>
+  <div id="end-coins">🪙 0</div>
+  <input type="text" id="end-name" placeholder="Your name" maxlength="16" autocomplete="off">
+  <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">
+    <button id="end-submit">📤 Submit</button>
+    <button id="end-lb">🏆 Leaderboard</button>
+    <button id="end-retry">🎣 Play Again</button>
+    <button id="end-shop" style="background:linear-gradient(135deg,#a855f7,#ec4899)">🛍️ Shop</button>
+  </div>
+</div>
+
+<div id="shop-screen">
+  <h2>🛍️ Shop</h2>
+  <div id="shop-coins-display">🪙 0</div>
+  <div class="shop-tabs">
+    <button class="shop-tab active" data-tab="rods">🎣 Rods</button>
+    <button class="shop-tab" data-tab="locations">🌊 Locations</button>
+    <button class="shop-tab" data-tab="bait">🪱 Bait</button>
+    <button class="shop-tab" data-tab="boats">🚤 Boats</button>
+    <button class="shop-tab" data-tab="hats">🎩 Hats</button>
+  </div>
+  <div class="shop-grid" id="grid-rods"></div>
+  <div class="shop-grid" id="grid-locations" style="display:none"></div>
+  <div class="shop-grid" id="grid-bait" style="display:none"></div>
+  <div class="shop-grid" id="grid-boats" style="display:none"></div>
+  <div class="shop-grid" id="grid-hats" style="display:none"></div>
+  <button id="shop-close">Close</button>
+</div>
+
+<script>
+// === FISH DATA ===
+var FISH_TYPES=[
+  {emoji:'🐟',name:'Bluegill',points:10,coins:1,rarity:0.25,speed:2,color:'#38bdf8'},
+  {emoji:'🐠',name:'Tropical Fish',points:15,coins:1,rarity:0.2,speed:2.5,color:'#f97316'},
+  {emoji:'🐡',name:'Pufferfish',points:25,coins:2,rarity:0.12,speed:1.5,color:'#fbbf24'},
+  {emoji:'🦈',name:'Shark',points:50,coins:5,rarity:0.06,speed:4,color:'#64748b'},
+  {emoji:'🐙',name:'Octopus',points:40,coins:4,rarity:0.08,speed:3,color:'#a855f7'},
+  {emoji:'🦑',name:'Squid',points:35,coins:3,rarity:0.08,speed:3.5,color:'#ec4899'},
+  {emoji:'🐳',name:'Whale',points:100,coins:10,rarity:0.03,speed:1,color:'#0ea5e9'},
+  {emoji:'🦐',name:'Shrimp',points:5,coins:1,rarity:0.15,speed:2,color:'#fb923c'},
+  {emoji:'🦀',name:'Crab',points:20,coins:2,rarity:0.1,speed:1.5,color:'#ef4444'},
+  {emoji:'🐢',name:'Sea Turtle',points:60,coins:6,rarity:0.04,speed:1,color:'#22c55e'},
+  {emoji:'💎',name:'Diamond Fish',points:200,coins:20,rarity:0.01,speed:5,color:'#67e8f9'},
+  {emoji:'⭐',name:'Starfish',points:30,coins:3,rarity:0.08,speed:0.5,color:'#fbbf24'},
+];
+
+// === SHOP DATA ===
+var RODS=[
+  {id:'bamboo',name:'Bamboo Rod',cost:0,emoji:'🎣',bonus:0,desc:'Basic rod'},
+  {id:'fiber',name:'Fiberglass',cost:75,emoji:'🎣',bonus:0.1,desc:'+10% catch'},
+  {id:'carbon',name:'Carbon Rod',cost:150,emoji:'🎣',bonus:0.2,desc:'+20% catch'},
+  {id:'gold',name:'Gold Rod',cost:300,emoji:'🏆',bonus:0.3,desc:'+30% catch'},
+  {id:'diamond',name:'Diamond Rod',cost:500,emoji:'💎',bonus:0.4,desc:'+40% catch'},
+  {id:'legendary',name:'Legendary',cost:1000,emoji:'⚡',bonus:0.5,desc:'+50% catch'},
+];
+
+var LOCATIONS=[
+  {id:'lake',name:'Lake',cost:0,emoji:'🏞️',sky1:'#0c4a6e',sky2:'#0284c7',water1:'#0369a1',water2:'#0c4a6e',sand:'#d2b48c'},
+  {id:'ocean',name:'Ocean',cost:100,emoji:'🌊',sky1:'#0f172a',sky2:'#1e40af',water1:'#1e3a5f',water2:'#0f172a',sand:'#c2b280'},
+  {id:'tropical',name:'Tropical Reef',cost:150,emoji:'🏝️',sky1:'#0ea5e9',sky2:'#38bdf8',water1:'#0284c7',water2:'#0369a1',sand:'#fde68a'},
+  {id:'deep',name:'Deep Sea',cost:200,emoji:'🌑',sky1:'#020010',sky2:'#0a0020',water1:'#050015',water2:'#020010',sand:'#1e293b'},
+  {id:'arctic',name:'Arctic',cost:175,emoji:'🧊',sky1:'#164e63',sky2:'#67e8f9',water1:'#155e75',water2:'#0c4a6e',sand:'#e2e8f0'},
+  {id:'lava',name:'Lava Pool',cost:300,emoji:'🌋',sky1:'#1a0505',sky2:'#450a0a',water1:'#7c2d12',water2:'#451a03',sand:'#292524'},
+  {id:'swamp',name:'Swamp',cost:125,emoji:'🐊',sky1:'#052e16',sky2:'#14532d',water1:'#15803d',water2:'#052e16',sand:'#4a3728'},
+  {id:'space',name:'Space Ocean',cost:500,emoji:'🚀',sky1:'#020010',sky2:'#1e1b4b',water1:'#312e81',water2:'#1e1b4b',sand:'#4f46e5'},
+];
+
+var BAIT=[
+  {id:'worm',name:'Worm',cost:0,emoji:'🪱',rareBonus:0},
+  {id:'cricket',name:'Cricket',cost:50,emoji:'🦗',rareBonus:0.02},
+  {id:'minnow',name:'Minnow',cost:100,emoji:'🐟',rareBonus:0.04},
+  {id:'shrimp',name:'Shrimp',cost:125,emoji:'🦐',rareBonus:0.06},
+  {id:'squid',name:'Squid Bait',cost:175,emoji:'🦑',rareBonus:0.08},
+  {id:'gold',name:'Gold Bait',cost:300,emoji:'✨',rareBonus:0.1},
+  {id:'magic',name:'Magic Bait',cost:500,emoji:'🔮',rareBonus:0.15},
+];
+
+var BOATS=[
+  {id:'none',name:'Shore',cost:0,emoji:'🏖️'},
+  {id:'raft',name:'Raft',cost:75,emoji:'🪵'},
+  {id:'canoe',name:'Canoe',cost:125,emoji:'🛶'},
+  {id:'sailboat',name:'Sailboat',cost:200,emoji:'⛵'},
+  {id:'speedboat',name:'Speedboat',cost:300,emoji:'🚤'},
+  {id:'yacht',name:'Yacht',cost:500,emoji:'🛥️'},
+  {id:'submarine',name:'Submarine',cost:750,emoji:'🤿'},
+];
+
+var HATS=[
+  {id:'none',name:'None',cost:0,emoji:''},
+  {id:'fishing',name:'Fishing Hat',cost:50,emoji:'🧢'},
+  {id:'pirate',name:'Pirate Hat',cost:100,emoji:'🏴‍☠️'},
+  {id:'crown',name:'Crown',cost:150,emoji:'👑'},
+  {id:'cowboy',name:'Cowboy',cost:75,emoji:'🤠'},
+  {id:'wizard',name:'Wizard Hat',cost:125,emoji:'🧙'},
+  {id:'chef',name:'Chef Hat',cost:90,emoji:'👨‍🍳'},
+  {id:'diver',name:'Diver',cost:175,emoji:'🤿'},
+  {id:'alien',name:'Alien',cost:200,emoji:'👽'},
+  {id:'robot',name:'Robot',cost:250,emoji:'🤖'},
+];
+
+// === STATE ===
+var totalCoins=parseInt(localStorage.getItem('ff_coins')||'0');
+var ownedRods=JSON.parse(localStorage.getItem('ff_rods')||'["bamboo"]');
+var activeRod=localStorage.getItem('ff_active_rod')||'bamboo';
+var ownedLocs=JSON.parse(localStorage.getItem('ff_locs')||'["lake"]');
+var activeLoc=localStorage.getItem('ff_active_loc')||'lake';
+var ownedBait=JSON.parse(localStorage.getItem('ff_bait')||'["worm"]');
+var activeBait=localStorage.getItem('ff_active_bait')||'worm';
+var ownedBoats=JSON.parse(localStorage.getItem('ff_boats')||'["none"]');
+var activeBoat=localStorage.getItem('ff_active_boat')||'none';
+var ownedHats=JSON.parse(localStorage.getItem('ff_hats')||'["none"]');
+var activeHat=localStorage.getItem('ff_active_hat')||'none';
+
+function saveShop(){localStorage.setItem('ff_coins',totalCoins);localStorage.setItem('ff_rods',JSON.stringify(ownedRods));localStorage.setItem('ff_active_rod',activeRod);localStorage.setItem('ff_locs',JSON.stringify(ownedLocs));localStorage.setItem('ff_active_loc',activeLoc);localStorage.setItem('ff_bait',JSON.stringify(ownedBait));localStorage.setItem('ff_active_bait',activeBait);localStorage.setItem('ff_boats',JSON.stringify(ownedBoats));localStorage.setItem('ff_active_boat',activeBoat);localStorage.setItem('ff_hats',JSON.stringify(ownedHats));localStorage.setItem('ff_active_hat',activeHat)}
+function getRod(){return RODS.find(function(r){return r.id===activeRod})||RODS[0]}
+function getLoc(){return LOCATIONS.find(function(l){return l.id===activeLoc})||LOCATIONS[0]}
+function getBait(){return BAIT.find(function(b){return b.id===activeBait})||BAIT[0]}
+function getBoat(){return BOATS.find(function(b){return b.id===activeBoat})||BOATS[0]}
+function getHat(){return HATS.find(function(h){return h.id===activeHat})||HATS[0]}
+function updateCoinDisplays(){document.getElementById('start-coins').textContent='🪙 '+totalCoins;document.getElementById('shop-coins-display').textContent='🪙 '+totalCoins;document.getElementById('end-coins').textContent='🪙 '+totalCoins;document.getElementById('coinsVal').textContent=totalCoins}
+updateCoinDisplays();
+
+// === AUDIO ===
+var AudioCtx=window.AudioContext||window.webkitAudioContext,audioCtx=null,musicPlaying=false,musicGain=null,musicInterval=null,droneOsc=null,droneOsc2=null;
+function initAudio(){if(audioCtx)return;audioCtx=new AudioCtx();musicGain=audioCtx.createGain();musicGain.gain.value=0.25;musicGain.connect(audioCtx.destination)}
+function playNote(freq,dur,type,vol){if(!audioCtx)return;var o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type=type||'sine';o.frequency.value=freq;g.gain.setValueAtTime(vol||0.1,audioCtx.currentTime);g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+dur);o.connect(g);g.connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+dur)}
+function sfxCast(){playNote(300,0.2,'triangle',0.08);playNote(200,0.3,'sine',0.05)}
+function sfxSplash(){playNote(150,0.3,'sawtooth',0.06);playNote(120,0.4,'sine',0.04)}
+function sfxReel(){playNote(500,0.05,'square',0.04)}
+function sfxCatch(){playNote(523,0.15,'sine',0.12);playNote(659,0.12,'sine',0.1);playNote(784,0.15,'sine',0.12)}
+function sfxRare(){playNote(784,0.2,'sine',0.12);playNote(988,0.15,'sine',0.1);playNote(1175,0.2,'sine',0.12);playNote(1319,0.25,'sine',0.1)}
+function sfxLost(){playNote(300,0.2,'sawtooth',0.08);playNote(200,0.3,'sawtooth',0.06)}
+
+var MELODIES={
+  'lake':{notes:[[330,0.6],[392,0.5],[440,0.7],[0,0.4],[392,0.5],[330,0.8],[0,0.5],[294,0.6],[330,0.7],[0,0.5]],drone:165,wave:'sine'},
+  'ocean':{notes:[[262,0.7],[294,0.5],[330,0.8],[0,0.5],[294,0.6],[262,0.9],[0,0.5]],drone:131,wave:'triangle'},
+  'tropical':{notes:[[392,0.3],[440,0.3],[523,0.4],[440,0.3],[392,0.4],[0,0.2],[330,0.3],[392,0.5],[0,0.3]],drone:196,wave:'sine'},
+  'deep':{notes:[[165,0.8],[196,0.6],[220,0.9],[0,0.6],[196,0.7],[165,1.0],[0,0.6]],drone:82,wave:'triangle'},
+  'arctic':{notes:[[523,0.6],[587,0.5],[659,0.7],[0,0.4],[587,0.5],[523,0.8],[0,0.5]],drone:262,wave:'sine'},
+  'lava':{notes:[[147,0.4],[165,0.3],[196,0.5],[0,0.3],[165,0.3],[147,0.6],[0,0.3]],drone:73,wave:'sawtooth'},
+  'swamp':{notes:[[220,0.5],[262,0.4],[294,0.6],[0,0.3],[262,0.4],[220,0.7],[0,0.4]],drone:110,wave:'triangle'},
+  'space':{notes:[[440,0.8],[523,0.6],[587,0.9],[0,0.5],[523,0.7],[440,1.0],[0,0.6]],drone:220,wave:'sine'},
+};
+function startMusic(){if(musicPlaying)return;initAudio();musicPlaying=true;var m=MELODIES[activeLoc]||MELODIES['lake'];droneOsc=audioCtx.createOscillator();var dg=audioCtx.createGain();droneOsc.type='sine';droneOsc.frequency.value=m.drone;dg.gain.value=0.05;droneOsc.connect(dg);dg.connect(musicGain);droneOsc.start();droneOsc2=audioCtx.createOscillator();var dg2=audioCtx.createGain();droneOsc2.type='sine';droneOsc2.frequency.value=m.drone*1.5;dg2.gain.value=0.025;droneOsc2.connect(dg2);dg2.connect(musicGain);droneOsc2.start();var idx=0;function next(){if(!musicPlaying)return;var n=m.notes[idx%m.notes.length];if(n[0]>0){var o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type=m.wave;o.frequency.value=n[0];g.gain.setValueAtTime(0.07,audioCtx.currentTime);g.gain.exponentialRampToValueAtTime(0.01,audioCtx.currentTime+n[1]*0.85);o.connect(g);g.connect(musicGain);o.start();o.stop(audioCtx.currentTime+n[1])}idx++;musicInterval=setTimeout(next,n[1]*1000)}next();document.getElementById('musicBtn').textContent='🔊'}
+function stopMusic(){musicPlaying=false;if(musicInterval)clearTimeout(musicInterval);try{if(droneOsc)droneOsc.stop()}catch(e){}try{if(droneOsc2)droneOsc2.stop()}catch(e){}droneOsc=null;droneOsc2=null;document.getElementById('musicBtn').textContent='🔇'}
+document.getElementById('musicBtn').addEventListener('click',function(){if(musicPlaying)stopMusic();else startMusic()});
+
+// === GAME ===
+var canvas=document.getElementById('game'),ctx=canvas.getContext('2d'),W,H;
+function resize(){W=window.innerWidth;H=window.innerHeight;canvas.width=W;canvas.height=H}
+resize();window.addEventListener('resize',resize);
+
+var WATER_Y;
+var score,catches,gameRunning,timeLeft,maxTime=90;
+var state='idle'; // idle, casting, waiting, hooked, reeling
+var hookX,hookY,hookTargetY,lineX;
+var swimFish=[],bubbles=[],particles=[],textPops=[];
+var hookedFish=null,reelProgress=0,reelZonePos=0,reelZoneDir=1,reelZoneW=0.25;
+var highScore=parseInt(localStorage.getItem('ff_high')||'0');
+document.getElementById('bestVal').textContent=highScore;
+
+function init(){
+  WATER_Y=H*0.35;
+  score=0;catches=0;timeLeft=maxTime;gameRunning=true;
+  state='idle';hookX=0;hookY=0;hookTargetY=0;lineX=W*0.3;
+  swimFish=[];bubbles=[];particles=[];textPops=[];
+  hookedFish=null;reelProgress=0;
+  // Spawn ambient fish
+  for(var i=0;i<12;i++)spawnSwimFish();
+  updateHUD();
+  document.getElementById('castBtn').style.display='block';
+  document.getElementById('reelBar').style.display='none';
+}
+
+function spawnSwimFish(){
+  var f=FISH_TYPES[Math.floor(Math.random()*FISH_TYPES.length)];
+  var dir=Math.random()>0.5?1:-1;
+  swimFish.push({x:dir>0?-40:W+40,y:WATER_Y+40+Math.random()*(H-WATER_Y-100),vx:dir*(0.5+Math.random()*f.speed*0.5),fish:f,size:20+Math.random()*15,bobPhase:Math.random()*Math.PI*2});
+}
+
+function updateHUD(){
+  document.getElementById('scoreVal').textContent=score;
+  document.getElementById('catchVal').textContent=catches;
+  if(score>highScore){highScore=score;localStorage.setItem('ff_high',highScore)}
+  document.getElementById('bestVal').textContent=highScore;
+  document.getElementById('timer-fill').style.width=(timeLeft/maxTime*100)+'%';
+}
+
+function pickFish(){
+  var bait=getBait();
+  var roll=Math.random();
+  // Sort by rarity ascending (rarest last)
+  var pool=FISH_TYPES.slice().sort(function(a,b){return b.rarity-a.rarity});
+  var cumul=0;
+  for(var i=0;i<pool.length;i++){
+    cumul+=pool[i].rarity+bait.rareBonus;
+    if(roll<cumul)return pool[i];
+  }
+  return pool[0];
+}
+
+function cast(){
+  if(state!=='idle'||!gameRunning)return;
+  state='casting';sfxCast();
+  hookX=lineX;hookY=WATER_Y;hookTargetY=WATER_Y+80+Math.random()*(H-WATER_Y-140);
+  document.getElementById('castBtn').style.display='none';
+}
+
+function startReel(fish){
+  state='reeling';hookedFish=fish;reelProgress=0;
+  reelZonePos=Math.random()*0.5+0.1;
+  reelZoneW=Math.max(0.12,0.3-fish.speed*0.03);
+  var rod=getRod();reelZoneW+=rod.bonus*0.15;
+  document.getElementById('reelBar').style.display='block';
+  var zone=document.getElementById('reelZone');
+  zone.style.left=(reelZonePos*100)+'%';zone.style.width=(reelZoneW*100)+'%';
+}
+
+function update(){
+  // Always update particles
+  for(var pi=particles.length-1;pi>=0;pi--){var p=particles[pi];p.x+=p.vx;p.y+=p.vy;p.vy+=0.08;p.life--;if(p.life<=0)particles.splice(pi,1)}
+  for(var tpi=textPops.length-1;tpi>=0;tpi--){textPops[tpi].y-=1.2;textPops[tpi].life--;if(textPops[tpi].life<=0)textPops.splice(tpi,1)}
+  // Bubbles
+  for(var bi=bubbles.length-1;bi>=0;bi--){bubbles[bi].y-=0.5+bubbles[bi].speed;bubbles[bi].x+=Math.sin(Date.now()*0.003+bi)*0.3;if(bubbles[bi].y<WATER_Y)bubbles.splice(bi,1)}
+  if(Math.random()<0.05)bubbles.push({x:Math.random()*W,y:H-20-Math.random()*50,size:2+Math.random()*4,speed:Math.random()*0.5});
+
+  if(!gameRunning)return;
+
+  // Timer
+  timeLeft-=1/60;
+  if(timeLeft<=0){timeLeft=0;gameRunning=false;stopMusic();
+    document.getElementById('castBtn').style.display='none';document.getElementById('reelBar').style.display='none';
+    setTimeout(gameOver,500);return}
+  updateHUD();
+
+  // Swim fish
+  for(var fi=swimFish.length-1;fi>=0;fi--){
+    var sf=swimFish[fi];sf.x+=sf.vx;sf.bobPhase+=0.03;
+    if((sf.vx>0&&sf.x>W+60)||(sf.vx<0&&sf.x<-60)){swimFish.splice(fi,1);spawnSwimFish()}
+  }
+
+  // Casting animation
+  if(state==='casting'){
+    hookY+=6;
+    if(hookY>=hookTargetY){hookY=hookTargetY;state='waiting';sfxSplash();
+      for(var si=0;si<5;si++)particles.push({x:hookX+(Math.random()-0.5)*20,y:WATER_Y,vx:(Math.random()-0.5)*3,vy:-2-Math.random()*2,life:20,color:'rgba(255,255,255,0.6)',size:3});
+      // Wait 1-3 seconds then hook
+      var waitTime=1000+Math.random()*2000;
+      setTimeout(function(){if(state==='waiting'){state='hooked';var fish=pickFish();startReel(fish);sfxSplash()}},waitTime);
+    }
+  }
+
+  // Reeling
+  if(state==='reeling'){
+    // Move the zone
+    reelZonePos+=reelZoneDir*0.008*(hookedFish.speed*0.5+0.5);
+    if(reelZonePos+reelZoneW>0.95){reelZoneDir=-1}
+    if(reelZonePos<0.05){reelZoneDir=1}
+    var zone=document.getElementById('reelZone');
+    zone.style.left=(reelZonePos*100)+'%';
+
+    // Check if player is holding/clicking
+    if(reelHolding){
+      var fillPct=reelProgress/100;
+      // In zone?
+      if(fillPct>=reelZonePos&&fillPct<=reelZonePos+reelZoneW){
+        reelProgress+=0.8;sfxReel();
+      }else{
+        reelProgress-=0.4;
+      }
+    }else{
+      reelProgress-=0.3;
+    }
+    reelProgress=Math.max(0,Math.min(100,reelProgress));
+    document.getElementById('reelFill').style.width=reelProgress+'%';
+
+    if(reelProgress>=100){
+      // Caught!
+      var rod=getRod();
+      var pts=Math.round(hookedFish.points*(1+rod.bonus));
+      var cn=hookedFish.coins;
+      score+=pts;totalCoins+=cn;catches++;
+      if(hookedFish.rarity<0.05)sfxRare();else sfxCatch();
+      textPops.push({x:hookX,y:hookY-20,text:hookedFish.emoji+' +'+pts,color:hookedFish.color,size:24,life:40});
+      for(var ci=0;ci<10;ci++)particles.push({x:hookX,y:hookY,vx:(Math.random()-0.5)*6,vy:-2-Math.random()*4,life:25,color:hookedFish.color,size:3+Math.random()*3});
+      // Show catch popup
+      var popup=document.getElementById('catch-popup');
+      popup.querySelector('.fish-emoji').textContent=hookedFish.emoji;
+      popup.querySelector('.fish-name').textContent=hookedFish.name;popup.querySelector('.fish-name').style.color=hookedFish.color;
+      popup.querySelector('.fish-pts').textContent='+'+pts+' pts | 🪙 +'+cn;
+      popup.style.display='flex';setTimeout(function(){popup.style.display='none'},1500);
+      saveShop();updateCoinDisplays();updateHUD();resetLine();
+    }
+    if(reelProgress<=0&&state==='reeling'){
+      // Fish escaped!
+      sfxLost();textPops.push({x:hookX,y:hookY-20,text:'Escaped! 💨',color:'#ef4444',size:20,life:30});
+      resetLine();
+    }
+  }
+}
+
+var reelHolding=false;
+function resetLine(){state='idle';hookedFish=null;reelProgress=0;document.getElementById('reelBar').style.display='none';document.getElementById('reelFill').style.width='0%';document.getElementById('castBtn').style.display='block'}
+
+function gameOver(){
+  document.getElementById('end-score').textContent=score;
+  document.getElementById('end-catch').textContent='Fish Caught: '+catches;
+  updateCoinDisplays();
+  document.getElementById('end-name').value=localStorage.getItem('ajgt_name')||'';
+  document.getElementById('end-screen').style.display='flex';
+}
+
+function draw(){
+  var loc=getLoc();
+  // Sky
+  var sky=ctx.createLinearGradient(0,0,0,WATER_Y);sky.addColorStop(0,loc.sky1);sky.addColorStop(1,loc.sky2);
+  ctx.fillStyle=sky;ctx.fillRect(0,0,W,WATER_Y);
+
+  // Sun/moon
+  if(loc.id==='deep'||loc.id==='space'){ctx.fillStyle='rgba(255,255,255,0.05)';for(var si=0;si<40;si++){ctx.beginPath();ctx.arc((si*97.3)%W,(si*53.7)%WATER_Y,1,0,Math.PI*2);ctx.fill()}}
+  else{ctx.fillStyle='#fbbf24';ctx.globalAlpha=0.3;ctx.beginPath();ctx.arc(W*0.8,WATER_Y*0.3,40,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1}
+
+  // Water
+  var water=ctx.createLinearGradient(0,WATER_Y,0,H);water.addColorStop(0,loc.water1);water.addColorStop(1,loc.water2);
+  ctx.fillStyle=water;ctx.fillRect(0,WATER_Y,W,H-WATER_Y);
+
+  // Water surface waves
+  ctx.strokeStyle='rgba(255,255,255,0.1)';ctx.lineWidth=2;
+  ctx.beginPath();
+  for(var wx=0;wx<W;wx+=5){ctx.lineTo(wx,WATER_Y+Math.sin(wx*0.02+Date.now()*0.002)*4)}
+  ctx.stroke();
+
+  // Bubbles
+  ctx.fillStyle='rgba(255,255,255,0.15)';
+  for(var bi2=0;bi2<bubbles.length;bi2++){var b=bubbles[bi2];ctx.beginPath();ctx.arc(b.x,b.y,b.size,0,Math.PI*2);ctx.fill()}
+
+  // Bottom sand
+  ctx.fillStyle=loc.sand;ctx.fillRect(0,H-30,W,30);
+  // Seaweed
+  for(var sw=0;sw<8;sw++){
+    ctx.fillStyle='rgba(34,197,94,0.4)';
+    var swx=sw*W/8+30;var swy=H-30;
+    ctx.beginPath();ctx.moveTo(swx,swy);
+    ctx.quadraticCurveTo(swx+Math.sin(Date.now()*0.003+sw)*10,swy-30,swx+5,swy-50-Math.random()*10);
+    ctx.quadraticCurveTo(swx+Math.sin(Date.now()*0.003+sw)*8,swy-30,swx+10,swy);ctx.fill();
+  }
+
+  // Swim fish
+  ctx.textAlign='center';ctx.textBaseline='middle';
+  for(var fi2=0;fi2<swimFish.length;fi2++){
+    var sf=swimFish[fi2];
+    ctx.save();
+    ctx.translate(sf.x,sf.y+Math.sin(sf.bobPhase)*5);
+    if(sf.vx<0)ctx.scale(-1,1);
+    ctx.font=sf.size+'px sans-serif';ctx.fillText(sf.fish.emoji,0,0);
+    ctx.restore();
+  }
+
+  // Fishing line
+  if(state!=='idle'){
+    ctx.strokeStyle='rgba(255,255,255,0.5)';ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.moveTo(lineX,WATER_Y-60);ctx.lineTo(hookX,hookY);ctx.stroke();
+    // Hook
+    ctx.fillStyle='#94a3b8';ctx.beginPath();ctx.arc(hookX,hookY,4,0,Math.PI*2);ctx.fill();
+    // Bobber at water line
+    ctx.fillStyle='#ef4444';ctx.beginPath();ctx.arc(lineX,WATER_Y+Math.sin(Date.now()*0.003)*3,6,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#fff';ctx.fillRect(lineX-2,WATER_Y-8+Math.sin(Date.now()*0.003)*3,4,6);
+  }
+
+  // Hooked fish on line
+  if(state==='reeling'&&hookedFish){
+    ctx.font='30px sans-serif';ctx.textAlign='center';
+    ctx.fillText(hookedFish.emoji,hookX+Math.sin(Date.now()*0.01)*8,hookY);
+  }
+
+  // Fisher person on shore
+  var boat=getBoat();
+  var hat=getHat();
+  var fisherX=lineX,fisherY=WATER_Y-60;
+  // Boat
+  if(boat.emoji&&boat.id!=='none'){ctx.font='30px sans-serif';ctx.textAlign='center';ctx.fillText(boat.emoji,fisherX,WATER_Y-10)}
+  // Person
+  ctx.font='35px sans-serif';ctx.textAlign='center';ctx.fillText('🧑',fisherX,fisherY);
+  // Hat
+  if(hat.emoji){ctx.font='18px sans-serif';ctx.fillText(hat.emoji,fisherX,fisherY-22)}
+  // Rod
+  ctx.strokeStyle='#8B4513';ctx.lineWidth=3;ctx.lineCap='round';
+  ctx.beginPath();ctx.moveTo(fisherX+8,fisherY-5);ctx.lineTo(fisherX+40,fisherY-30);ctx.stroke();
+
+  // Particles
+  for(var pdi=0;pdi<particles.length;pdi++){var pd=particles[pdi];ctx.globalAlpha=pd.life/25;ctx.fillStyle=pd.color;ctx.beginPath();ctx.arc(pd.x,pd.y,pd.size,0,Math.PI*2);ctx.fill()}
+  ctx.globalAlpha=1;
+
+  // Text pops
+  for(var tdi=0;tdi<textPops.length;tdi++){var td=textPops[tdi];ctx.globalAlpha=td.life/30;ctx.fillStyle=td.color;ctx.font='bold '+td.size+'px sans-serif';ctx.textAlign='center';ctx.fillText(td.text,td.x,td.y)}
+  ctx.globalAlpha=1;
+}
+
+function loop(){update();draw();requestAnimationFrame(loop)}
+
+// Input
+document.getElementById('castBtn').addEventListener('click',function(){cast()});
+canvas.addEventListener('mousedown',function(){if(state==='idle')cast();reelHolding=true});
+canvas.addEventListener('mouseup',function(){reelHolding=false});
+canvas.addEventListener('touchstart',function(e){e.preventDefault();if(state==='idle')cast();reelHolding=true});
+canvas.addEventListener('touchend',function(e){e.preventDefault();reelHolding=false});
+document.addEventListener('keydown',function(e){if(e.code==='Space'){e.preventDefault();if(state==='idle')cast();reelHolding=true}});
+document.addEventListener('keyup',function(e){if(e.code==='Space')reelHolding=false});
+
+document.getElementById('startBtn').addEventListener('click',function(){
+  document.getElementById('startScreen').classList.add('hidden');
+  initAudio();startMusic();init();loop();
+});
+
+// === LEADERBOARD ===
+var _LB_URL='https://adudgrfxwildzwpcvyil.supabase.co',_LB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFkdWRncmZ4d2lsZHp3cGN2eWlsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyOTkzODUsImV4cCI6MjA4Nzg3NTM4NX0.-JYXn5r9QUjxbpwckwDMSvCm8w1xRXOp5lP2TWNOC_E',_LB_GAME='fishing-frenzy';
+async function _lbFetch(){try{var r=await fetch(_LB_URL+'/rest/v1/ajgametime_leaderboard?game=eq.'+_LB_GAME+'&order=score.desc&limit=10',{headers:{'apikey':_LB_KEY,'Authorization':'Bearer '+_LB_KEY}});return await r.json()}catch(e){return[]}}
+async function _lbSubmit(name,sc){try{await fetch(_LB_URL+'/rest/v1/ajgametime_leaderboard',{method:'POST',headers:{'apikey':_LB_KEY,'Authorization':'Bearer '+_LB_KEY,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({game:_LB_GAME,player_name:name,score:sc,wave:catches})})}catch(e){}}
+async function _lbShow(){var lb=document.getElementById('lb-overlay'),list=document.getElementById('lb-list');list.innerHTML='<div style="color:#64748b;text-align:center;padding:20px">Loading...</div>';lb.style.display='flex';var data=await _lbFetch();if(!data.length){list.innerHTML='<div style="color:#64748b;text-align:center;padding:20px">No scores yet!</div>';return}list.innerHTML=data.map(function(d,i){return '<div class="lb-row"><span class="lb-rank">#'+(i+1)+'</span><span class="lb-name">'+d.player_name+'</span><span class="lb-score">'+d.score+'</span></div>'}).join('')}
+document.getElementById('lb-close-btn').addEventListener('click',function(){document.getElementById('lb-overlay').style.display='none'});
+document.getElementById('lb-show-btn').addEventListener('click',function(){_lbShow()});
+document.getElementById('end-submit').addEventListener('click',async function(){var n=document.getElementById('end-name').value.trim()||'Anonymous';localStorage.setItem('ajgt_name',n);await _lbSubmit(n,score);this.textContent='✅ Done!';this.disabled=true});
+document.getElementById('end-retry').addEventListener('click',function(){document.getElementById('end-screen').style.display='none';document.getElementById('end-submit').textContent='📤 Submit';document.getElementById('end-submit').disabled=false;canvas.style.pointerEvents='';startMusic();init()});
+document.getElementById('end-lb').addEventListener('click',function(){_lbShow()});
+document.getElementById('end-name').addEventListener('keydown',function(e){if(e.key==='Enter')document.getElementById('end-submit').click()});
+
+// === SHOP ===
+var shopOpenedFromEnd=false;
+function openShop(){document.getElementById('shop-screen').style.display='flex';updateCoinDisplays();renderGrid('rods');renderGrid('locations');renderGrid('bait');renderGrid('boats');renderGrid('hats')}
+function renderGrid(tab){
+  var grid=document.getElementById('grid-'+tab);grid.innerHTML='';
+  var items,owned,active;
+  if(tab==='rods'){items=RODS;owned=ownedRods;active=activeRod}
+  else if(tab==='locations'){items=LOCATIONS;owned=ownedLocs;active=activeLoc}
+  else if(tab==='bait'){items=BAIT;owned=ownedBait;active=activeBait}
+  else if(tab==='boats'){items=BOATS;owned=ownedBoats;active=activeBoat}
+  else if(tab==='hats'){items=HATS;owned=ownedHats;active=activeHat}
+  items.forEach(function(item){
+    var isOwned=owned.includes(item.id),isActive=active===item.id;
+    var card=document.createElement('div');
+    card.className='shop-card'+(isActive?' selected':'')+(!isOwned&&totalCoins<item.cost?' locked':'');
+    var em=document.createElement('div');em.className='item-emoji';em.textContent=item.emoji||'🎨';card.appendChild(em);
+    var nm=document.createElement('div');nm.className='item-name';nm.textContent=item.name;card.appendChild(nm);
+    if(item.desc){var ds=document.createElement('div');ds.style.cssText='font-size:0.6rem;color:#94a3b8';ds.textContent=item.desc;card.appendChild(ds)}
+    if(isActive){var st=document.createElement('div');st.className='item-owned';st.textContent='✅ Active';card.appendChild(st)}
+    else if(isOwned){var st2=document.createElement('div');st2.className='item-owned';st2.textContent='✓ Owned';card.appendChild(st2)}
+    else{var ct=document.createElement('div');ct.className='item-cost';ct.textContent='🪙 '+item.cost;card.appendChild(ct)}
+    card.addEventListener('click',function(){
+      if(isOwned){
+        if(tab==='rods')activeRod=item.id;
+        else if(tab==='locations'){activeLoc=item.id;stopMusic();startMusic()}
+        else if(tab==='bait')activeBait=item.id;
+        else if(tab==='boats')activeBoat=item.id;
+        else if(tab==='hats')activeHat=item.id;
+        saveShop();renderGrid(tab);
+      }else if(totalCoins>=item.cost){
+        totalCoins-=item.cost;owned.push(item.id);
+        if(tab==='rods'){activeRod=item.id;ownedRods=owned}
+        else if(tab==='locations'){activeLoc=item.id;ownedLocs=owned;stopMusic();startMusic()}
+        else if(tab==='bait'){activeBait=item.id;ownedBait=owned}
+        else if(tab==='boats'){activeBoat=item.id;ownedBoats=owned}
+        else if(tab==='hats'){activeHat=item.id;ownedHats=owned}
+        saveShop();updateCoinDisplays();renderGrid(tab);
+      }
+    });
+    grid.appendChild(card);
+  });
+}
+document.querySelectorAll('.shop-tab').forEach(function(tab){tab.addEventListener('click',function(){document.querySelectorAll('.shop-tab').forEach(function(t){t.classList.remove('active')});tab.classList.add('active');var which=tab.dataset.tab;['rods','locations','bait','boats','hats'].forEach(function(id){document.getElementById('grid-'+id).style.display=id===which?'':'none'})})});
+document.getElementById('shop-close').addEventListener('click',function(){document.getElementById('shop-screen').style.display='none';if(shopOpenedFromEnd)document.getElementById('end-screen').style.display='flex'});
+document.getElementById('shop-show-btn').addEventListener('click',function(){shopOpenedFromEnd=false;openShop()});
+document.getElementById('end-shop').addEventListener('click',function(){shopOpenedFromEnd=true;document.getElementById('end-screen').style.display='none';openShop()});
+</script>
+</body>
+</html>
