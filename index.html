@@ -1,8 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-2GR7STT4B9"></script>
-<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date());gtag("config","G-2GR7STT4B9");</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AJ GameTime — Games by AJ & Ignacio Rovira</title>
@@ -142,18 +140,24 @@ body {
 .search-bar .clear-btn.visible { display: block; }
 .search-bar .count { font-size: 0.8rem; color: #4a4560; white-space: nowrap; }
 
-.compact-filters { display: flex; gap: 0.5rem; align-items: center; }
-.compact-filters select { background: #1a1a2e; color: #e2e8f0; border: 1px solid rgba(124,58,237,0.3); border-radius: 8px; padding: 6px 10px; font-size: 0.85rem; font-weight: 600; cursor: pointer; outline: none; -webkit-appearance: auto; }
-.compact-filters select:focus { border-color: var(--purple); }
+.filter-row { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
+.filter-label { font-size: 0.75rem; color: #4a4560; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 800; margin-right: 0.25rem; }
+.filter-btn {
+  padding: 0.35rem 0.85rem; border-radius: 50px; border: 1.5px solid rgba(124,58,237,0.2);
+  background: rgba(22,19,42,0.6); color: #94a3b8; font-size: 0.78rem; font-weight: 700;
+  cursor: pointer; transition: all 0.15s; font-family: 'Nunito', sans-serif;
+}
+.filter-btn:hover { border-color: var(--purple); color: #e2e8f0; }
+.filter-btn.active { background: var(--purple); border-color: var(--purple); color: white; }
 
-
-
-
-
-
-
-
-
+.sort-row { display: flex; gap: 0.5rem; align-items: center; }
+.sort-btn {
+  padding: 0.3rem 0.75rem; border-radius: 50px; border: 1.5px solid rgba(124,58,237,0.15);
+  background: rgba(22,19,42,0.4); color: #64748b; font-size: 0.75rem; font-weight: 700;
+  cursor: pointer; transition: all 0.15s; font-family: 'Nunito', sans-serif;
+}
+.sort-btn:hover { color: #94a3b8; border-color: rgba(124,58,237,0.3); }
+.sort-btn.active { color: var(--cyan); border-color: var(--cyan); }
 
 /* Games Grid */
 .section-title { font-family: 'Lilita One', cursive; font-size: 1.8rem; text-align: center; margin: 2rem 0 1.5rem; color: #e2e8f0; }
@@ -240,16 +244,17 @@ footer a:hover { color: #94a3b8; }
       <button class="clear-btn" id="clearBtn" onclick="clearSearch()">✕</button>
       <span class="count" id="gameCount"></span>
     </div>
-    <div class="compact-filters">
-      <select id="catSelect" onchange="setFilter(this.value)">
-        <option value="all">🎮 All Games</option>
-      </select>
-      <select id="sortSelect" onchange="setSort(this.value)">
-        <option value="newest">⏰ Newest</option>
-        <option value="oldest">📅 Oldest</option>
-        <option value="az">A→Z</option>
-        <option value="za">Z→A</option>
-      </select>
+    <div class="filter-row">
+      <span class="filter-label">Filter:</span>
+      <button class="filter-btn active" data-cat="all" onclick="setFilter('all')">All</button>
+      <div id="filterBtns"></div>
+    </div>
+    <div class="sort-row">
+      <span class="filter-label">Sort:</span>
+      <button class="sort-btn active" data-sort="newest" onclick="setSort('newest')">⏰ Newest</button>
+      <button class="sort-btn" data-sort="oldest" onclick="setSort('oldest')">📅 Oldest</button>
+      <button class="sort-btn" data-sort="az" onclick="setSort('az')">A→Z</button>
+      <button class="sort-btn" data-sort="za" onclick="setSort('za')">Z→A</button>
     </div>
   </div>
 
@@ -316,33 +321,6 @@ const GAMES = [
     added: 5
   },
   {
-    id: 'coconutcatch', name: 'Coconut Catch', href: 'coconut-catch.html',
-    desc: 'Catch falling coconuts and fruits in your basket! Avoid rocks, bombs, and rotten coconuts or lose lives!',
-    category: 'Arcade', emoji: '🥥🧺',
-    bg: 'linear-gradient(135deg, #0a3a1a, #fbbf24)',
-    tagBg: 'rgba(34,197,94,0.2)', tagColor: '#22c55e',
-    btnBg: 'linear-gradient(135deg, #22c55e, #f97316)',
-    added: 14
-  },
-  {
-    id: 'junglesurvival', name: 'Jungle Survival', href: 'jungle-survival.html',
-    desc: 'Hunt animals, cook food on your camp stove, then trek through the jungle dodging obstacles to reach the rescue point!',
-    category: 'Survival', emoji: '🌴🔫',
-    bg: 'linear-gradient(135deg, #0a1a0a, #22c55e)',
-    tagBg: 'rgba(34,197,94,0.2)', tagColor: '#22c55e',
-    btnBg: 'linear-gradient(135deg, #22c55e, #f97316)',
-    added: 13
-  },
-  {
-    id: 'flagcollector', name: 'Fun With Flags', href: 'flag-collector.html',
-    desc: 'Travel the world! Answer questions to collect flags from every continent. Build the biggest collection!',
-    category: 'Trivia', emoji: '🌍🏁',
-    bg: 'linear-gradient(135deg, #0f172a, #22d3ee)',
-    tagBg: 'rgba(34,211,238,0.2)', tagColor: '#22d3ee',
-    btnBg: 'linear-gradient(135deg, #22d3ee, #a78bfa)',
-    added: 12
-  },
-  {
     id: 'lavaleap', name: 'Lava Leap', href: 'lava-leap.html',
     desc: 'The floor is LAVA! Jump from platform to platform as molten lava rises below you. How high can you climb?',
     category: 'Platformer', emoji: '🌋🔥',
@@ -406,65 +384,14 @@ const GAMES = [
     added: 12
   },
   {
-    id: 'lawnmower', name: 'Lawn Mower Madness', href: 'lawn-mower.html',
-    desc: 'Mow the entire lawn before time runs out! Grab power-ups like Speed Boost and Circle Mower. Each lawn gets bigger!',
-    category: 'Arcade', emoji: '🏡🌿',
-    bg: 'linear-gradient(135deg, #1a3a1a, #22c55e)',
-    tagBg: 'rgba(34,197,94,0.2)', tagColor: '#22c55e',
-    btnBg: 'linear-gradient(135deg, #22c55e, #fbbf24)',
-    added: 15
+    id: 'crossyroad', name: 'Crossy Road', href: 'crossy-road.html',
+    desc: 'Hop across busy roads, rivers, and train tracks! Dodge cars, ride logs, and don\'t get squished!',
+    category: 'Action', emoji: '🐔🚗',
+    bg: 'linear-gradient(135deg, #14532d, #166534)',
+    tagBg: 'rgba(34,197,94,0.2)', tagColor: '#4ade80',
+    btnBg: 'linear-gradient(135deg, #22c55e, #16a34a)',
+    added: 13
   },
-  {
-    id: 'flappyparrot', name: 'Flappy Parrot', href: 'flappy-parrot.html',
-    desc: 'Tap to flap! Fly your parrot through the pipes without crashing. Classic addictive gameplay — how far can you go?',
-    category: 'Arcade', emoji: '🦜🟢',
-    bg: 'linear-gradient(135deg, #4dc9f6, #22c55e)',
-    tagBg: 'rgba(34,197,94,0.2)', tagColor: '#22c55e',
-    btnBg: 'linear-gradient(135deg, #22c55e, #4dc9f6)',
-    added: 16
-  },
-  {
-    id: 'spaceblasters', name: 'Space Blasters', href: 'space-blasters.html',
-    desc: 'Aliens are invading! Blast waves of aliens, dodge their shots, and grab power-ups. Classic arcade space shooter!',
-    category: 'Shooter', emoji: '🚀👾',
-    bg: 'linear-gradient(135deg, #000, #3b82f6)',
-    tagBg: 'rgba(59,130,246,0.2)', tagColor: '#3b82f6',
-    btnBg: 'linear-gradient(135deg, #3b82f6, #a855f7)',
-    added: 17
-  },
-  {
-    id: 'housebuilder', name: 'House Builder', href: 'house-builder.html',
-    desc: 'Stack walls, windows, doors and a roof to build houses! Time your drops perfectly for bonus points. 3 misses and you\'re out!',
-    category: 'Puzzle', emoji: '🏗️🏠',
-    bg: 'linear-gradient(135deg, #60a5fa, #f97316)',
-    tagBg: 'rgba(249,115,22,0.2)', tagColor: '#f97316',
-    btnBg: 'linear-gradient(135deg, #f97316, #ef4444)',
-    added: 18
-  },
-  
-
-
-
-
-  {
-    id: 'balloonpop', name: 'Balloon Pop Frenzy', href: 'balloon-pop.html',
-    desc: 'Tap balloons to pop them before they float away! Different colors = different points. Avoid bombs! Build streaks for bonus multipliers!',
-    category: 'Arcade', emoji: '🎈💥',
-    bg: 'linear-gradient(135deg, #ef4444, #f59e0b, #22c55e, #3b82f6)',
-    tagBg: 'rgba(239,68,68,0.2)', tagColor: '#ef4444',
-    btnBg: 'linear-gradient(135deg, #ef4444, #f59e0b)',
-    added: 20
-  }
-,
-  {
-    id: 'blockstack', name: 'Block Stack', href: 'block-stack.html',
-    desc: 'Classic block puzzle! Stack falling blocks and clear lines. Features music, ghost piece, hard drop, and increasing speed!',
-    category: 'Puzzle', emoji: '🧱🎵',
-    bg: 'linear-gradient(135deg, #0a0a2e, #a855f7)',
-    tagBg: 'rgba(168,85,247,0.2)', tagColor: '#a855f7',
-    btnBg: 'linear-gradient(135deg, #22d3ee, #a855f7)',
-    added: 20
-  }
 ];
 
 let currentFilter = 'all';
@@ -474,9 +401,11 @@ let currentSort = 'newest';
 const categories = [...new Set(GAMES.map(g => g.category))].sort();
 
 function init() {
-  // Populate category dropdown
-  var catSel=document.getElementById('catSelect');
-  categories.forEach(function(cat){var o=document.createElement('option');o.value=cat;o.textContent=cat;catSel.appendChild(o);});
+  // Build filter buttons
+  const filterContainer = document.getElementById('filterBtns');
+  filterContainer.innerHTML = categories.map(cat =>
+    `<button class="filter-btn" data-cat="${cat}" onclick="setFilter('${cat}')">${cat}</button>`
+  ).join('');
 
   renderGames();
 
@@ -490,12 +419,14 @@ function clearSearch() {
 }
 
 function setFilter(cat) {
-  document.getElementById('catSelect').value=cat;
+  currentFilter = cat;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.cat === cat));
   renderGames();
 }
 
 function setSort(sort) {
-  document.getElementById('sortSelect').value=sort;
+  currentSort = sort;
+  document.querySelectorAll('.sort-btn').forEach(b => b.classList.toggle('active', b.dataset.sort === sort));
   renderGames();
 }
 

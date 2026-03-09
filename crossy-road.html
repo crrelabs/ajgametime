@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Play Crossy Road - hop across busy roads, rivers, and train tracks! Don't get squished. Free browser game.">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://ajgametime.com/crossy-road.html">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://ajgametime.com/crossy-road.html">
+<meta property="og:title" content="Crossy Road — AJ GameTime">
+<meta property="og:description" content="Hop across busy roads, rivers, and train tracks! How far can you go?">
+<meta property="og:site_name" content="AJ GameTime">
+<title>Crossy Road — AJ GameTime</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { min-height: 100vh; display: flex; flex-direction: column; align-items: center; font-family: -apple-system, sans-serif; background: #1a0a2e; color: #e2e8f0; overflow: hidden; user-select: none; }
+#header { width: 100%; padding: 0.75rem 1.5rem; display: flex; justify-content: space-between; align-items: center; z-index: 10; position: fixed; top: 0; }
+#header a { color: #64748b; text-decoration: none; font-size: 0.85rem; }
+#header a:hover { color: #e2e8f0; }
+#hud { display: flex; gap: 1.5rem; align-items: center; }
+.stat { text-align: center; }
+.stat-val { font-size: 1.5rem; font-weight: 800; }
+.stat-label { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.1em; color: #64748b; }
+#scoreVal { color: #fbbf24; }
+#highVal { color: #a78bfa; }
+#coinsVal { color: #fbbf24; }
+canvas { display: block; touch-action: none; }
+
+#startScreen, #gameOver {
+  position: fixed; inset: 0; background: rgba(26,10,46,0.95);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 30;
+}
+#startScreen.hidden, #gameOver.hidden { display: none; }
+#startScreen h1, #gameOver h2 { font-size: 2.5rem; margin-bottom: 0.5rem; }
+#startScreen .emoji, #gameOver .emoji { font-size: 5rem; margin-bottom: 1rem; }
+#startScreen p, #gameOver p { color: #94a3b8; margin-bottom: 0.5rem; font-size: 0.95rem; text-align: center; max-width: 320px; }
+.controls-hint { color: #64748b !important; font-size: 0.8rem !important; margin-top: 0.5rem; }
+button.play-btn {
+  margin-top: 1.5rem; padding: 1rem 2.5rem; font-size: 1.1rem; font-weight: 700;
+  background: linear-gradient(135deg, #22c55e, #16a34a); color: white;
+  border: none; border-radius: 12px; cursor: pointer; transition: 0.2s;
+}
+button.play-btn:hover { transform: scale(1.05); filter: brightness(1.1); }
+#finalScore { font-size: 3.5rem; font-weight: 900; color: #fbbf24; }
+#finalCoins { color: #fbbf24; font-size: 1.2rem; font-weight: 700; }
+
+/* Mobile controls */
+#mobileControls { display: none; position: fixed; bottom: 20px; z-index: 20; }
+.d-pad { display: grid; grid-template-columns: 60px 60px 60px; grid-template-rows: 60px 60px 60px; gap: 4px; }
+.d-btn { width: 60px; height: 60px; border-radius: 12px; border: none; background: rgba(255,255,255,0.15); color: white; font-size: 1.5rem; cursor: pointer; display: flex; align-items: center; justify-content: center; -webkit-tap-highlight-color: transparent; }
+.d-btn:active { background: rgba(255,255,255,0.3); }
+.d-blank { width: 60px; height: 60px; }
+
+@media (pointer: coarse) {
+  #mobileControls { display: block; }
+}
+</style>
+</head>
+<body>
+
+<div id="header">
+  <a href="index.html">← AJ GameTime</a>
+  <div id="hud">
+    <div class="stat"><div class="stat-val" id="scoreVal">0</div><div class="stat-label">Score</div></div>
+    <div class="stat"><div class="stat-val" id="coinsVal">0</div><div class="stat-label">🪙</div></div>
+    <div class="stat"><div class="stat-val" id="highVal">0</div><div class="stat-label">Best</div></div>
+  </div>
+</div>
+
+<div id="startScreen">
+  <div class="emoji">🐔</div>
+  <h1>Crossy Road</h1>
+  <p>Hop across roads, rivers, and train tracks. Don't get squished!</p>
+  <p class="controls-hint">Arrow keys / WASD / Swipe to move</p>
+  <button class="play-btn" id="startBtn">🐔 Let's Go!</button>
+</div>
+
+<div id="gameOver" class="hidden">
+  <div class="emoji">💀</div>
+  <h2>Splat!</h2>
+  <div id="finalScore">0</div>
+  <div id="finalCoins">🪙 0</div>
+  <p id="deathMsg">You got squished!</p>
+  <button class="play-btn" id="retryBtn">🐔 Try Again</button>
+</div>
+
+<canvas id="game"></canvas>
+
+<div id="mobileControls">
+  <div class="d-pad">
+    <div class="d-blank"></div>
+    <button class="d-btn" data-dir="up">⬆️</button>
+    <div class="d-blank"></div>
+    <button class="d-btn" data-dir="left">⬅️</button>
+    <div class="d-blank"></div>
+    <button class="d-btn" data-dir="right">➡️</button>
+    <div class="d-blank"></div>
+    <button class="d-btn" data-dir="down">⬇️</button>
+    <div class="d-blank"></div>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+const scoreEl = document.getElementById('scoreVal');
+const highEl = document.getElementById('highVal');
+const coinsEl = document.getElementById('coinsVal');
+const startScreen = document.getElementById('startScreen');
+const gameOverScreen = document.getElementById('gameOver');
+const finalScoreEl = document.getElementById('finalScore');
+const finalCoinsEl = document.getElementById('finalCoins');
+const deathMsgEl = document.getElementById('deathMsg');
+
+let W, H, TILE, COLS, VISIBLE_ROWS;
+let highScore = parseInt(localStorage.getItem('crossy_high') || '0');
+highEl.textContent = highScore;
+
+function resize() {
+  W = window.innerWidth;
+  H = window.innerHeight;
+  canvas.width = W;
+  canvas.height = H;
+  TILE = Math.floor(Math.min(W / 11, H / 15));
+  COLS = Math.floor(W / TILE);
+  VISIBLE_ROWS = Math.ceil(H / TILE) + 4;
+}
+resize();
+window.addEventListener('resize', resize);
+
+// Game state
+let player, rows, score, coins, gameRunning, animating, cameraY, deathType;
+let hopAnim = { active: false, fromX: 0, fromY: 0, toX: 0, toY: 0, t: 0 };
+
+const CHARACTERS = ['🐔', '🐸', '🐰', '🐶', '🐱'];
+let character = '🐔';
+
+const ROW_TYPES = ['grass', 'road', 'road', 'river', 'road', 'grass', 'road', 'train', 'road', 'river', 'grass'];
+
+function generateRow(index) {
+  if (index === 0) return { type: 'grass', items: [], coins: generateCoins(), trees: [] };
+  
+  // Difficulty scales with distance
+  const diff = Math.min(index / 50, 1);
+  const rand = Math.random();
+  let type;
+  
+  if (rand < 0.35) type = 'road';
+  else if (rand < 0.55) type = 'river';
+  else if (rand < 0.65 && index > 5) type = 'train';
+  else type = 'grass';
+  
+  const row = { type, items: [], coins: generateCoins(), trees: [] };
+  
+  if (type === 'road') {
+    const speed = (1 + Math.random() * 2 + diff * 2) * (Math.random() < 0.5 ? 1 : -1);
+    const gap = Math.max(3, 6 - Math.floor(diff * 3));
+    const vehicles = ['🚗', '🚙', '🚕', '🚌', '🚎', '🏎️', '🚒', '🚐'];
+    const vehicle = vehicles[Math.floor(Math.random() * vehicles.length)];
+    const count = Math.floor(COLS / gap) + 1;
+    for (let i = 0; i < count; i++) {
+      row.items.push({
+        x: i * gap * TILE + Math.random() * TILE * 2,
+        speed: speed,
+        emoji: vehicle,
+        w: vehicle === '🚌' || vehicle === '🚎' ? 2 : 1.4
+      });
+    }
+  } else if (type === 'river') {
+    const speed = (0.5 + Math.random() * 1.5) * (Math.random() < 0.5 ? 1 : -1);
+    const logEmojis = ['🪵'];
+    const count = Math.floor(COLS / 4) + 2;
+    for (let i = 0; i < count; i++) {
+      const len = 2 + Math.floor(Math.random() * 2);
+      row.items.push({
+        x: i * 5 * TILE + Math.random() * TILE,
+        speed: speed,
+        len: len,
+        emoji: '🪵'
+      });
+    }
+  } else if (type === 'train') {
+    row.trainTimer = 0;
+    row.trainActive = false;
+    row.trainX = -COLS * TILE;
+    row.trainDir = Math.random() < 0.5 ? 1 : -1;
+    row.trainInterval = 180 + Math.floor(Math.random() * 120);
+    row.warningTimer = 0;
+  } else if (type === 'grass') {
+    // Add some trees as obstacles
+    const treeCount = Math.floor(Math.random() * 3);
+    for (let i = 0; i < treeCount; i++) {
+      const tx = Math.floor(Math.random() * COLS);
+      row.trees.push(tx);
+    }
+  }
+  
+  return row;
+}
+
+function generateCoins() {
+  const c = [];
+  if (Math.random() < 0.3) {
+    c.push(Math.floor(Math.random() * (COLS - 2)) + 1);
+  }
+  return c;
+}
+
+function init() {
+  score = 0;
+  coins = 0;
+  deathType = '';
+  gameRunning = true;
+  animating = false;
+  player = { col: Math.floor(COLS / 2), row: 0, onLog: null };
+  cameraY = 0;
+  hopAnim.active = false;
+  rows = {};
+  for (let i = -5; i < VISIBLE_ROWS + 10; i++) {
+    rows[i] = generateRow(Math.max(0, i));
+  }
+  // Make sure starting row and nearby rows are safe
+  rows[0] = { type: 'grass', items: [], coins: [], trees: [] };
+  rows[1] = { type: 'grass', items: [], coins: [], trees: [] };
+  
+  scoreEl.textContent = 0;
+  coinsEl.textContent = 0;
+}
+
+function getRow(index) {
+  if (!rows[index]) {
+    rows[index] = generateRow(index);
+  }
+  return rows[index];
+}
+
+function tryMove(dx, dy) {
+  if (!gameRunning || hopAnim.active) return;
+  
+  const newCol = player.col + dx;
+  const newRow = player.row + dy;
+  
+  if (newCol < 0 || newCol >= COLS) return;
+  
+  // Check for trees
+  const targetRow = getRow(newRow);
+  if (targetRow.type === 'grass' && targetRow.trees.includes(newCol)) return;
+  
+  hopAnim.active = true;
+  hopAnim.fromX = player.col;
+  hopAnim.fromY = player.row;
+  hopAnim.toX = newCol;
+  hopAnim.toY = newRow;
+  hopAnim.t = 0;
+  
+  player.col = newCol;
+  player.row = newRow;
+  player.onLog = null;
+  
+  if (newRow > score) {
+    score = newRow;
+    scoreEl.textContent = score;
+    if (score > highScore) {
+      highScore = score;
+      highEl.textContent = highScore;
+      localStorage.setItem('crossy_high', highScore.toString());
+    }
+  }
+  
+  // Collect coins
+  const ci = targetRow.coins.indexOf(newCol);
+  if (ci !== -1) {
+    targetRow.coins.splice(ci, 1);
+    coins++;
+    coinsEl.textContent = coins;
+  }
+}
+
+function die(msg) {
+  gameRunning = false;
+  deathType = msg;
+  finalScoreEl.textContent = score;
+  finalCoinsEl.textContent = '🪙 ' + coins;
+  deathMsgEl.textContent = msg;
+  gameOverScreen.classList.remove('hidden');
+}
+
+function update() {
+  if (!gameRunning) return;
+  
+  // Update hop animation
+  if (hopAnim.active) {
+    hopAnim.t += 0.15;
+    if (hopAnim.t >= 1) {
+      hopAnim.active = false;
+      hopAnim.t = 1;
+    }
+  }
+  
+  // Smooth camera
+  const targetCam = player.row - 4;
+  cameraY += (targetCam - cameraY) * 0.1;
+  
+  // Ensure rows exist
+  for (let i = Math.floor(cameraY) - 2; i < Math.floor(cameraY) + VISIBLE_ROWS + 5; i++) {
+    getRow(i);
+  }
+  
+  // Update moving objects
+  const playerScreenRow = player.row;
+  
+  for (let i = Math.floor(cameraY) - 2; i < Math.floor(cameraY) + VISIBLE_ROWS + 5; i++) {
+    const row = getRow(i);
+    
+    if (row.type === 'road' || row.type === 'river') {
+      for (const item of row.items) {
+        item.x += item.speed;
+        // Wrap around
+        if (item.speed > 0 && item.x > (COLS + 4) * TILE) item.x = -4 * TILE;
+        if (item.speed < 0 && item.x < -4 * TILE) item.x = (COLS + 4) * TILE;
+      }
+    }
+    
+    if (row.type === 'train') {
+      row.trainTimer++;
+      if (row.trainTimer > row.trainInterval - 60 && !row.trainActive) {
+        row.warningTimer++;
+      }
+      if (row.trainTimer >= row.trainInterval) {
+        row.trainActive = true;
+        row.trainX += row.trainDir * 12;
+        if (Math.abs(row.trainX) > (COLS + 5) * TILE) {
+          row.trainActive = false;
+          row.trainTimer = 0;
+          row.warningTimer = 0;
+          row.trainX = row.trainDir > 0 ? -(COLS + 3) * TILE : (COLS + 3) * TILE;
+          row.trainDir = Math.random() < 0.5 ? 1 : -1;
+        }
+      }
+    }
+  }
+  
+  // River: check if player is on a log
+  if (!hopAnim.active) {
+    const currentRow = getRow(player.row);
+    if (currentRow.type === 'river') {
+      let onLog = false;
+      for (const log of currentRow.items) {
+        const logLeft = log.x;
+        const logRight = log.x + log.len * TILE;
+        const px = player.col * TILE + TILE / 2;
+        if (px >= logLeft && px <= logRight) {
+          onLog = true;
+          player.onLog = log;
+          // Move player with log
+          const movePixels = log.speed;
+          const newCol = player.col + movePixels / TILE;
+          player.col = newCol;
+          if (player.col < -1 || player.col >= COLS + 1) {
+            die('🌊 Swept away!');
+          }
+          break;
+        }
+      }
+      if (!onLog) {
+        die('🌊 Fell in the river!');
+      }
+    }
+    
+    // Road: check for car collision
+    if (currentRow.type === 'road') {
+      const px = player.col * TILE;
+      for (const car of currentRow.items) {
+        const carLeft = car.x;
+        const carRight = car.x + car.w * TILE;
+        if (px + TILE * 0.7 > carLeft && px + TILE * 0.3 < carRight) {
+          die('🚗 Squished by a car!');
+          break;
+        }
+      }
+    }
+    
+    // Train
+    if (currentRow.type === 'train' && currentRow.trainActive) {
+      const px = player.col * TILE + TILE / 2;
+      const trainLeft = currentRow.trainX;
+      const trainRight = currentRow.trainX + (COLS + 6) * TILE;
+      const tl = Math.min(trainLeft, trainRight);
+      const tr = Math.max(trainLeft, trainRight);
+      if (px > tl && px < tr) {
+        die('🚂 Hit by a train!');
+      }
+    }
+    
+    // Idle too long = eagle
+    // (skip for simplicity)
+  }
+}
+
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+  
+  const startRow = Math.floor(cameraY) - 2;
+  const endRow = Math.floor(cameraY) + VISIBLE_ROWS + 2;
+  
+  for (let i = startRow; i <= endRow; i++) {
+    const row = getRow(i);
+    const screenY = H - (i - cameraY) * TILE - TILE;
+    
+    // Draw row background
+    if (row.type === 'grass') {
+      ctx.fillStyle = i % 2 === 0 ? '#22c55e' : '#16a34a';
+    } else if (row.type === 'road') {
+      ctx.fillStyle = i % 2 === 0 ? '#374151' : '#1f2937';
+    } else if (row.type === 'river') {
+      ctx.fillStyle = i % 2 === 0 ? '#0ea5e9' : '#0284c7';
+    } else if (row.type === 'train') {
+      ctx.fillStyle = '#78716c';
+    }
+    ctx.fillRect(0, screenY, W, TILE + 1);
+    
+    // Road dashes
+    if (row.type === 'road') {
+      ctx.strokeStyle = '#fbbf24';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([TILE * 0.4, TILE * 0.4]);
+      ctx.beginPath();
+      ctx.moveTo(0, screenY + TILE / 2);
+      ctx.lineTo(W, screenY + TILE / 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+    
+    // Train tracks
+    if (row.type === 'train') {
+      ctx.strokeStyle = '#44403c';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(0, screenY + TILE * 0.3);
+      ctx.lineTo(W, screenY + TILE * 0.3);
+      ctx.moveTo(0, screenY + TILE * 0.7);
+      ctx.lineTo(W, screenY + TILE * 0.7);
+      ctx.stroke();
+      // Rail ties
+      ctx.fillStyle = '#78716c';
+      for (let t = 0; t < W; t += TILE * 0.6) {
+        ctx.fillRect(t, screenY + TILE * 0.2, TILE * 0.15, TILE * 0.6);
+      }
+      
+      // Warning flash
+      if (row.warningTimer > 0 && !row.trainActive) {
+        if (Math.floor(row.warningTimer / 8) % 2 === 0) {
+          ctx.fillStyle = 'rgba(239,68,68,0.3)';
+          ctx.fillRect(0, screenY, W, TILE);
+        }
+        // Warning lights
+        const fontSize = TILE * 0.5;
+        ctx.font = `${fontSize}px sans-serif`;
+        ctx.textAlign = 'center';
+        if (Math.floor(row.warningTimer / 10) % 2 === 0) {
+          ctx.fillText('⚠️', TILE, screenY + TILE * 0.65);
+          ctx.fillText('⚠️', W - TILE, screenY + TILE * 0.65);
+        }
+      }
+      
+      // Draw train
+      if (row.trainActive) {
+        const trainEmojis = '🚂🚃🚃🚃🚃🚃🚃🚃';
+        const fontSize = TILE * 0.8;
+        ctx.font = `${fontSize}px sans-serif`;
+        ctx.textAlign = 'left';
+        for (let t = 0; t < 8; t++) {
+          ctx.fillText(trainEmojis[t], row.trainX + t * TILE, screenY + TILE * 0.75);
+        }
+      }
+    }
+    
+    // Draw trees
+    if (row.trees) {
+      const fontSize = TILE * 0.85;
+      ctx.font = `${fontSize}px sans-serif`;
+      ctx.textAlign = 'center';
+      for (const tx of row.trees) {
+        ctx.fillText('🌳', tx * TILE + TILE / 2, screenY + TILE * 0.8);
+      }
+    }
+    
+    // Draw items (cars, logs)
+    if (row.type === 'road') {
+      const fontSize = TILE * 0.8;
+      ctx.font = `${fontSize}px sans-serif`;
+      ctx.textAlign = 'center';
+      for (const car of row.items) {
+        const flip = car.speed < 0;
+        ctx.save();
+        if (flip) {
+          ctx.translate(car.x + car.w * TILE / 2, screenY + TILE * 0.75);
+          ctx.scale(-1, 1);
+          ctx.fillText(car.emoji, 0, 0);
+        } else {
+          ctx.fillText(car.emoji, car.x + car.w * TILE / 2, screenY + TILE * 0.75);
+        }
+        ctx.restore();
+      }
+    }
+    
+    if (row.type === 'river') {
+      for (const log of row.items) {
+        ctx.fillStyle = '#92400e';
+        const rx = log.x;
+        const ry = screenY + TILE * 0.15;
+        const rw = log.len * TILE;
+        const rh = TILE * 0.7;
+        ctx.beginPath();
+        ctx.roundRect(rx, ry, rw, rh, TILE * 0.15);
+        ctx.fill();
+        // Wood grain
+        ctx.strokeStyle = '#78350f';
+        ctx.lineWidth = 1;
+        for (let g = 0; g < log.len; g++) {
+          ctx.beginPath();
+          ctx.arc(rx + g * TILE + TILE / 2, ry + rh / 2, TILE * 0.12, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+      }
+    }
+    
+    // Draw coins
+    if (row.coins) {
+      const fontSize = TILE * 0.5;
+      ctx.font = `${fontSize}px sans-serif`;
+      ctx.textAlign = 'center';
+      for (const cx of row.coins) {
+        ctx.fillText('🪙', cx * TILE + TILE / 2, screenY + TILE * 0.55);
+      }
+    }
+  }
+  
+  // Draw player
+  let px, py;
+  if (hopAnim.active) {
+    const t = hopAnim.t;
+    const easedT = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+    px = (hopAnim.fromX + (hopAnim.toX - hopAnim.fromX) * easedT) * TILE;
+    const fromScreenY = H - (hopAnim.fromY - cameraY) * TILE - TILE;
+    const toScreenY = H - (hopAnim.toY - cameraY) * TILE - TILE;
+    py = fromScreenY + (toScreenY - fromScreenY) * easedT;
+    // Jump arc
+    const jumpHeight = TILE * 0.4;
+    py -= Math.sin(easedT * Math.PI) * jumpHeight;
+  } else {
+    px = (typeof player.col === 'number' ? player.col : Math.round(player.col)) * TILE;
+    py = H - (player.row - cameraY) * TILE - TILE;
+  }
+  
+  // Shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.2)';
+  ctx.beginPath();
+  ctx.ellipse(px + TILE / 2, py + TILE * 0.9, TILE * 0.35, TILE * 0.1, 0, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // Character
+  const charSize = TILE * 0.9;
+  ctx.font = `${charSize}px sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.fillText(character, px + TILE / 2, py + TILE * 0.8);
+}
+
+function loop() {
+  update();
+  draw();
+  requestAnimationFrame(loop);
+}
+
+// Input
+document.addEventListener('keydown', e => {
+  if (!gameRunning) return;
+  switch (e.key) {
+    case 'ArrowUp': case 'w': case 'W': tryMove(0, 1); break;
+    case 'ArrowDown': case 's': case 'S': tryMove(0, -1); break;
+    case 'ArrowLeft': case 'a': case 'A': tryMove(-1, 0); break;
+    case 'ArrowRight': case 'd': case 'D': tryMove(1, 0); break;
+  }
+});
+
+// Swipe
+let touchStartX, touchStartY;
+canvas.addEventListener('touchstart', e => {
+  const t = e.touches[0];
+  touchStartX = t.clientX;
+  touchStartY = t.clientY;
+});
+canvas.addEventListener('touchend', e => {
+  if (!gameRunning) return;
+  const t = e.changedTouches[0];
+  const dx = t.clientX - touchStartX;
+  const dy = t.clientY - touchStartY;
+  const adx = Math.abs(dx);
+  const ady = Math.abs(dy);
+  if (adx < 10 && ady < 10) {
+    // Tap = move forward
+    tryMove(0, 1);
+  } else if (adx > ady) {
+    tryMove(dx > 0 ? 1 : -1, 0);
+  } else {
+    tryMove(0, dy < 0 ? 1 : -1);
+  }
+});
+
+// D-pad
+document.querySelectorAll('.d-btn').forEach(btn => {
+  btn.addEventListener('touchstart', e => {
+    e.preventDefault();
+    if (!gameRunning) return;
+    const dir = btn.dataset.dir;
+    switch (dir) {
+      case 'up': tryMove(0, 1); break;
+      case 'down': tryMove(0, -1); break;
+      case 'left': tryMove(-1, 0); break;
+      case 'right': tryMove(1, 0); break;
+    }
+  });
+});
+
+// Start / Retry
+document.getElementById('startBtn').addEventListener('click', () => {
+  startScreen.classList.add('hidden');
+  init();
+  loop();
+});
+document.getElementById('retryBtn').addEventListener('click', () => {
+  gameOverScreen.classList.add('hidden');
+  init();
+});
+</script>
+</body>
+</html>
