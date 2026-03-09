@@ -362,12 +362,20 @@ function updateHUD() {
   }
 }
 
+let jumpBuffered = false;
+let jumpBufferTimer = 0;
+
 function jump() {
   if (!gameRunning || player.dead || player.won) return;
   if (player.onGround) {
     player.vy = JUMP_FORCE;
     player.onGround = false;
+    jumpBuffered = false;
     playJump();
+  } else {
+    // Buffer the jump for when we land
+    jumpBuffered = true;
+    jumpBufferTimer = 10; // frames to remember the input
   }
 }
 
@@ -404,9 +412,20 @@ function update() {
     player.y = groundY - PLAYER_SIZE;
     player.vy = 0;
     player.onGround = true;
+    // Check jump buffer - instant jump on landing
+    if (jumpBuffered && jumpBufferTimer > 0) {
+      player.vy = JUMP_FORCE;
+      player.onGround = false;
+      jumpBuffered = false;
+      playJump();
+    }
   } else if (overGap && player.y >= groundY - PLAYER_SIZE) {
     player.onGround = false;
   }
+  
+  // Tick jump buffer
+  if (jumpBufferTimer > 0) jumpBufferTimer--;
+  if (jumpBufferTimer <= 0) jumpBuffered = false;
   
   // Fall into pit
   if (player.y > H + 50) {
@@ -446,6 +465,12 @@ function update() {
           player.y = ob.y - ps;
           player.vy = 0;
           player.onGround = true;
+          if (jumpBuffered && jumpBufferTimer > 0) {
+            player.vy = JUMP_FORCE;
+            player.onGround = false;
+            jumpBuffered = false;
+            playJump();
+          }
         } else {
           die();
           return;
