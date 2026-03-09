@@ -26,6 +26,7 @@ canvas{display:block}
 .btn{width:80px;height:80px;border-radius:50%;border:2px solid rgba(255,255,255,0.3);display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:800;color:#fff;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:transform 0.1s,box-shadow 0.1s}
 .btn:active{transform:scale(0.9)}
 .btn-left{background:rgba(59,130,246,0.5)}
+.btn-jump{background:rgba(34,211,238,0.6);box-shadow:0 0 15px rgba(34,211,238,0.3)}
 .btn-right{background:rgba(59,130,246,0.5)}
 .btn-punch{background:rgba(239,68,68,0.6);box-shadow:0 0 15px rgba(239,68,68,0.3)}
 .btn-kick{background:rgba(249,115,22,0.6);box-shadow:0 0 15px rgba(249,115,22,0.3)}
@@ -108,6 +109,7 @@ canvas{display:block}
 <div id="controls">
   <div class="ctrl-group">
     <div class="btn btn-left" data-action="left">◀</div>
+    <div class="btn btn-jump" data-action="jump">⬆</div>
     <div class="btn btn-right" data-action="right">▶</div>
   </div>
   <div class="ctrl-group">
@@ -175,9 +177,10 @@ for (let i = 0; i < 5; i++) {
 }
 
 const player = {
-  x: 0, w: 50, h: 90, hp: 100, maxHp: 100, speed: 4,
+  x: 0, y: 0, vy: 0, w: 50, h: 90, hp: 100, maxHp: 100, speed: 4,
   attacking: false, attackType: '', attackTimer: 0,
-  blocking: false, hurtTimer: 0, facing: 1, moving: 0, bobTimer: 0, alive: true
+  blocking: false, hurtTimer: 0, facing: 1, moving: 0, bobTimer: 0, alive: true,
+  onGround: true
 };
 
 let enemy = null;
@@ -197,20 +200,21 @@ function spawnEnemy() {
 function resetGame() {
   score = 0; wave = 1; combo = 0; enemiesDefeated = 0;
   player.hp = player.maxHp = 100;
-  player.x = W * 0.35;
+  player.x = W * 0.35; player.y = 0; player.vy = 0; player.onGround = true;
   player.alive = true; player.attacking = false; player.blocking = false; player.hurtTimer = 0;
   particles = [];
   spawnEnemy();
   updateHUD();
 }
 
-const actions = { left: false, right: false, punch: false, kick: false, block: false };
+const actions = { left: false, right: false, punch: false, kick: false, block: false, jump: false };
 let actionQueue = [];
 
 document.addEventListener('keydown', e => {
   if (!playing) return;
   if (e.key === 'ArrowLeft' || e.key === 'a') actions.left = true;
   if (e.key === 'ArrowRight' || e.key === 'd') actions.right = true;
+  if (e.key === 'ArrowUp' || e.key === 'w' || e.key === ' ') { e.preventDefault(); actions.jump = true; }
   if (e.key === 'z' || e.key === 'j') actionQueue.push('punch');
   if (e.key === 'c' || e.key === 'u') actionQueue.push('uppercut');
   if (e.key === 'x' || e.key === 'k') actionQueue.push('kick');
@@ -219,6 +223,7 @@ document.addEventListener('keydown', e => {
 document.addEventListener('keyup', e => {
   if (e.key === 'ArrowLeft' || e.key === 'a') actions.left = false;
   if (e.key === 'ArrowRight' || e.key === 'd') actions.right = false;
+  if (e.key === 'ArrowUp' || e.key === 'w' || e.key === ' ') actions.jump = false;
   if (e.key === 'c' || e.key === 'l') actions.block = false;
 });
 
@@ -515,6 +520,18 @@ function update() {
   }
   actionQueue = [];
 
+  // Jump
+  if (actions.jump && player.onGround) {
+    player.vy = -14;
+    player.onGround = false;
+    actions.jump = false;
+  }
+  if (!player.onGround) {
+    player.vy += 0.8; // gravity
+    player.y += player.vy;
+    if (player.y >= 0) { player.y = 0; player.vy = 0; player.onGround = true; }
+  }
+
   player.moving = 0;
   if (actions.left) { player.x -= player.speed; player.facing = -1; player.moving = 1; }
   if (actions.right) { player.x += player.speed; player.facing = 1; player.moving = 1; }
@@ -559,7 +576,7 @@ function update() {
       setTimeout(() => {
         if (!enemy || !enemy.alive) return;
         enemy.attacking = false;
-        if (Math.abs(enemy.x - player.x) < 60) {
+        if (Math.abs(enemy.x - player.x) < 60 && player.y > -50) {
           if (player.blocking) {
             addParticles(player.x, ground - 30, '#22c55e', 4, 3); shakeTimer = 3;
           } else {
@@ -594,7 +611,7 @@ function draw(time) {
     drawCharacter(enemy.x, ground - 70, enemy, time);
     ctx.globalAlpha = 1;
   }
-  if (player.alive) drawCharacter(player.x, ground - 70, player, time);
+  if (player.alive) drawCharacter(player.x, ground - 70 + player.y, player, time);
 
   particles.forEach(p => {
     ctx.globalAlpha = p.life / p.maxLife;
