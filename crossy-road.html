@@ -98,6 +98,19 @@ button.play-btn:hover { transform: scale(1.05); filter: brightness(1.1); }
 
 <canvas id="game"></canvas>
 
+<div id="lb-overlay"><h2>🏆 Leaderboard</h2><div id="lb-list"></div><button id="lb-close-btn">Close</button></div>
+<div id="death-screen">
+  <h1>💀 Game Over!</h1>
+  <div id="death-score">Score: 0</div>
+  <p style="color:#94a3b8;font-size:14px;margin-bottom:12px">Enter your name:</p>
+  <input type="text" id="death-name" placeholder="Your name" maxlength="16" autocomplete="off">
+  <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">
+    <button id="death-submit">📤 Submit Score</button>
+    <button id="death-lb">🏆 Leaderboard</button>
+    <button id="death-retry">🐔 Try Again</button>
+  </div>
+</div>
+
 <div id="mobileControls">
   <div class="d-pad">
     <div class="d-blank"></div>
@@ -680,17 +693,5 @@ document.getElementById('death-name').addEventListener('keydown',function(e){if(
 // === END LEADERBOARD ===
 
 </script>
-<div id="lb-overlay"><h2>🏆 Leaderboard</h2><div id="lb-list"></div><button id="lb-close-btn">Close</button></div>
-<div id="death-screen">
-  <h1>💀 Game Over!</h1>
-  <div id="death-score">Score: 0</div>
-  <p style="color:#94a3b8;font-size:14px;margin-bottom:12px">Enter your name:</p>
-  <input type="text" id="death-name" placeholder="Your name" maxlength="16" autocomplete="off">
-  <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">
-    <button id="death-submit">📤 Submit Score</button>
-    <button id="death-lb">🏆 Leaderboard</button>
-    <button id="death-retry">🐔 Try Again</button>
-  </div>
-</div>
 </body>
 </html>
