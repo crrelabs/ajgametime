@@ -385,8 +385,8 @@ function spawnFruit() {
   var baseSize = 50 + (fruitDef ? fruitDef.size * 20 : 0);
   fruits.push({
     x: 80 + Math.random() * (W - 160), y: H + 30,
-    vx: (Math.random() - 0.5) * 4, vy: -(12 + Math.random() * 6 + difficulty * 2),
-    gravity: 0.25, radius: baseSize / 2,
+    vx: (Math.random() - 0.5) * 4, vy: -(18 + Math.random() * 8 + difficulty * 3),
+    gravity: 0.55, radius: baseSize / 2,
     emoji: isBomb ? '💣' : fruitDef.emoji,
     points: isBomb ? -1 : fruitDef.points,
     color: isBomb ? '#1f2937' : fruitDef.color,
@@ -778,13 +778,12 @@ canvas.addEventListener('touchstart', function(e) { e.preventDefault(); startSli
 canvas.addEventListener('touchmove', function(e) { e.preventDefault(); moveSlice(e.touches[0].clientX, e.touches[0].clientY); });
 canvas.addEventListener('touchend', function(e) { e.preventDefault(); endSlice(); });
 
-var _loopId=0;
-function loop() { update(); draw(); _loopId=requestAnimationFrame(loop); }
-document.addEventListener('visibilitychange',function(){if(!document.hidden){cancelAnimationFrame(_loopId);_loopId=requestAnimationFrame(loop);}});
+var _intervalId=0;
+function loop() { update(); draw(); }
 
 document.getElementById('startBtn').addEventListener('click', function() {
   document.getElementById('startScreen').classList.add('hidden');
-  initAudio(); startMusic(); init(); cancelAnimationFrame(_loopId); _loopId=requestAnimationFrame(loop);
+  initAudio(); startMusic(); init(); if(_intervalId)clearInterval(_intervalId); _intervalId=setInterval(loop,1000/30);
 });
 
 // === LEADERBOARD ===
