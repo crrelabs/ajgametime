@@ -45,6 +45,23 @@ button.play-btn:hover { transform: scale(1.05); filter: brightness(1.1); }
 #finalScore { font-size: 3.5rem; font-weight: 900; color: #fbbf24; }
 #finalCoins { color: #fbbf24; font-size: 1.2rem; font-weight: 700; }
 
+#lb-overlay{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;z-index:100;background:rgba(0,0,0,0.92)}
+#lb-overlay h2{font-family:sans-serif;font-size:28px;color:#f59e0b;margin-bottom:12px;font-weight:900}
+#lb-list{width:min(340px,90vw);max-height:50vh;overflow-y:auto}
+.lb-row{display:flex;justify-content:space-between;padding:8px 14px;border-bottom:1px solid rgba(255,255,255,0.08);color:#e2e8f0;font-size:14px;font-weight:600}
+.lb-row:nth-child(1) .lb-rank{color:#fbbf24}.lb-row:nth-child(2) .lb-rank{color:#94a3b8}.lb-row:nth-child(3) .lb-rank{color:#b45309}
+.lb-rank{width:30px;color:#64748b}.lb-name{flex:1;margin:0 8px}.lb-score{color:#22d3ee}
+#lb-close-btn{pointer-events:auto;margin-top:16px;padding:10px 30px;font-size:16px;font-weight:700;color:#fff;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:10px;cursor:pointer}
+#lb-show-btn{pointer-events:auto;padding:8px 20px;font-size:14px;font-weight:700;color:#fff;background:linear-gradient(135deg,#f59e0b,#ef4444);border:none;border-radius:8px;cursor:pointer;margin-top:8px}
+#death-screen{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;z-index:90;background:rgba(26,10,46,0.97)}
+#death-screen h1{font-size:2.5rem;margin-bottom:0.5rem;color:#e2e8f0}
+#death-score{font-size:3rem;font-weight:900;color:#fbbf24;margin-bottom:8px}
+#death-screen input{padding:10px 16px;font-size:16px;border-radius:8px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.1);color:#fff;text-align:center;width:200px;margin-bottom:12px}
+#death-screen button{margin:4px;padding:10px 24px;font-size:14px;font-weight:700;border:none;border-radius:10px;cursor:pointer;color:#fff}
+#death-submit{background:linear-gradient(135deg,#22c55e,#16a34a)}
+#death-retry{background:linear-gradient(135deg,#3b82f6,#8b5cf6)}
+#death-lb{background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2) !important}
+
 /* Mobile controls */
 #mobileControls { display: none; position: fixed; bottom: 20px; z-index: 20; }
 .d-pad { display: grid; grid-template-columns: 60px 60px 60px; grid-template-rows: 60px 60px 60px; gap: 4px; }
@@ -74,16 +91,10 @@ button.play-btn:hover { transform: scale(1.05); filter: brightness(1.1); }
   <p>Hop across roads, rivers, and train tracks. Don't get squished!</p>
   <p class="controls-hint">Arrow keys / WASD / Swipe to move</p>
   <button class="play-btn" id="startBtn">🐔 Let's Go!</button>
+  <button id="lb-show-btn" style="margin-top:12px">🏆 Leaderboard</button>
 </div>
 
-<div id="gameOver" class="hidden">
-  <div class="emoji">💀</div>
-  <h2>Splat!</h2>
-  <div id="finalScore">0</div>
-  <div id="finalCoins">🪙 0</div>
-  <p id="deathMsg">You got squished!</p>
-  <button class="play-btn" id="retryBtn">🐔 Try Again</button>
-</div>
+
 
 <canvas id="game"></canvas>
 
@@ -108,10 +119,7 @@ const scoreEl = document.getElementById('scoreVal');
 const highEl = document.getElementById('highVal');
 const coinsEl = document.getElementById('coinsVal');
 const startScreen = document.getElementById('startScreen');
-const gameOverScreen = document.getElementById('gameOver');
-const finalScoreEl = document.getElementById('finalScore');
-const finalCoinsEl = document.getElementById('finalCoins');
-const deathMsgEl = document.getElementById('deathMsg');
+
 
 let W, H, TILE, COLS, VISIBLE_ROWS;
 let highScore = parseInt(localStorage.getItem('crossy_high') || '0');
@@ -281,10 +289,7 @@ function tryMove(dx, dy) {
 function die(msg) {
   gameRunning = false;
   deathType = msg;
-  finalScoreEl.textContent = score;
-  finalCoinsEl.textContent = '🪙 ' + coins;
-  deathMsgEl.textContent = msg;
-  gameOverScreen.classList.remove('hidden');
+  _showDeathScreen(score);
 }
 
 function update() {
@@ -643,10 +648,49 @@ document.getElementById('startBtn').addEventListener('click', () => {
   init();
   loop();
 });
-document.getElementById('retryBtn').addEventListener('click', () => {
-  gameOverScreen.classList.add('hidden');
+document.getElementById('lb-show-btn').addEventListener('click',()=>{_lbShow();});
+
+// === LEADERBOARD ===
+const _LB_URL='https://adudgrfxwildzwpcvyil.supabase.co';const _LB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFkdWRncmZ4d2lsZHp3cGN2eWlsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyOTkzODUsImV4cCI6MjA4Nzg3NTM4NX0.-JYXn5r9QUjxbpwckwDMSvCm8w1xRXOp5lP2TWNOC_E';const _LB_GAME='crossy-road';
+async function _lbFetch(){try{const r=await fetch(_LB_URL+'/rest/v1/ajgametime_leaderboard?game=eq.'+_LB_GAME+'&order=score.desc&limit=10',{headers:{'apikey':_LB_KEY,'Authorization':'Bearer '+_LB_KEY}});return await r.json();}catch(e){return[];}}
+async function _lbSubmit(name,sc){try{await fetch(_LB_URL+'/rest/v1/ajgametime_leaderboard',{method:'POST',headers:{'apikey':_LB_KEY,'Authorization':'Bearer '+_LB_KEY,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({game:_LB_GAME,player_name:name,score:sc,wave:1})});}catch(e){}}
+async function _lbShow(){const lb=document.getElementById('lb-overlay');const list=document.getElementById('lb-list');list.innerHTML='<div style="color:#64748b;text-align:center;padding:20px">Loading...</div>';lb.style.display='flex';const data=await _lbFetch();if(!data.length){list.innerHTML='<div style="color:#64748b;text-align:center;padding:20px">No scores yet!</div>';return;}list.innerHTML=data.map((d,i)=>'<div class="lb-row"><span class="lb-rank">#'+(i+1)+'</span><span class="lb-name">'+d.player_name+'</span><span class="lb-score">'+d.score+'</span></div>').join('');}
+document.getElementById('lb-close-btn').addEventListener('click',()=>document.getElementById('lb-overlay').style.display='none');
+let _lbPendingScore=0;
+function _showDeathScreen(sc){
+  _lbPendingScore=sc;
+  document.getElementById('death-score').textContent='Score: '+sc;
+  document.getElementById('death-name').value=localStorage.getItem('ajgt_name')||'';
+  document.getElementById('death-screen').style.display='flex';
+}
+document.getElementById('death-submit').addEventListener('click',async function(){
+  var n=document.getElementById('death-name').value.trim()||'Anonymous';
+  localStorage.setItem('ajgt_name',n);
+  await _lbSubmit(n,_lbPendingScore);
+  this.textContent='✅ Done!';this.disabled=true;
+});
+document.getElementById('death-retry').addEventListener('click',function(){
+  document.getElementById('death-screen').style.display='none';
+  document.getElementById('death-submit').textContent='📤 Submit Score';
+  document.getElementById('death-submit').disabled=false;
   init();
 });
+document.getElementById('death-lb').addEventListener('click',function(){_lbShow();});
+document.getElementById('death-name').addEventListener('keydown',function(e){if(e.key==='Enter')document.getElementById('death-submit').click();});
+// === END LEADERBOARD ===
+
 </script>
+<div id="lb-overlay"><h2>🏆 Leaderboard</h2><div id="lb-list"></div><button id="lb-close-btn">Close</button></div>
+<div id="death-screen">
+  <h1>💀 Game Over!</h1>
+  <div id="death-score">Score: 0</div>
+  <p style="color:#94a3b8;font-size:14px;margin-bottom:12px">Enter your name:</p>
+  <input type="text" id="death-name" placeholder="Your name" maxlength="16" autocomplete="off">
+  <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">
+    <button id="death-submit">📤 Submit Score</button>
+    <button id="death-lb">🏆 Leaderboard</button>
+    <button id="death-retry">🐔 Try Again</button>
+  </div>
+</div>
 </body>
 </html>
