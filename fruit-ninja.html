@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Play Fruit Ninja - swipe to slice fruit, avoid bombs! Free browser game at AJ GameTime.">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://ajgametime.com/fruit-ninja.html">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://ajgametime.com/fruit-ninja.html">
+<meta property="og:title" content="Fruit Ninja — AJ GameTime">
+<meta property="og:description" content="Swipe to slice fruit and avoid bombs! How many combos can you get?">
+<meta property="og:site_name" content="AJ GameTime">
+<title>Fruit Ninja — AJ GameTime</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { min-height: 100vh; display: flex; flex-direction: column; align-items: center; font-family: -apple-system, sans-serif; background: #0a0a12; color: #e2e8f0; overflow: hidden; user-select: none; -webkit-user-select: none; }
+#header { width: 100%; padding: 0.5rem 1rem; display: flex; justify-content: space-between; align-items: center; z-index: 10; position: fixed; top: 0; background: rgba(10,10,18,0.85); }
+#header a { color: #64748b; text-decoration: none; font-size: 0.85rem; }
+#header a:hover { color: #e2e8f0; }
+#hud { display: flex; gap: 1.2rem; align-items: center; }
+.stat { text-align: center; }
+.stat-val { font-size: 1.3rem; font-weight: 800; }
+.stat-label { font-size: 0.55rem; text-transform: uppercase; letter-spacing: 0.1em; color: #64748b; }
+#scoreVal { color: #fbbf24; }
+#comboVal { color: #f97316; }
+#livesVal { color: #ef4444; }
+#bestVal { color: #a78bfa; }
+canvas { display: block; cursor: crosshair; touch-action: none; }
+
+#startScreen {
+  position: fixed; inset: 0; background: rgba(10,10,18,0.97);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 30;
+}
+#startScreen.hidden { display: none; }
+#startScreen h1 { font-size: 2.5rem; margin-bottom: 0.5rem; }
+#startScreen .emoji { font-size: 5rem; margin-bottom: 1rem; }
+#startScreen p { color: #94a3b8; margin-bottom: 0.5rem; font-size: 0.9rem; text-align: center; max-width: 340px; }
+button.play-btn {
+  margin-top: 1rem; padding: 0.8rem 2rem; font-size: 1rem; font-weight: 700;
+  background: linear-gradient(135deg, #ef4444, #f97316); color: white;
+  border: none; border-radius: 12px; cursor: pointer; transition: 0.2s;
+}
+button.play-btn:hover { transform: scale(1.05); }
+
+/* Music toggle */
+#musicBtn { position: fixed; bottom: 16px; right: 16px; z-index: 20; width: 44px; height: 44px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.08); color: #e2e8f0; font-size: 1.2rem; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+
+/* Leaderboard & death */
+#lb-overlay{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;z-index:100;background:rgba(0,0,0,0.92)}
+#lb-overlay h2{font-size:28px;color:#f59e0b;margin-bottom:12px;font-weight:900}
+#lb-list{width:min(340px,90vw);max-height:50vh;overflow-y:auto}
+.lb-row{display:flex;justify-content:space-between;padding:8px 14px;border-bottom:1px solid rgba(255,255,255,0.08);color:#e2e8f0;font-size:14px;font-weight:600}
+.lb-row:nth-child(1) .lb-rank{color:#fbbf24}.lb-row:nth-child(2) .lb-rank{color:#94a3b8}.lb-row:nth-child(3) .lb-rank{color:#b45309}
+.lb-rank{width:30px;color:#64748b}.lb-name{flex:1;margin:0 8px}.lb-score{color:#22d3ee}
+#lb-close-btn{margin-top:16px;padding:10px 30px;font-size:16px;font-weight:700;color:#fff;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:10px;cursor:pointer}
+#lb-show-btn{padding:8px 20px;font-size:14px;font-weight:700;color:#fff;background:linear-gradient(135deg,#f59e0b,#ef4444);border:none;border-radius:8px;cursor:pointer;margin-top:8px}
+#death-screen{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;z-index:90;background:rgba(10,10,18,0.97)}
+#death-screen h1{font-size:2.5rem;margin-bottom:0.5rem;color:#e2e8f0}
+#death-score{font-size:3rem;font-weight:900;color:#fbbf24;margin-bottom:4px}
+#death-best-combo{font-size:1.1rem;color:#f97316;font-weight:700;margin-bottom:12px}
+#death-screen input{padding:10px 16px;font-size:16px;border-radius:8px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.1);color:#fff;text-align:center;width:200px;margin-bottom:12px}
+#death-screen button{margin:4px;padding:10px 24px;font-size:14px;font-weight:700;border:none;border-radius:10px;cursor:pointer;color:#fff}
+#death-submit{background:linear-gradient(135deg,#22c55e,#16a34a)}
+#death-retry{background:linear-gradient(135deg,#3b82f6,#8b5cf6)}
+#death-lb{background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2) !important}
+</style>
+</head>
+<body>
+
+<div id="header">
+  <a href="index.html">← AJ GameTime</a>
+  <div id="hud">
+    <div class="stat"><div class="stat-val" id="scoreVal">0</div><div class="stat-label">Score</div></div>
+    <div class="stat"><div class="stat-val" id="comboVal">0</div><div class="stat-label">Combo</div></div>
+    <div class="stat"><div class="stat-val" id="livesVal">❌❌❌</div><div class="stat-label">Strikes</div></div>
+    <div class="stat"><div class="stat-val" id="bestVal">0</div><div class="stat-label">Best</div></div>
+  </div>
+</div>
+
+<div id="startScreen">
+  <div class="emoji">🍉🔪</div>
+  <h1>Fruit Ninja</h1>
+  <p>Swipe to slice fruit! Avoid the bombs 💣. Get combos for bonus points. 3 strikes and you're out!</p>
+  <p style="color:#64748b;font-size:0.8rem;">Swipe / click and drag to slice</p>
+  <button class="play-btn" id="startBtn">🔪 Slice!</button>
+  <button id="lb-show-btn" style="margin-top:12px">🏆 Leaderboard</button>
+</div>
+
+<canvas id="game"></canvas>
+
+<button id="musicBtn">🔊</button>
+
+<div id="lb-overlay"><h2>🏆 Leaderboard</h2><div id="lb-list"></div><button id="lb-close-btn">Close</button></div>
+<div id="death-screen">
+  <h1>🔪 Game Over!</h1>
+  <div id="death-score">0</div>
+  <div id="death-best-combo">Best Combo: 0x</div>
+  <p style="color:#94a3b8;font-size:14px;margin-bottom:12px">Enter your name:</p>
+  <input type="text" id="death-name" placeholder="Your name" maxlength="16" autocomplete="off">
+  <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">
+    <button id="death-submit">📤 Submit Score</button>
+    <button id="death-lb">🏆 Leaderboard</button>
+    <button id="death-retry">🔪 Try Again</button>
+  </div>
+</div>
+
+<script>
+// === AUDIO ENGINE (Web Audio API) ===
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let audioCtx = null;
+let musicPlaying = false;
+let musicGain = null;
+let musicInterval = null;
+
+function initAudio() {
+  if (audioCtx) return;
+  audioCtx = new AudioCtx();
+  musicGain = audioCtx.createGain();
+  musicGain.gain.value = 0.15;
+  musicGain.connect(audioCtx.destination);
+}
+
+function playNote(freq, dur, type='sine', vol=0.1) {
+  if (!audioCtx) return;
+  const osc = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  osc.type = type;
+  osc.frequency.value = freq;
+  g.gain.setValueAtTime(vol, audioCtx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+  osc.connect(g);
+  g.connect(audioCtx.destination);
+  osc.start();
+  osc.stop(audioCtx.currentTime + dur);
+}
+
+function playSliceSound() {
+  playNote(800 + Math.random() * 400, 0.1, 'sawtooth', 0.08);
+  playNote(1200 + Math.random() * 300, 0.05, 'sine', 0.05);
+}
+
+function playBombSound() {
+  playNote(100, 0.4, 'sawtooth', 0.2);
+  playNote(60, 0.6, 'square', 0.15);
+}
+
+function playComboSound(combo) {
+  const base = 400 + combo * 80;
+  for (let i = 0; i < Math.min(combo, 5); i++) {
+    setTimeout(() => playNote(base + i * 100, 0.15, 'sine', 0.08), i * 60);
+  }
+}
+
+function playMissSound() {
+  playNote(200, 0.3, 'square', 0.1);
+  playNote(150, 0.4, 'sawtooth', 0.08);
+}
+
+// Background music - looping melody
+const MELODY = [
+  [392, 0.2], [440, 0.2], [494, 0.2], [523, 0.4],
+  [494, 0.2], [440, 0.2], [392, 0.4],
+  [330, 0.2], [349, 0.2], [392, 0.2], [440, 0.4],
+  [392, 0.2], [349, 0.2], [330, 0.4],
+  [262, 0.2], [294, 0.2], [330, 0.2], [349, 0.4],
+  [392, 0.2], [440, 0.2], [494, 0.4],
+  [523, 0.3], [494, 0.2], [440, 0.2], [392, 0.6],
+];
+
+function startMusic() {
+  if (musicPlaying) return;
+  initAudio();
+  musicPlaying = true;
+  let noteIdx = 0;
+  function playNext() {
+    if (!musicPlaying) return;
+    const [freq, dur] = MELODY[noteIdx % MELODY.length];
+    const osc = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.value = freq;
+    g.gain.setValueAtTime(0.06, audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur * 0.9);
+    osc.connect(g);
+    g.connect(musicGain);
+    osc.start();
+    osc.stop(audioCtx.currentTime + dur);
+    noteIdx++;
+    musicInterval = setTimeout(playNext, dur * 1000 * 0.85);
+  }
+  playNext();
+  document.getElementById('musicBtn').textContent = '🔊';
+}
+
+function stopMusic() {
+  musicPlaying = false;
+  if (musicInterval) clearTimeout(musicInterval);
+  document.getElementById('musicBtn').textContent = '🔇';
+}
+
+document.getElementById('musicBtn').addEventListener('click', () => {
+  if (musicPlaying) stopMusic();
+  else startMusic();
+});
+
+// === GAME ===
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+
+let W, H;
+function resize() {
+  W = window.innerWidth;
+  H = window.innerHeight;
+  canvas.width = W;
+  canvas.height = H;
+}
+resize();
+window.addEventListener('resize', resize);
+
+const FRUITS = [
+  { emoji: '🍉', points: 1, size: 1.0, color: '#22c55e' },
+  { emoji: '🍊', points: 1, size: 0.85, color: '#f97316' },
+  { emoji: '🍎', points: 1, size: 0.85, color: '#ef4444' },
+  { emoji: '🍋', points: 1, size: 0.8, color: '#fbbf24' },
+  { emoji: '🍇', points: 2, size: 0.9, color: '#7c3aed' },
+  { emoji: '🍑', points: 1, size: 0.85, color: '#fb923c' },
+  { emoji: '🍌', points: 1, size: 0.9, color: '#fbbf24' },
+  { emoji: '🍍', points: 2, size: 1.0, color: '#fbbf24' },
+  { emoji: '🥝', points: 2, size: 0.75, color: '#65a30d' },
+  { emoji: '🫐', points: 3, size: 0.7, color: '#6366f1' },
+];
+
+let fruits, sliceTrail, particles, textPops, score, combo, bestCombo, strikes, gameRunning;
+let spawnTimer, spawnRate, difficulty;
+let highScore = parseInt(localStorage.getItem('fn_high') || '0');
+document.getElementById('bestVal').textContent = highScore;
+
+function init() {
+  fruits = [];
+  sliceTrail = [];
+  particles = [];
+  textPops = [];
+  score = 0;
+  combo = 0;
+  bestCombo = 0;
+  strikes = 0;
+  gameRunning = true;
+  spawnTimer = 0;
+  spawnRate = 60;
+  difficulty = 0;
+  updateHUD();
+}
+
+function updateHUD() {
+  document.getElementById('scoreVal').textContent = score;
+  document.getElementById('comboVal').textContent = combo > 1 ? combo + 'x' : '';
+  const xs = '❌'.repeat(strikes) + '⬜'.repeat(Math.max(0, 3 - strikes));
+  document.getElementById('livesVal').textContent = xs;
+}
+
+function spawnFruit() {
+  const isBomb = Math.random() < 0.1 + difficulty * 0.05;
+  const fruitDef = isBomb ? null : FRUITS[Math.floor(Math.random() * FRUITS.length)];
+  const baseSize = 50 + (fruitDef ? fruitDef.size * 20 : 0);
+  
+  const x = 80 + Math.random() * (W - 160);
+  const vx = (Math.random() - 0.5) * 4;
+  const vy = -(12 + Math.random() * 6 + difficulty * 2);
+  
+  fruits.push({
+    x, y: H + 30,
+    vx, vy,
+    gravity: 0.25,
+    radius: baseSize / 2,
+    emoji: isBomb ? '💣' : fruitDef.emoji,
+    points: isBomb ? -1 : fruitDef.points,
+    color: isBomb ? '#1f2937' : fruitDef.color,
+    isBomb,
+    sliced: false,
+    rotation: Math.random() * Math.PI * 2,
+    rotSpeed: (Math.random() - 0.5) * 0.1,
+    missed: false,
+  });
+}
+
+function update() {
+  if (!gameRunning) return;
+  
+  difficulty = Math.min(score / 50, 1.5);
+  
+  // Spawn
+  spawnTimer--;
+  if (spawnTimer <= 0) {
+    const count = 1 + Math.floor(Math.random() * (2 + difficulty));
+    for (let i = 0; i < count; i++) {
+      setTimeout(() => spawnFruit(), i * 100);
+    }
+    spawnRate = Math.max(25, 60 - difficulty * 15);
+    spawnTimer = spawnRate + Math.floor(Math.random() * 20);
+  }
+  
+  // Combo timer — reset if no slice in a while
+  
+  // Update fruits
+  for (let i = fruits.length - 1; i >= 0; i--) {
+    const f = fruits[i];
+    f.x += f.vx;
+    f.vy += f.gravity;
+    f.y += f.vy;
+    f.rotation += f.rotSpeed;
+    
+    // Off screen bottom — missed
+    if (f.y > H + 60 && !f.sliced) {
+      if (!f.isBomb && !f.missed) {
+        f.missed = true;
+        strikes++;
+        playMissSound();
+        updateHUD();
+        if (strikes >= 3) {
+          gameOver();
+          return;
+        }
+      }
+      fruits.splice(i, 1);
+    }
+    
+    // Remove sliced fruits that fell
+    if (f.sliced && f.y > H + 100) {
+      fruits.splice(i, 1);
+    }
+  }
+  
+  // Particles
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.x += p.vx;
+    p.y += p.vy;
+    p.vy += 0.15;
+    p.life--;
+    if (p.life <= 0) particles.splice(i, 1);
+  }
+  
+  // Text pops
+  for (let i = textPops.length - 1; i >= 0; i--) {
+    const t = textPops[i];
+    t.y -= 1.5;
+    t.life--;
+    if (t.life <= 0) textPops.splice(i, 1);
+  }
+  
+  // Slice trail fade
+  for (let i = sliceTrail.length - 1; i >= 0; i--) {
+    sliceTrail[i].life--;
+    if (sliceTrail[i].life <= 0) sliceTrail.splice(i, 1);
+  }
+}
+
+function draw() {
+  // Background - dark with subtle gradient
+  ctx.fillStyle = '#0a0a12';
+  ctx.fillRect(0, 0, W, H);
+  
+  // Wooden board texture at bottom
+  const grad = ctx.createLinearGradient(0, H - 80, 0, H);
+  grad.addColorStop(0, 'transparent');
+  grad.addColorStop(1, 'rgba(92,64,32,0.3)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, H - 80, W, 80);
+  
+  // Slice trail
+  if (sliceTrail.length > 1) {
+    ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+    ctx.lineWidth = 3;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.shadowColor = '#fff';
+    ctx.shadowBlur = 10;
+    ctx.beginPath();
+    ctx.moveTo(sliceTrail[0].x, sliceTrail[0].y);
+    for (let i = 1; i < sliceTrail.length; i++) {
+      const alpha = sliceTrail[i].life / 15;
+      ctx.globalAlpha = alpha;
+      ctx.lineTo(sliceTrail[i].x, sliceTrail[i].y);
+    }
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+    ctx.shadowBlur = 0;
+  }
+  
+  // Fruits
+  for (const f of fruits) {
+    ctx.save();
+    ctx.translate(f.x, f.y);
+    ctx.rotate(f.rotation);
+    
+    if (f.sliced) {
+      ctx.globalAlpha = 0.5;
+    }
+    
+    const fontSize = f.radius * 2;
+    ctx.font = `${fontSize}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(f.emoji, 0, 0);
+    
+    ctx.restore();
+  }
+  
+  // Particles
+  for (const p of particles) {
+    ctx.globalAlpha = p.life / 30;
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+  
+  // Text pops
+  for (const t of textPops) {
+    ctx.globalAlpha = t.life / 40;
+    ctx.fillStyle = t.color;
+    ctx.font = `bold ${t.size}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.fillText(t.text, t.x, t.y);
+  }
+  ctx.globalAlpha = 1;
+}
+
+function sliceFruit(f) {
+  if (f.sliced) return;
+  f.sliced = true;
+  
+  if (f.isBomb) {
+    // Bomb! Game over
+    playBombSound();
+    // Explosion particles
+    for (let i = 0; i < 20; i++) {
+      particles.push({
+        x: f.x, y: f.y,
+        vx: (Math.random() - 0.5) * 12,
+        vy: (Math.random() - 0.5) * 12,
+        life: 40,
+        color: Math.random() < 0.5 ? '#ef4444' : '#fbbf24',
+        size: 3 + Math.random() * 5,
+      });
+    }
+    textPops.push({ x: f.x, y: f.y, text: '💥 BOOM!', color: '#ef4444', size: 40, life: 50 });
+    gameOver();
+    return;
+  }
+  
+  playSliceSound();
+  
+  // Juice particles
+  for (let i = 0; i < 8; i++) {
+    particles.push({
+      x: f.x, y: f.y,
+      vx: (Math.random() - 0.5) * 8,
+      vy: (Math.random() - 0.5) * 8 - 2,
+      life: 30,
+      color: f.color,
+      size: 2 + Math.random() * 4,
+    });
+  }
+  
+  // Score
+  combo++;
+  if (combo > bestCombo) bestCombo = combo;
+  const points = f.points * (combo > 1 ? combo : 1);
+  score += points;
+  
+  if (score > highScore) {
+    highScore = score;
+    localStorage.setItem('fn_high', highScore.toString());
+    document.getElementById('bestVal').textContent = highScore;
+  }
+  
+  // Text pop
+  let popText = '+' + points;
+  let popColor = '#fbbf24';
+  let popSize = 24;
+  if (combo >= 3) {
+    popText = combo + 'x COMBO! +' + points;
+    popColor = '#f97316';
+    popSize = 30;
+    playComboSound(combo);
+  }
+  if (combo >= 5) {
+    popText = '🔥 ' + combo + 'x! +' + points;
+    popColor = '#ef4444';
+    popSize = 36;
+  }
+  textPops.push({ x: f.x, y: f.y - 30, text: popText, color: popColor, size: popSize, life: 40 });
+  
+  updateHUD();
+}
+
+// Combo reset timer
+let comboResetTimer = null;
+function resetComboTimer() {
+  if (comboResetTimer) clearTimeout(comboResetTimer);
+  comboResetTimer = setTimeout(() => {
+    combo = 0;
+    updateHUD();
+  }, 800);
+}
+
+function gameOver() {
+  gameRunning = false;
+  canvas.style.pointerEvents = 'none';
+  stopMusic();
+  document.getElementById('death-score').textContent = score;
+  document.getElementById('death-best-combo').textContent = 'Best Combo: ' + bestCombo + 'x';
+  document.getElementById('death-name').value = localStorage.getItem('ajgt_name') || '';
+  document.getElementById('death-screen').style.display = 'flex';
+}
+
+// === SWIPE / SLICE INPUT ===
+let isSlicing = false;
+let lastSliceX = 0, lastSliceY = 0;
+
+function startSlice(x, y) {
+  isSlicing = true;
+  lastSliceX = x;
+  lastSliceY = y;
+  sliceTrail = [];
+  sliceTrail.push({ x, y, life: 15 });
+}
+
+function moveSlice(x, y) {
+  if (!isSlicing || !gameRunning) return;
+  
+  sliceTrail.push({ x, y, life: 15 });
+  if (sliceTrail.length > 20) sliceTrail.shift();
+  
+  // Check fruit hits
+  const dx = x - lastSliceX;
+  const dy = y - lastSliceY;
+  const speed = Math.sqrt(dx * dx + dy * dy);
+  
+  if (speed > 5) { // Must be a swipe, not a tap
+    for (const f of fruits) {
+      if (f.sliced) continue;
+      const dist = Math.sqrt((f.x - x) ** 2 + (f.y - y) ** 2);
+      if (dist < f.radius + 15) {
+        sliceFruit(f);
+        resetComboTimer();
+      }
+    }
+  }
+  
+  lastSliceX = x;
+  lastSliceY = y;
+}
+
+function endSlice() {
+  isSlicing = false;
+}
+
+// Mouse
+canvas.addEventListener('mousedown', e => startSlice(e.clientX, e.clientY));
+canvas.addEventListener('mousemove', e => moveSlice(e.clientX, e.clientY));
+canvas.addEventListener('mouseup', endSlice);
+canvas.addEventListener('mouseleave', endSlice);
+
+// Touch
+canvas.addEventListener('touchstart', e => {
+  e.preventDefault();
+  const t = e.touches[0];
+  startSlice(t.clientX, t.clientY);
+});
+canvas.addEventListener('touchmove', e => {
+  e.preventDefault();
+  const t = e.touches[0];
+  moveSlice(t.clientX, t.clientY);
+});
+canvas.addEventListener('touchend', e => {
+  e.preventDefault();
+  endSlice();
+});
+
+function loop() {
+  update();
+  draw();
+  requestAnimationFrame(loop);
+}
+
+// Start
+document.getElementById('startBtn').addEventListener('click', () => {
+  document.getElementById('startScreen').classList.add('hidden');
+  initAudio();
+  startMusic();
+  init();
+  loop();
+});
+
+// === LEADERBOARD ===
+const _LB_URL='https://adudgrfxwildzwpcvyil.supabase.co';
+const _LB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFkdWRncmZ4d2lsZHp3cGN2eWlsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyOTkzODUsImV4cCI6MjA4Nzg3NTM4NX0.-JYXn5r9QUjxbpwckwDMSvCm8w1xRXOp5lP2TWNOC_E';
+const _LB_GAME='fruit-ninja';
+async function _lbFetch(){try{const r=await fetch(_LB_URL+'/rest/v1/ajgametime_leaderboard?game=eq.'+_LB_GAME+'&order=score.desc&limit=10',{headers:{'apikey':_LB_KEY,'Authorization':'Bearer '+_LB_KEY}});return await r.json();}catch(e){return[];}}
+async function _lbSubmit(name,sc){try{await fetch(_LB_URL+'/rest/v1/ajgametime_leaderboard',{method:'POST',headers:{'apikey':_LB_KEY,'Authorization':'Bearer '+_LB_KEY,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({game:_LB_GAME,player_name:name,score:sc,wave:bestCombo})});}catch(e){}}
+async function _lbShow(){const lb=document.getElementById('lb-overlay');const list=document.getElementById('lb-list');list.innerHTML='<div style="color:#64748b;text-align:center;padding:20px">Loading...</div>';lb.style.display='flex';const data=await _lbFetch();if(!data.length){list.innerHTML='<div style="color:#64748b;text-align:center;padding:20px">No scores yet!</div>';return;}list.innerHTML=data.map((d,i)=>'<div class="lb-row"><span class="lb-rank">#'+(i+1)+'</span><span class="lb-name">'+d.player_name+'</span><span class="lb-score">'+d.score+'</span></div>').join('');}
+document.getElementById('lb-close-btn').addEventListener('click',()=>document.getElementById('lb-overlay').style.display='none');
+document.getElementById('lb-show-btn').addEventListener('click',()=>{_lbShow();});
+document.getElementById('death-submit').addEventListener('click',async function(){
+  var n=document.getElementById('death-name').value.trim()||'Anonymous';
+  localStorage.setItem('ajgt_name',n);
+  await _lbSubmit(n,score);
+  this.textContent='✅ Done!';this.disabled=true;
+});
+document.getElementById('death-retry').addEventListener('click',function(){
+  document.getElementById('death-screen').style.display='none';
+  document.getElementById('death-submit').textContent='📤 Submit Score';
+  document.getElementById('death-submit').disabled=false;
+  canvas.style.pointerEvents = '';
+  startMusic();
+  init();
+});
+document.getElementById('death-lb').addEventListener('click',function(){_lbShow();});
+document.getElementById('death-name').addEventListener('keydown',function(e){if(e.key==='Enter')document.getElementById('death-submit').click();});
+// === END LEADERBOARD ===
+</script>
+</body>
+</html>
