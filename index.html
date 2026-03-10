@@ -286,6 +286,7 @@ footer a:hover { color: #94a3b8; }
 <script>
 // Update log data
 const UPDATES = [
+  { date: 'Mar 11', game: '🎸 Rhythm Rush', items: ['NEW GAME! Arrow rhythm game (DDR style)', '4 lanes, combos, accuracy tracking', 'Shop: arrows, notes, stages, hit/miss effects'] },
   { date: 'Mar 11', game: '🏄‍♂️ Surfer Dude', items: ['NEW GAME! Endless wave surfing', 'Tricks & combos', 'Shop: boards, wetsuits, trails, waves, wipeouts'] },
   { date: 'Mar 11', game: '🏴‍☠️ Pirate Ship Battle', items: ['NEW GAME! Sail & fire cannons', 'Boss ships every 10 waves', 'Shop: ships, cannons, flags, seas, sinks'] },
   { date: 'Mar 11', game: '🧟 Zombie Defense', items: ['Traps/bananas snap to path', 'Stay until walked on (no timer)', '+1 Cap upgrade, Bank $50/2.5s'] },
@@ -312,6 +313,12 @@ const UPDATES = [
 
 // Game data — all in one place for easy updates
 const GAMES = [
+  {
+    id: 'rhythm-rush', name: 'Rhythm Rush', href: 'rhythm-rush.html',
+    desc: 'Arrows fall down — hit them at the right time! Chain combos, don\'t miss 3! Full shop with arrow skins, stages & effects.',
+    category: 'Rhythm', emoji: '🎸',
+    added: '2026-03-11', color1: '#a855f7', color2: '#7c3aed'
+  },
   {
     id: 'surfer-dude', name: 'Surfer Dude', href: 'surfer-dude.html',
     desc: 'Ride the endless wave! Dodge obstacles, do tricks, chain combos. Full shop with boards, wetsuits & trails!',
