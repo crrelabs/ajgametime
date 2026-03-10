@@ -490,11 +490,15 @@ function update(){
   if(!gameRunning||paused)return;
   // Particles
   for(var i=particles.length-1;i>=0;i--){var p=particles[i];p.x+=p.vx;p.y+=p.vy;p.life--;p.vx*=0.95;p.vy*=0.95;if(p.life<=0)particles.splice(i,1)}
-  if(!waveActive){waveDelay--;if(waveDelay<=0)waveActive=true;return}
+  // Bank income — $50 every 2.5 seconds (150 frames), works between waves too
+  bankTimer++;
+  if(!waveActive){waveDelay--;if(waveDelay<=0)waveActive=true;
+    // Still process bank during wave delay
+    if(bankTimer>=150){bankTimer=0;towers.forEach(function(t){if(t.type==='bank'){var inc=Math.round(50*(1+t.upgSpeed*0.3)*getSkillMult('bnk_income',0.15));gold+=inc;
+      particles.push({x:t.col*TILE+TILE/2,y:t.row*TILE+MAP_OFFSET_Y+TILE/2,vx:0,vy:-1,life:40,color:'#fbbf24',size:0,text:'+$'+inc+'💰'})}});}
+    return}
   // Spawn
   if(spawnCount<spawnMax){spawnTimer--;if(spawnTimer<=0){spawnZombie();spawnCount++;spawnTimer=Math.max(10,40-wave*2)}}
-  // Bank income — $50 every 2.5 seconds (150 frames)
-  bankTimer++;
   if(bankTimer>=150){
     bankTimer=0;
     towers.forEach(function(t){if(t.type==='bank'){var inc=Math.round(50*(1+t.upgSpeed*0.3)*getSkillMult('bnk_income',0.15));gold+=inc;
