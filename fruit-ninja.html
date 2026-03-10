@@ -378,6 +378,14 @@ var FRUITS = [
 
 var fruits, sliceTrail, particles, textPops, score, sessionCoins, combo, bestCombo, strikes, gameRunning;
 var spawnTimer, spawnRate, difficulty;
+var bossFruit=null,nextBossScore=30; // Boss fruit every 30 pts
+var comboHistory=[]; // track last 3 sliced fruits for combos
+var COMBO_RECIPES=[
+  {fruits:['🍎','🍊','🍋'],name:'🌈 Rainbow!',bonus:15},
+  {fruits:['🍉','🍉'],name:'🍉 Melon Mania!',bonus:10},
+  {fruits:['🍇','🫐'],name:'💜 Berry Blast!',bonus:12},
+  {fruits:['🍌','🍍'],name:'🏝️ Tropical!',bonus:10},
+];
 var trailParticles = [];
 var highScore = parseInt(localStorage.getItem('fn_high') || '0');
 document.getElementById('bestVal').textContent = highScore;
@@ -386,6 +394,7 @@ function init() {
   fruits = []; sliceTrail = []; particles = []; textPops = []; trailParticles = [];
   score = 0; sessionCoins = 0; combo = 0; bestCombo = 0; strikes = 0;
   gameRunning = true; spawnTimer = 40; spawnRate = 70; difficulty = 0;
+  bossFruit=null;nextBossScore=30;comboHistory=[];
   updateHUD();
 }
 
@@ -654,10 +663,14 @@ function draw() {
     ctx.fillStyle = 'rgba(255,255,255,0.3)';
     ctx.fill();
     // Emoji label on top (small, as decoration)
-    ctx.font = Math.max(14, f.radius*0.8) + 'px sans-serif';
+    ctx.font = Math.max(14, f.radius*(f.isBoss?1.2:0.8)) + 'px sans-serif';
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillText(f.emoji, 0, 2);
     ctx.restore();
+    // Boss HP bar
+    if(f.isBoss&&!f.sliced){var bhw=80,bhh=8,bhx=f.x-bhw/2,bhy=f.y-f.radius-16;
+      ctx.fillStyle='#1f2937';ctx.fillRect(bhx,bhy,bhw,bhh);ctx.fillStyle='#ef4444';ctx.fillRect(bhx,bhy,bhw*(f.hp/f.maxHp),bhh);
+      ctx.fillStyle='#fff';ctx.font='bold 10px sans-serif';ctx.textAlign='center';ctx.fillText('BOSS',f.x,bhy-4)}
   }
 
   // Particles
@@ -704,6 +717,17 @@ function spawnDeathParticles(x, y) {
 
 function sliceFruit(f) {
   if (f.sliced) return;
+  // Boss fruit: takes multiple hits
+  if(f.isBoss){
+    f.hp--;playSliceSound();
+    for(var bi=0;bi<5;bi++)particles.push({x:f.x,y:f.y,vx:(Math.random()-0.5)*6,vy:(Math.random()-0.5)*6,life:20,color:'#f97316',size:3+Math.random()*3});
+    textPops.push({x:f.x,y:f.y-40,text:'💥 '+f.hp+'/'+f.maxHp,color:'#ef4444',size:28,life:25});
+    if(f.hp<=0){f.sliced=true;score+=f.maxHp*5;totalCoins+=f.maxHp*3;sessionCoins+=f.maxHp*3;saveShop();updateCoinDisplays();
+      textPops.push({x:f.x,y:f.y-70,text:'🎃 BOSS SLICED! +'+f.maxHp*5,color:'#fbbf24',size:36,life:50});
+      for(var bp=0;bp<20;bp++)particles.push({x:f.x,y:f.y,vx:(Math.random()-0.5)*10,vy:(Math.random()-0.5)*10,life:35,color:['#f97316','#fbbf24','#ef4444'][bp%3],size:4+Math.random()*4});
+      bossFruit=null;updateHUD()}
+    return;
+  }
   f.sliced = true;
   if (f.isBomb) {
     playBombSound();
@@ -742,6 +766,20 @@ function sliceFruit(f) {
   if (combo >= 3) { popText = combo + 'x COMBO! +' + points; popColor = '#f97316'; popSize = 30; playComboSound(combo); }
   if (combo >= 5) { popText = '🔥 ' + combo + 'x! +' + points; popColor = '#ef4444'; popSize = 36; }
   textPops.push({x:f.x, y:f.y-30, text:popText, color:popColor, size:popSize, life:40});
+
+  // Track combo history for recipes
+  comboHistory.push(f.emoji);if(comboHistory.length>3)comboHistory.shift();
+  for(var ri=0;ri<COMBO_RECIPES.length;ri++){var recipe=COMBO_RECIPES[ri];
+    var match=recipe.fruits.every(function(rf){return comboHistory.includes(rf)});
+    if(match){score+=recipe.bonus;totalCoins+=recipe.bonus;sessionCoins+=recipe.bonus;saveShop();updateCoinDisplays();
+      textPops.push({x:W/2,y:H/3,text:recipe.name+' +'+recipe.bonus,color:'#a855f7',size:34,life:50});comboHistory=[];break}}
+
+  // Boss fruit spawn check
+  if(score>=nextBossScore&&!bossFruit){nextBossScore+=30;
+    bossFruit={x:80+Math.random()*(W-160),y:H+50,vx:(Math.random()-0.5)*3,vy:-(H*0.018),gravity:H*0.0003,
+      radius:50,emoji:'🎃',color:'#f97316',rotation:0,rotSpeed:0.05,hp:3+Math.floor(score/50),maxHp:3+Math.floor(score/50),isBoss:true,sliced:false,missed:false};
+    fruits.push(bossFruit);
+  }
   updateHUD();
 }
 
