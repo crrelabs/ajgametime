@@ -161,6 +161,11 @@ function pickPipeType(){
   return PIPE_TYPES[0];
 }
 
+// Boss bird
+var bossBird=null,bossTimer=0,nextBossScore=25;
+// Power-ups
+var fpPowerUps=[],fpSlowMo=0,fpShield=0,fpTiny=0;
+
 // Ground
 const GROUND_H = 70;
 let groundX = 0;
@@ -508,6 +513,7 @@ function resetGame() {
   pipeSpeed = 2.5;
   particles = [];
   frame = 0;
+  bossBird=null;nextBossScore=25;fpPowerUps=[];fpSlowMo=0;fpShield=0;fpTiny=0;bird.size=18;
   document.getElementById('score-display').textContent = '0';
 }
 
@@ -544,12 +550,23 @@ function spawnPipe() {
   var maxY = H - GROUND_H - GAP - 80;
   var gapY = minY + Math.random() * (maxY - minY);
   var type = pickPipeType();
+  var moving = score > 10 && Math.random() < 0.3; // 30% moving pipes after score 10
   pipes.push({
     x: W + 10,
     gapY: gapY,
+    baseGapY: gapY,
     scored: false,
-    type: type
+    type: type,
+    moving: moving,
+    movePhase: Math.random() * Math.PI * 2,
+    moveAmp: 30 + Math.random() * 20
   });
+  // Spawn power-up occasionally
+  if(Math.random()<0.12&&fpPowerUps.length<1){
+    var types=['slow','shield','tiny'];
+    var pt=types[Math.floor(Math.random()*types.length)];
+    fpPowerUps.push({x:W+PIPE_W+40,y:gapY+GAP/2,type:pt,emoji:pt==='slow'?'🕐':pt==='shield'?'🛡️':'🐥'});
+  }
 }
 
 function update() {
@@ -609,9 +626,54 @@ function update() {
     spawnPipe();
   }
 
+  // Move power-ups
+  for(var fpi=fpPowerUps.length-1;fpi>=0;fpi--){
+    var fp=fpPowerUps[fpi];fp.x-=pipeSpeed;
+    if(fp.x<-40){fpPowerUps.splice(fpi,1);continue}
+    var pdx=bird.x-fp.x,pdy=bird.y-fp.y;
+    if(Math.sqrt(pdx*pdx+pdy*pdy)<30){
+      fpPowerUps.splice(fpi,1);sfxScore(3);
+      if(fp.type==='slow'){fpSlowMo=180;pipeSpeed=Math.max(1,pipeSpeed*0.5)}
+      else if(fp.type==='shield'){fpShield=300}
+      else if(fp.type==='tiny'){fpTiny=300;bird.size=10}
+    }
+  }
+  if(fpSlowMo>0){fpSlowMo--;if(fpSlowMo===0)pipeSpeed=2.5+score*0.015}
+  if(fpShield>0)fpShield--;
+  if(fpTiny>0){fpTiny--;if(fpTiny===0)bird.size=18}
+
+  // Boss bird
+  if(score>=nextBossScore&&!bossBird){
+    bossBird={x:W+50,y:H/2,vy:0,hp:3+Math.floor(score/25),maxHp:3+Math.floor(score/25),speed:1.5+score*0.01};
+    nextBossScore+=25;
+  }
+  if(bossBird){
+    bossBird.x-=bossBird.speed;bossBird.y+=Math.sin(frame*0.04)*2;
+    // Boss shoots feathers
+    if(frame%60===0){
+      particles.push({x:bossBird.x-20,y:bossBird.y,vx:-4-Math.random()*2,vy:(Math.random()-0.5)*3,life:60,maxLife:60,color:'#ef4444',size:4,feather:true});
+    }
+    // Feather collision with bird
+    for(var fi=particles.length-1;fi>=0;fi--){
+      var fe=particles[fi];if(!fe.feather)continue;
+      if(Math.sqrt((fe.x-bird.x)**2+(fe.y-bird.y)**2)<bird.size+fe.size){
+        if(fpShield>0){fpShield=0;particles.splice(fi,1)}
+        else{die();return}
+      }
+    }
+    // Bird collision with boss
+    if(Math.sqrt((bossBird.x-bird.x)**2+(bossBird.y-bird.y)**2)<bird.size+25){
+      if(fpShield>0){fpShield=0;bossBird.hp--;if(bossBird.hp<=0){score+=10;totalCoins+=10;saveShop();bossBird=null}}
+      else{die();return}
+    }
+    if(bossBird&&bossBird.x<-60){bossBird=null}// escaped
+  }
+
   for (let i = pipes.length - 1; i >= 0; i--) {
     const p = pipes[i];
     p.x -= pipeSpeed;
+    // Moving pipes slide up/down
+    if(p.moving){p.gapY=p.baseGapY+Math.sin(frame*0.03+p.movePhase)*p.moveAmp;p.gapY=Math.max(60,Math.min(H-GROUND_H-GAP-60,p.gapY))}
 
     // Score
     if (!p.scored && p.x + PIPE_W < bird.x) {
@@ -636,8 +698,7 @@ function update() {
     // Collision
     if (bird.x + bird.size - 6 > p.x && bird.x - bird.size + 6 < p.x + PIPE_W) {
       if (bird.y - bird.size + 6 < p.gapY || bird.y + bird.size - 6 > p.gapY + GAP) {
-        die();
-        return;
+        if(fpShield>0){fpShield=0}else{die();return}
       }
     }
   }
@@ -971,6 +1032,21 @@ function draw() {
     }
   });
   X.globalAlpha = 1;
+
+  // Power-ups
+  for(var fpi=0;fpi<fpPowerUps.length;fpi++){var fp=fpPowerUps[fpi];X.font='28px sans-serif';X.textAlign='center';X.fillText(fp.emoji,fp.x,fp.y+Math.sin(frame*0.05+fpi)*5)}
+  // Boss bird
+  if(bossBird){
+    X.font='50px sans-serif';X.textAlign='center';X.fillText('🦅',bossBird.x,bossBird.y);
+    // HP bar
+    var bhw=60,bhh=6,bhx=bossBird.x-bhw/2,bhy=bossBird.y-35;
+    X.fillStyle='#1f2937';X.fillRect(bhx,bhy,bhw,bhh);
+    X.fillStyle='#ef4444';X.fillRect(bhx,bhy,bhw*(bossBird.hp/bossBird.maxHp),bhh);
+  }
+  // Shield glow on bird
+  if(fpShield>0){X.strokeStyle='rgba(59,130,246,'+(0.4+Math.sin(frame*0.08)*0.2)+')';X.lineWidth=3;X.beginPath();X.arc(bird.x,bird.y,bird.size+6,0,Math.PI*2);X.stroke()}
+  // Slow-mo indicator
+  if(fpSlowMo>0){X.fillStyle='rgba(59,130,246,0.1)';X.fillRect(0,0,W,H)}
 
   // Bird
   if (!dead || frame % 4 < 3) {
