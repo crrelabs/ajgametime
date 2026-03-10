@@ -210,7 +210,7 @@ const BACKGROUNDS = [
   { id:'default', name:'Sky', cost:0, emoji:'☁️', sky1:'#4dc9f6', sky2:'#a0e4ff', ground1:'#8BC34A', ground2:'#795548', cloudColor:'rgba(255,255,255,0.7)' },
   { id:'space', name:'Space', cost:100, emoji:'🚀', sky1:'#0a0a2e', sky2:'#1a1a4e', ground1:'#333', ground2:'#1a1a1a', cloudColor:'rgba(255,255,255,0)', stars:true },
   { id:'volcano', name:'Volcano', cost:150, emoji:'🌋', sky1:'#1a0000', sky2:'#4a1500', ground1:'#5c3a1e', ground2:'#2a1a0a', cloudColor:'rgba(200,50,0,0.3)', lava:true },
-  { id:'heaven', name:'Heaven', cost:200, emoji:'😇', sky1:'#fffde7', sky2:'#fff9c4', ground1:'#e8d5b7', ground2:'#d4b896', cloudColor:'rgba(255,255,255,0.9)', halos:true },
+  { id:'heaven', name:'Heaven', cost:200, emoji:'😇', sky1:'#1a1040', sky2:'#3a2070', ground1:'#e8d5b7', ground2:'#d4b896', cloudColor:'rgba(255,220,150,0.7)', halos:true },
   { id:'beach', name:'Beach', cost:125, emoji:'🏖️', sky1:'#ff9a56', sky2:'#ffcc80', ground1:'#f5deb3', ground2:'#deb887', cloudColor:'rgba(255,200,150,0.5)', waves:true },
   { id:'factory', name:'Factory', cost:175, emoji:'🏭', sky1:'#37474f', sky2:'#546e7a', ground1:'#616161', ground2:'#424242', cloudColor:'rgba(100,100,100,0.5)', gears:true },
   { id:'dino', name:'Dinosaurs', cost:250, emoji:'🦕', sky1:'#2e7d32', sky2:'#66bb6a', ground1:'#5d4037', ground2:'#3e2723', cloudColor:'rgba(200,230,200,0.5)', dinos:true },
@@ -767,12 +767,63 @@ function draw() {
     X.globalAlpha = 1;
   }
   if (bg.halos) {
-    X.fillStyle = 'rgba(255,215,0,0.15)';
-    for (var hi = 0; hi < 5; hi++) {
-      var hx = (hi * 120 + 40) % W;
-      var hy = 40 + Math.sin(frame * 0.02 + hi) * 10;
-      X.beginPath(); X.arc(hx, hy, 20 + Math.sin(frame * 0.03 + hi) * 5, 0, Math.PI * 2); X.fill();
+    // Golden sunbeams radiating from top center
+    var cx = W / 2, cy = -20;
+    for (var ri = 0; ri < 12; ri++) {
+      var angle = (ri / 12) * Math.PI + Math.sin(frame * 0.008 + ri) * 0.05;
+      var grad = X.createLinearGradient(cx, cy, cx + Math.cos(angle) * H * 1.5, cy + Math.sin(angle) * H * 1.5);
+      grad.addColorStop(0, 'rgba(255,200,50,0.25)');
+      grad.addColorStop(0.5, 'rgba(255,180,30,0.08)');
+      grad.addColorStop(1, 'rgba(255,150,0,0)');
+      X.fillStyle = grad;
+      X.beginPath(); X.moveTo(cx, cy);
+      X.lineTo(cx + Math.cos(angle - 0.06) * H * 2, cy + Math.sin(angle - 0.06) * H * 2);
+      X.lineTo(cx + Math.cos(angle + 0.06) * H * 2, cy + Math.sin(angle + 0.06) * H * 2);
+      X.closePath(); X.fill();
     }
+    // Central golden glow
+    var glow = X.createRadialGradient(cx, cy + 40, 10, cx, cy + 40, H * 0.7);
+    glow.addColorStop(0, 'rgba(255,220,100,0.5)');
+    glow.addColorStop(0.3, 'rgba(255,180,50,0.2)');
+    glow.addColorStop(1, 'rgba(255,150,0,0)');
+    X.fillStyle = glow; X.fillRect(0, 0, W, H);
+    // Fluffy golden-lit clouds
+    X.globalAlpha = 0.6;
+    var cloudEmojis = ['☁️','☁️','☁️','☁️','☁️','☁️'];
+    X.font = '80px serif';
+    for (var ci = 0; ci < cloudEmojis.length; ci++) {
+      var ccx = (ci * 160 + frame * 0.15) % (W + 120) - 60;
+      var ccy = H * 0.35 + ci * 30 + Math.sin(frame * 0.015 + ci * 2) * 10;
+      X.fillText(cloudEmojis[ci], ccx, ccy);
+    }
+    // Smaller clouds higher up
+    X.font = '50px serif'; X.globalAlpha = 0.4;
+    for (var ci2 = 0; ci2 < 5; ci2++) {
+      var ccx2 = (ci2 * 180 + 90 + frame * 0.1) % (W + 100) - 50;
+      var ccy2 = 60 + ci2 * 25 + Math.sin(frame * 0.02 + ci2 * 3) * 8;
+      X.fillText('☁️', ccx2, ccy2);
+    }
+    // Angels and halos
+    X.font = '40px serif'; X.globalAlpha = 0.7;
+    var angels = ['😇','👼','😇','👼','😇'];
+    for (var ai = 0; ai < angels.length; ai++) {
+      var ax = (ai * 170 + frame * 0.25) % (W + 100) - 50;
+      var ay = 80 + ai * 50 + Math.sin(frame * 0.03 + ai * 2) * 15;
+      // Halo glow
+      X.fillStyle = 'rgba(255,215,0,0.3)';
+      X.beginPath(); X.arc(ax + 20, ay - 25, 25 + Math.sin(frame * 0.04 + ai) * 5, 0, Math.PI * 2); X.fill();
+      X.fillText(angels[ai], ax, ay);
+    }
+    // Floating golden sparkles
+    X.globalAlpha = 0.6;
+    X.font = '16px serif';
+    for (var si = 0; si < 15; si++) {
+      var sx = (si * 97 + frame * 0.5 * (si % 3 + 1)) % W;
+      var sy = (si * 73 + frame * 0.3) % H;
+      X.globalAlpha = 0.3 + Math.sin(frame * 0.08 + si) * 0.3;
+      X.fillText('✨', sx, sy);
+    }
+    X.globalAlpha = 1;
   }
   if (bg.waves) {
     X.strokeStyle = 'rgba(0,150,255,0.3)'; X.lineWidth = 2;
