@@ -184,30 +184,97 @@ function sfxMiss(){playNote(150,0.2,'sawtooth',0.15)}
 function sfxCombo(){playNote(523,0.06,'sine',0.1);setTimeout(function(){playNote(659,0.06,'sine',0.1)},40);setTimeout(function(){playNote(784,0.1,'sine',0.12)},80)}
 
 var musicPlaying=false,beatTimer=0;
+// Song patterns — multiple sections for variety
+var SONGS=[
+  // Section A: energetic EDM
+  {melody:[523,523,659,784,659,523,392,440,523,523,659,784,880,784,659,523],
+   bass:[130,130,164,196,130,130,164,196,110,110,146,164,130,130,164,196],
+   chord:[[261,329,392],[261,329,392],[293,369,440],[349,440,523],[261,329,392],[261,329,392],[293,369,440],[349,440,523]]},
+  // Section B: darker vibe
+  {melody:[440,523,659,523,440,392,440,523,659,784,659,523,440,392,349,392],
+   bass:[110,110,130,146,110,110,130,146,98,98,110,130,110,110,130,146],
+   chord:[[220,277,330],[220,277,330],[261,329,392],[293,349,440],[220,277,330],[220,277,330],[261,329,392],[293,349,440]]},
+  // Section C: uplifting
+  {melody:[659,784,880,784,659,784,1046,880,784,659,523,659,784,880,1046,880],
+   bass:[164,164,196,220,164,164,196,220,146,146,164,196,164,164,196,220],
+   chord:[[329,415,523],[329,415,523],[349,440,523],[392,494,587],[329,415,523],[329,415,523],[349,440,523],[392,494,587]]},
+];
+var songSection=0;
+
 function startMusic(){
   if(!audioCtx||!musicOn||musicPlaying)return;musicPlaying=true;
   function playBeat(){
     if(!musicPlaying||!musicOn)return;
-    var bpm=120+Math.min(score/10,80);var beatMs=60000/bpm;
+    var bpm=128+Math.min(score/8,72);var beatMs=60000/bpm;
     var t=audioCtx.currentTime;
-    // Kick
+    var song=SONGS[songSection%SONGS.length];
+    var step=beatCount%16;
+
+    // Kick drum (every beat)
     var ok=audioCtx.createOscillator(),gk=audioCtx.createGain();
-    ok.type='sine';ok.frequency.value=80;gk.gain.value=0.12;
-    ok.connect(gk);gk.connect(musicGain);ok.start(t);ok.frequency.exponentialRampToValueAtTime(40,t+0.1);
-    gk.gain.exponentialRampToValueAtTime(0.001,t+0.15);ok.stop(t+0.2);
-    // Hi-hat
-    var oh=audioCtx.createOscillator(),gh=audioCtx.createGain();
-    oh.type='square';oh.frequency.value=3000+Math.random()*2000;gh.gain.value=0.03;
-    oh.connect(gh);gh.connect(musicGain);oh.start(t+beatMs/2000);
-    gh.gain.exponentialRampToValueAtTime(0.001,t+beatMs/2000+0.05);oh.stop(t+beatMs/2000+0.06);
-    // Bass note
-    var notes=[130,146,164,130,110,130,164,196];
-    var bn=notes[Math.floor(beatCount)%notes.length];
+    ok.type='sine';ok.frequency.value=100;gk.gain.value=0.14;
+    ok.connect(gk);gk.connect(musicGain);ok.start(t);
+    ok.frequency.exponentialRampToValueAtTime(30,t+0.12);
+    gk.gain.exponentialRampToValueAtTime(0.001,t+0.18);ok.stop(t+0.2);
+
+    // Snare on beats 4,12
+    if(step===4||step===12){
+      var os=audioCtx.createOscillator(),gs=audioCtx.createGain();
+      os.type='square';os.frequency.value=200;gs.gain.value=0.08;
+      os.connect(gs);gs.connect(musicGain);os.start(t);
+      os.frequency.exponentialRampToValueAtTime(100,t+0.08);
+      gs.gain.exponentialRampToValueAtTime(0.001,t+0.12);os.stop(t+0.15);
+      // Noise burst for snare texture
+      var on=audioCtx.createOscillator(),gn=audioCtx.createGain();
+      on.type='sawtooth';on.frequency.value=4000+Math.random()*2000;gn.gain.value=0.04;
+      on.connect(gn);gn.connect(musicGain);on.start(t);gn.gain.exponentialRampToValueAtTime(0.001,t+0.08);on.stop(t+0.1);
+    }
+
+    // Hi-hat (every other beat, offbeat on fast sections)
+    if(step%2===0||(bpm>160&&step%2===1)){
+      var oh=audioCtx.createOscillator(),gh=audioCtx.createGain();
+      oh.type='square';oh.frequency.value=5000+Math.random()*3000;gh.gain.value=step%2===0?0.035:0.02;
+      oh.connect(gh);gh.connect(musicGain);
+      var hStart=step%2===0?t:t+beatMs/2000;
+      oh.start(hStart);gh.gain.exponentialRampToValueAtTime(0.001,hStart+0.04);oh.stop(hStart+0.05);
+    }
+
+    // Melody (lead synth)
+    var melNote=song.melody[step];
+    var om=audioCtx.createOscillator(),gm=audioCtx.createGain();
+    om.type='square';om.frequency.value=melNote;gm.gain.value=0.055;
+    om.connect(gm);gm.connect(musicGain);om.start(t);
+    gm.gain.setValueAtTime(0.055,t);
+    gm.gain.exponentialRampToValueAtTime(0.001,t+beatMs/1000*0.7);om.stop(t+beatMs/1000*0.75);
+
+    // Sub melody (harmony, slightly detuned)
+    var om2=audioCtx.createOscillator(),gm2=audioCtx.createGain();
+    om2.type='sine';om2.frequency.value=melNote*1.002;gm2.gain.value=0.03;
+    om2.connect(gm2);gm2.connect(musicGain);om2.start(t);
+    gm2.gain.exponentialRampToValueAtTime(0.001,t+beatMs/1000*0.6);om2.stop(t+beatMs/1000*0.65);
+
+    // Bass
+    var bassNote=song.bass[step];
     var ob=audioCtx.createOscillator(),gb=audioCtx.createGain();
-    ob.type='triangle';ob.frequency.value=bn;gb.gain.value=0.06;
+    ob.type='sawtooth';ob.frequency.value=bassNote;gb.gain.value=0.07;
     ob.connect(gb);gb.connect(musicGain);ob.start(t);
-    gb.gain.exponentialRampToValueAtTime(0.001,t+beatMs/1000*0.8);ob.stop(t+beatMs/1000);
+    gb.gain.exponentialRampToValueAtTime(0.001,t+beatMs/1000*0.85);ob.stop(t+beatMs/1000*0.9);
+
+    // Chords (every 2 beats)
+    if(step%2===0){
+      var chordNotes=song.chord[Math.floor(step/2)%song.chord.length];
+      for(var ci=0;ci<chordNotes.length;ci++){
+        var oc=audioCtx.createOscillator(),gc=audioCtx.createGain();
+        oc.type='triangle';oc.frequency.value=chordNotes[ci];gc.gain.value=0.025;
+        oc.connect(gc);gc.connect(musicGain);oc.start(t);
+        gc.gain.exponentialRampToValueAtTime(0.001,t+beatMs/1000*1.8);oc.stop(t+beatMs/1000*1.9);
+      }
+    }
+
+    // Change section every 32 beats
     beatCount++;
+    if(beatCount%32===0)songSection++;
+
     musicNode=setTimeout(playBeat,beatMs);
   }
   playBeat();
