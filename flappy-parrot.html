@@ -796,13 +796,14 @@ function draw() {
     }
   }
   if (bg.dinos) {
-    // Big walking dinosaurs on the ground
-    var bigDinos = ['🦕','🦖','🦕','🦖','🦖','🦕'];
-    X.font = '48px serif'; X.globalAlpha = 0.7;
-    for (var di = 0; di < bigDinos.length; di++) {
-      var dx = (di * 180 + frame * 0.4) % (W + 100) - 50;
-      var dy = H - GROUND_H - 30 + Math.sin(frame * 0.03 + di * 2) * 5;
-      X.fillText(bigDinos[di], dx, dy);
+    // Big dinosaur pairs hugging close together
+    var dinoPairs = [['🦕','🦖'],['🦖','🦕'],['🦕','🦖'],['🦖','🦕']];
+    X.font = '72px serif'; X.globalAlpha = 0.85;
+    for (var di = 0; di < dinoPairs.length; di++) {
+      var dx = (di * 220 + frame * 0.35) % (W + 160) - 80;
+      var dy = H - GROUND_H - 40 + Math.sin(frame * 0.025 + di * 2) * 4;
+      X.fillText(dinoPairs[di][0], dx, dy);
+      X.fillText(dinoPairs[di][1], dx + 45, dy);
     }
     // Small flying pterodactyls in the sky
     X.font = '32px serif'; X.globalAlpha = 0.5;
