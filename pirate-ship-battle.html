@@ -103,6 +103,7 @@ button.play-btn:hover{transform:scale(1.05)}
     <button id="death-submit" onclick="submitScore()">Submit Score</button>
     <button id="death-retry" onclick="retry()">🔄 Retry</button>
     <button id="death-lb" onclick="showLeaderboard()">🏆 Board</button>
+    <button style="background:linear-gradient(135deg,#f59e0b,#d97706)" onclick="document.getElementById('death-screen').style.display='none';openShop()">🛍️ Shop</button>
   </div>
 </div>
 
@@ -208,17 +209,15 @@ function startMusic(){
 function stopMusic(){musicPlaying=false;if(musicNode)clearTimeout(musicNode)}
 
 // === LEADERBOARD ===
-var _LB_URL='https://adudgrfxwildzwpcvyil.supabase.co/rest/v1/ajgametime_leaderboard';
-var _LB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFkdWRncmZ4d2lsZHp3cGN2eWlsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzk0MDk2ODIsImV4cCI6MjA1NDk4NTY4Mn0.p-YPGEeVqbhFEsTe1VpAVSH0jfXGMx8GzBBzfSaSaEI';
-var _LB_GAME='pirate_ship';
+var _LB_URL='https://adudgrfxwildzwpcvyil.supabase.co',_LB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFkdWRncmZ4d2lsZHp3cGN2eWlsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyOTkzODUsImV4cCI6MjA4Nzg3NTM4NX0.-JYXn5r9QUjxbpwckwDMSvCm8w1xRXOp5lP2TWNOC_E',_LB_GAME='pirate_ship';
 function submitScore(){
   var name=document.getElementById('death-name').value.trim()||'Anonymous';
   localStorage.setItem('ajgt_name',name);
-  fetch(_LB_URL,{method:'POST',headers:{'Content-Type':'application/json','apikey':_LB_KEY,'Authorization':'Bearer '+_LB_KEY,'Prefer':'return=minimal'},
+  fetch(_LB_URL+'/rest/v1/ajgametime_leaderboard',{method:'POST',headers:{'Content-Type':'application/json','apikey':_LB_KEY,'Authorization':'Bearer '+_LB_KEY,'Prefer':'return=minimal'},
     body:JSON.stringify({player_name:name,score:score,game:_LB_GAME})}).then(function(){showLeaderboard()}).catch(function(){});
 }
 function showLeaderboard(){
-  fetch(_LB_URL+'?game=eq.'+_LB_GAME+'&order=score.desc&limit=20',{headers:{'apikey':_LB_KEY,'Authorization':'Bearer '+_LB_KEY}})
+  fetch(_LB_URL+'/rest/v1/ajgametime_leaderboard?game=eq.'+_LB_GAME+'&order=score.desc&limit=20',{headers:{'apikey':_LB_KEY,'Authorization':'Bearer '+_LB_KEY}})
   .then(function(r){return r.json()}).then(function(data){
     var list=document.getElementById('lb-list');list.innerHTML='';
     data.forEach(function(d,i){
