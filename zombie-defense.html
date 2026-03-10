@@ -258,6 +258,7 @@ function init() {
   towers = [];
   projectiles = [];
   particles = [];
+  towerBuyCount = { gun: 0, cannon: 0, frost: 0, laser: 0, fire: 0 };
   spawnTimer = 0;
   spawnCount = 0;
   spawnMax = 0;
@@ -677,12 +678,23 @@ function gameOver() {
   document.getElementById('death-screen').style.display = 'flex';
 }
 
+let towerBuyCount = { gun: 0, cannon: 0, frost: 0, laser: 0, fire: 0 };
+function getTowerCost(type) {
+  const def = TOWER_DEFS[type];
+  if (!def) return 0;
+  const count = towerBuyCount[type] || 0;
+  return Math.round(def.cost * (1 + count * 0.25));
+}
+
 function updateTowerButtons() {
   document.querySelectorAll('.tower-btn').forEach(btn => {
     const type = btn.dataset.tower;
     const def = TOWER_DEFS[type];
     if (!def) return; // skip sell/upgrade buttons
-    if (gold < def.cost) {
+    const cost = getTowerCost(type);
+    const costEl = btn.querySelector('.cost');
+    if (costEl) costEl.textContent = '💰 ' + cost;
+    if (gold < cost) {
       btn.classList.add('locked');
     } else {
       btn.classList.remove('locked');
@@ -728,9 +740,11 @@ function handleCanvasClick(mx, my) {
   if (isOnPath(col, row)) return;
   
   const def = TOWER_DEFS[selectedTower];
-  if (gold < def.cost) return;
+  const cost = getTowerCost(selectedTower);
+  if (gold < cost) return;
   
-  gold -= def.cost;
+  gold -= cost;
+  towerBuyCount[selectedTower] = (towerBuyCount[selectedTower] || 0) + 1;
   towers.push({
     col, row,
     type: selectedTower,
