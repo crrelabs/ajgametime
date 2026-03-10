@@ -226,48 +226,43 @@ function startMusic(){
       gs.gain.exponentialRampToValueAtTime(0.001,t+0.12);os.stop(t+0.15);
       // Noise burst for snare texture
       var on=audioCtx.createOscillator(),gn=audioCtx.createGain();
-      on.type='sawtooth';on.frequency.value=4000+Math.random()*2000;gn.gain.value=0.04;
+      on.type='sine';on.frequency.value=2000+Math.random()*1000;gn.gain.value=0.02;
       on.connect(gn);gn.connect(musicGain);on.start(t);gn.gain.exponentialRampToValueAtTime(0.001,t+0.08);on.stop(t+0.1);
     }
 
     // Hi-hat (every other beat, offbeat on fast sections)
     if(step%2===0||(bpm>160&&step%2===1)){
       var oh=audioCtx.createOscillator(),gh=audioCtx.createGain();
-      oh.type='square';oh.frequency.value=5000+Math.random()*3000;gh.gain.value=step%2===0?0.035:0.02;
+      oh.type='sine';oh.frequency.value=3000+Math.random()*1000;gh.gain.value=step%2===0?0.02:0.01;
       oh.connect(gh);gh.connect(musicGain);
       var hStart=step%2===0?t:t+beatMs/2000;
       oh.start(hStart);gh.gain.exponentialRampToValueAtTime(0.001,hStart+0.04);oh.stop(hStart+0.05);
     }
 
-    // Melody (lead synth)
+    // Melody (soft triangle lead — no screech!)
     var melNote=song.melody[step];
+    var bLen=beatMs/1000;
     var om=audioCtx.createOscillator(),gm=audioCtx.createGain();
-    om.type='square';om.frequency.value=melNote;gm.gain.value=0.055;
+    om.type='triangle';om.frequency.value=melNote;gm.gain.value=0.04;
     om.connect(gm);gm.connect(musicGain);om.start(t);
-    gm.gain.setValueAtTime(0.055,t);
-    gm.gain.exponentialRampToValueAtTime(0.001,t+beatMs/1000*0.7);om.stop(t+beatMs/1000*0.75);
+    gm.gain.setValueAtTime(0.04,t);
+    gm.gain.exponentialRampToValueAtTime(0.001,t+bLen*0.6);om.stop(t+bLen*0.65);
 
-    // Sub melody (harmony, slightly detuned)
-    var om2=audioCtx.createOscillator(),gm2=audioCtx.createGain();
-    om2.type='sine';om2.frequency.value=melNote*1.002;gm2.gain.value=0.03;
-    om2.connect(gm2);gm2.connect(musicGain);om2.start(t);
-    gm2.gain.exponentialRampToValueAtTime(0.001,t+beatMs/1000*0.6);om2.stop(t+beatMs/1000*0.65);
-
-    // Bass
+    // Bass (sine — deep and clean)
     var bassNote=song.bass[step];
     var ob=audioCtx.createOscillator(),gb=audioCtx.createGain();
-    ob.type='sawtooth';ob.frequency.value=bassNote;gb.gain.value=0.07;
+    ob.type='sine';ob.frequency.value=bassNote;gb.gain.value=0.09;
     ob.connect(gb);gb.connect(musicGain);ob.start(t);
-    gb.gain.exponentialRampToValueAtTime(0.001,t+beatMs/1000*0.85);ob.stop(t+beatMs/1000*0.9);
+    gb.gain.exponentialRampToValueAtTime(0.001,t+bLen*0.8);ob.stop(t+bLen*0.85);
 
-    // Chords (every 2 beats)
+    // Chords (every 2 beats — soft sine pads)
     if(step%2===0){
       var chordNotes=song.chord[Math.floor(step/2)%song.chord.length];
       for(var ci=0;ci<chordNotes.length;ci++){
         var oc=audioCtx.createOscillator(),gc=audioCtx.createGain();
-        oc.type='triangle';oc.frequency.value=chordNotes[ci];gc.gain.value=0.025;
+        oc.type='sine';oc.frequency.value=chordNotes[ci];gc.gain.value=0.018;
         oc.connect(gc);gc.connect(musicGain);oc.start(t);
-        gc.gain.exponentialRampToValueAtTime(0.001,t+beatMs/1000*1.8);oc.stop(t+beatMs/1000*1.9);
+        gc.gain.exponentialRampToValueAtTime(0.001,t+bLen*1.8);oc.stop(t+bLen*1.9);
       }
     }
 
