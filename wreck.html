@@ -101,7 +101,6 @@ canvas{display:block}
   <button class="death-btn" id="death-submit">📤 Submit Score</button>
   <button class="death-btn" id="death-retry">💥 Play Again</button>
   <button class="death-btn" id="death-lb">🏆 Leaderboard</button>
-  <button class="death-btn" id="death-shop" style="background:linear-gradient(135deg,#8b5cf6,#3b82f6)">🛒 Shop</button>
 </div>
 <script>
 var cv=document.getElementById('c'),cx=cv.getContext('2d');
@@ -247,7 +246,7 @@ function updateHUD(){
   document.getElementById('score-hud').textContent='💥 '+score;
   document.getElementById('level-hud').textContent='Level '+level;
   document.getElementById('coin-hud').textContent='🪙 '+coins;
-  var maxBalls=3+upgradeCount('extra_ball');var h='';for(var i=0;i<ballsLeft;i++)h+='🔴';for(var i2=ballsLeft;i2<maxBalls;i2++)h+='⚫';
+  var h='';for(var i=0;i<ballsLeft;i++)h+='🔴';
   document.getElementById('balls-hud').textContent=h||'💀';
   document.getElementById('combo-hud').textContent=combo>1?'🔥 x'+combo+' combo!':'';
 }
@@ -363,7 +362,7 @@ function update(){
       if(Math.abs(ballVY)<0.8)ballVY=0;
     }
     
-    // Ball stopped or off screen
+    // Ball stopped or off screen — more lenient threshold
     if(!waitingForReset&&(ballX>W+80||ballX<-80||(ballY>=ground-BALL_R-2&&Math.abs(ballVY)<0.8&&Math.abs(ballVX)<0.3))){
       waitingForReset=true;
       combo=0;
@@ -373,7 +372,7 @@ function update(){
         level++;score+=level*100;
         var lvlCoins=5+level*2;if(hasUpgrade('magnet'))lvlCoins=Math.ceil(lvlCoins*1.5);
         coins+=lvlCoins;sessionCoins+=lvlCoins;
-        ballsLeft=3+upgradeCount('extra_ball');
+        ballsLeft=Math.min(ballsLeft+1,5+upgradeCount('extra_ball'));
         showMsg('⭐ Level '+level+'! +'+lvlCoins+'🪙',1800);
         buildLevel();waitingForReset=true;
         setTimeout(function(){resetSwing();},1000);
@@ -576,7 +575,7 @@ function renderShop(){
   });
 }
 document.getElementById('shop-btn').addEventListener('click',function(){renderShop();document.getElementById('shop-overlay').style.display='flex';});
-document.getElementById('shop-close').addEventListener('click',function(){document.getElementById('shop-overlay').style.display='none';document.getElementById('menu-coins').textContent='🪙 '+coins;document.getElementById('overlay').style.display='flex';});
+document.getElementById('shop-close').addEventListener('click',function(){document.getElementById('shop-overlay').style.display='none';document.getElementById('menu-coins').textContent='🪙 '+coins;});
 
 // === LEADERBOARD ===
 var _LB_URL='https://adudgrfxwildzwpcvyil.supabase.co';
@@ -589,7 +588,6 @@ document.getElementById('lb-close-btn').addEventListener('click',function(){docu
 document.getElementById('death-submit').addEventListener('click',async function(){var n=document.getElementById('death-name').value.trim()||'Anonymous';localStorage.setItem('ajgt_name',n);await _lbSubmit(n,score);this.textContent='✅ Done!';this.disabled=true;});
 document.getElementById('death-retry').addEventListener('click',function(){document.getElementById('death-screen').style.display='none';document.getElementById('death-submit').textContent='📤 Submit Score';document.getElementById('death-submit').disabled=false;startGame();});
 document.getElementById('death-lb').addEventListener('click',function(){_lbShow();});
-document.getElementById('death-shop').addEventListener('click',function(){document.getElementById('death-screen').style.display='none';document.getElementById('death-submit').textContent='📤 Submit Score';document.getElementById('death-submit').disabled=false;renderShop();document.getElementById('shop-overlay').style.display='flex';});
 document.getElementById('death-name').addEventListener('keydown',function(e){if(e.key==='Enter')document.getElementById('death-submit').click();});
 document.getElementById('menu-coins').textContent='🪙 '+coins;
 </script>
