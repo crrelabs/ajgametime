@@ -86,6 +86,15 @@ button.play-btn:hover { transform: scale(1.05); filter: brightness(1.1); }
 .d-btn { width: 60px; height: 60px; border-radius: 12px; border: none; background: rgba(255,255,255,0.15); color: white; font-size: 1.5rem; cursor: pointer; display: flex; align-items: center; justify-content: center; -webkit-tap-highlight-color: transparent; }
 .d-btn:active { background: rgba(255,255,255,0.3); }
 .d-blank { width: 60px; height: 60px; }
+#settingsBtn{position:fixed;bottom:10px;right:64px;z-index:20;width:44px;height:44px;border-radius:50%;border:none;background:rgba(255,255,255,0.15);color:#fff;font-size:1.3rem;cursor:pointer}
+#settingsOverlay{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;z-index:110;background:rgba(0,0,0,0.92)}
+#settingsOverlay h2{font-size:24px;color:#fbbf24;margin-bottom:16px;font-weight:900}
+.vol-row{display:flex;align-items:center;gap:12px;margin-bottom:14px;width:min(300px,80vw)}
+.vol-label{font-size:14px;font-weight:700;width:70px;color:#e2e8f0}
+.vol-slider{flex:1;-webkit-appearance:none;height:8px;border-radius:4px;background:rgba(255,255,255,0.15);outline:none}
+.vol-slider::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:#fbbf24;cursor:pointer}
+.vol-val{font-size:13px;font-weight:700;color:#fbbf24;width:35px;text-align:right}
+#settingsClose{margin-top:16px;padding:10px 30px;font-size:16px;font-weight:700;color:#fff;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:10px;cursor:pointer}
 #music-btn{position:fixed;bottom:10px;right:10px;z-index:20;width:44px;height:44px;border-radius:50%;border:none;background:rgba(255,255,255,0.15);color:#fff;font-size:1.3rem;cursor:pointer}
 
 @media (pointer: coarse) { #mobileControls { display: block; } }
@@ -163,6 +172,13 @@ button.play-btn:hover { transform: scale(1.05); filter: brightness(1.1); }
   </div>
 </div>
 
+<button id="settingsBtn">⚙️</button>
+<div id="settingsOverlay">
+<h2>⚙️ Settings</h2>
+<div class="vol-row"><span class="vol-label">🎵 Music</span><input type="range" class="vol-slider" id="musicVol" min="0" max="100" value="50"><span class="vol-val" id="musicVolVal">50%</span></div>
+<div class="vol-row"><span class="vol-label">🔊 SFX</span><input type="range" class="vol-slider" id="sfxVol" min="0" max="100" value="70"><span class="vol-val" id="sfxVolVal">70%</span></div>
+<button id="settingsClose">Close</button>
+</div>
 <button id="music-btn">🔊</button>
 
 <script>
@@ -770,12 +786,15 @@ document.querySelectorAll('.d-btn').forEach(function(btn) {
 });
 
 // === AUDIO ===
+var _crMusicVol=parseInt(localStorage.getItem('cr_musicVol')||'50')/100;
+var _crSfxVol=parseInt(localStorage.getItem('cr_sfxVol')||'70')/100;
+var crSfxGain=null,crMusicGainNode=null;
 var audioCtx = null;
 var musicNodes = [];
 var musicOn = true;
 var musicPlaying = false;
 
-function getAudio() { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); return audioCtx; }
+function getAudio() { if (!audioCtx) { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); crSfxGain=audioCtx.createGain();crSfxGain.gain.value=_crSfxVol;crSfxGain.connect(audioCtx.destination);crMusicGainNode=audioCtx.createGain();crMusicGainNode.gain.value=_crMusicVol;crMusicGainNode.connect(audioCtx.destination); } return audioCtx; }
 
 function playHop() {
   try {
@@ -783,7 +802,7 @@ function playHop() {
     o.type = 'sine'; o.frequency.value = 600;
     o.frequency.exponentialRampToValueAtTime(900, a.currentTime + 0.05);
     g.gain.value = 0.08; g.gain.exponentialRampToValueAtTime(0.001, a.currentTime + 0.1);
-    o.connect(g); g.connect(a.destination); o.start(); o.stop(a.currentTime + 0.1);
+    o.connect(g); g.connect(crSfxGain||a.destination); o.start(); o.stop(a.currentTime + 0.1);
   } catch(e) {}
 }
 
@@ -793,7 +812,7 @@ function playCoin() {
     o.type = 'sine'; o.frequency.value = 800;
     o.frequency.exponentialRampToValueAtTime(1200, a.currentTime + 0.1);
     g.gain.value = 0.12; g.gain.exponentialRampToValueAtTime(0.001, a.currentTime + 0.2);
-    o.connect(g); g.connect(a.destination); o.start(); o.stop(a.currentTime + 0.2);
+    o.connect(g); g.connect(crSfxGain||a.destination); o.start(); o.stop(a.currentTime + 0.2);
   } catch(e) {}
 }
 
@@ -803,7 +822,7 @@ function playCrash() {
     var d = b.getChannelData(0);
     for (var i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / d.length);
     buf.buffer = b; var g = a.createGain(); g.gain.value = 0.15;
-    buf.connect(g); g.connect(a.destination); buf.start();
+    buf.connect(g); g.connect(crSfxGain||a.destination); buf.start();
   } catch(e) {}
 }
 
@@ -830,7 +849,7 @@ function startMusic() {
       o.type = wave; o.frequency.value = notes[noteIdx % notes.length];
       g.gain.value = 0.04;
       g.gain.exponentialRampToValueAtTime(0.001, a.currentTime + tempo * 0.9);
-      o.connect(g); g.connect(a.destination);
+      o.connect(g); g.connect(crMusicGainNode||a.destination);
       o.start(); o.stop(a.currentTime + tempo * 0.9);
       musicNodes.push(o);
       noteIdx++;
@@ -843,7 +862,7 @@ function startMusic() {
     var bass = a.createOscillator(), bg2 = a.createGain();
     bass.type = 'sine'; bass.frequency.value = notes[0] / 2;
     bg2.gain.value = 0.025;
-    bass.connect(bg2); bg2.connect(a.destination); bass.start();
+    bass.connect(bg2); bg2.connect(crMusicGainNode||a.destination); bass.start();
     musicNodes.push(bass); musicNodes._bass = bass; musicNodes._bassGain = bg2;
   } catch(e) {}
 }
@@ -985,6 +1004,12 @@ document.getElementById('death-shop').addEventListener('click', function() {
   document.getElementById('death-screen').style.display = 'none';
   openShop();
 });
+
+// === VOLUME SETTINGS UI ===
+document.getElementById('settingsBtn').addEventListener('click',function(){document.getElementById('settingsOverlay').style.display='flex';document.getElementById('musicVol').value=Math.round(_crMusicVol*100);document.getElementById('sfxVol').value=Math.round(_crSfxVol*100);document.getElementById('musicVolVal').textContent=Math.round(_crMusicVol*100)+'%';document.getElementById('sfxVolVal').textContent=Math.round(_crSfxVol*100)+'%'});
+document.getElementById('settingsClose').addEventListener('click',function(){document.getElementById('settingsOverlay').style.display='none'});
+document.getElementById('musicVol').addEventListener('input',function(){_crMusicVol=this.value/100;document.getElementById('musicVolVal').textContent=this.value+'%';localStorage.setItem('cr_musicVol',this.value);if(crMusicGainNode)crMusicGainNode.gain.value=_crMusicVol});
+document.getElementById('sfxVol').addEventListener('input',function(){_crSfxVol=this.value/100;document.getElementById('sfxVolVal').textContent=this.value+'%';localStorage.setItem('cr_sfxVol',this.value);if(crSfxGain)crSfxGain.gain.value=_crSfxVol});
 
 </script>
 </body>

@@ -51,11 +51,27 @@ canvas{display:block}
 #death-submit{background:linear-gradient(135deg,#22c55e,#3b82f6)}
 #death-retry{background:linear-gradient(135deg,#f97316,#ef4444)}
 #death-lb{background:linear-gradient(135deg,#f59e0b,#ef4444)}
+#settingsBtn{position:fixed;bottom:12px;right:66px;z-index:30;width:44px;height:44px;border-radius:50%;border:2px solid rgba(255,255,255,0.3);background:rgba(0,0,0,0.4);color:#fff;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+#settingsOverlay{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;z-index:110;background:rgba(0,0,0,0.92)}
+#settingsOverlay h2{font-size:24px;color:#fbbf24;margin-bottom:16px;font-weight:900}
+.vol-row{display:flex;align-items:center;gap:12px;margin-bottom:14px;width:min(300px,80vw)}
+.vol-label{font-size:14px;font-weight:700;width:70px;color:#e2e8f0}
+.vol-slider{flex:1;-webkit-appearance:none;height:8px;border-radius:4px;background:rgba(255,255,255,0.15);outline:none}
+.vol-slider::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:#fbbf24;cursor:pointer}
+.vol-val{font-size:13px;font-weight:700;color:#fbbf24;width:35px;text-align:right}
+#settingsClose{margin-top:16px;padding:10px 30px;font-size:16px;font-weight:700;color:#fff;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:10px;cursor:pointer}
 #music-btn{position:fixed;bottom:12px;right:12px;z-index:30;width:44px;height:44px;border-radius:50%;border:2px solid rgba(255,255,255,0.3);background:rgba(0,0,0,0.4);color:#fff;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center}
 </style>
 </head>
 <body>
 <a id="back" href="index.html">← Back</a>
+<button id="settingsBtn">⚙️</button>
+<div id="settingsOverlay">
+<h2>⚙️ Settings</h2>
+<div class="vol-row"><span class="vol-label">🎵 Music</span><input type="range" class="vol-slider" id="musicVol" min="0" max="100" value="50"><span class="vol-val" id="musicVolVal">50%</span></div>
+<div class="vol-row"><span class="vol-label">🔊 SFX</span><input type="range" class="vol-slider" id="sfxVol" min="0" max="100" value="70"><span class="vol-val" id="sfxVolVal">70%</span></div>
+<button id="settingsClose">Close</button>
+</div>
 <button id="music-btn">🔊</button>
 <canvas id="game"></canvas>
 <div id="score-display">0</div>
@@ -1148,6 +1164,11 @@ document.getElementById('death-shop').addEventListener('click', function(){
 });
 document.getElementById('death-name').addEventListener('keydown', function(e){ if(e.key==='Enter') document.getElementById('death-submit').click(); });
 
+// === VOLUME SETTINGS ===
+var _fpMusicVol=parseInt(localStorage.getItem('fp_musicVol')||'50')/100;
+var _fpSfxVol=parseInt(localStorage.getItem('fp_sfxVol')||'70')/100;
+var fpSfxGain=null,fpMusicGainNode=null;
+
 // === AUDIO SYSTEM ===
 let audioCtx = null;
 let musicOn = true;
@@ -1155,7 +1176,11 @@ let musicNodes = [];
 let musicTimer = null;
 
 function getAudioCtx() {
-  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    fpSfxGain=audioCtx.createGain();fpSfxGain.gain.value=_fpSfxVol;fpSfxGain.connect(audioCtx.destination);
+    fpMusicGainNode=audioCtx.createGain();fpMusicGainNode.gain.value=_fpMusicVol;fpMusicGainNode.connect(audioCtx.destination);
+  }
   if (audioCtx.state === 'suspended') audioCtx.resume();
   return audioCtx;
 }
@@ -1172,7 +1197,7 @@ function sfxFlap() {
     o.frequency.exponentialRampToValueAtTime(500, ctx.currentTime + 0.15);
     g.gain.setValueAtTime(0.15, ctx.currentTime);
     g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
-    o.connect(g); g.connect(ctx.destination);
+    o.connect(g); g.connect(fpSfxGain||ctx.destination);
     o.start(); o.stop(ctx.currentTime + 0.15);
   } catch(e){}
 }
@@ -1188,7 +1213,7 @@ function sfxScore(pts) {
       o.frequency.value = f;
       g.gain.setValueAtTime(0.12, ctx.currentTime + i * 0.08);
       g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.08 + 0.2);
-      o.connect(g); g.connect(ctx.destination);
+      o.connect(g); g.connect(fpSfxGain||ctx.destination);
       o.start(ctx.currentTime + i * 0.08);
       o.stop(ctx.currentTime + i * 0.08 + 0.2);
     });
@@ -1207,7 +1232,7 @@ function sfxCrash() {
     const g = ctx.createGain();
     g.gain.setValueAtTime(0.2, ctx.currentTime);
     g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
-    src.connect(g); g.connect(ctx.destination);
+    src.connect(g); g.connect(fpSfxGain||ctx.destination);
     src.start();
     // Low thud
     const o = ctx.createOscillator();
@@ -1217,7 +1242,7 @@ function sfxCrash() {
     o.frequency.exponentialRampToValueAtTime(40, ctx.currentTime + 0.2);
     g2.gain.setValueAtTime(0.25, ctx.currentTime);
     g2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25);
-    o.connect(g2); g2.connect(ctx.destination);
+    o.connect(g2); g2.connect(fpSfxGain||ctx.destination);
     o.start(); o.stop(ctx.currentTime + 0.25);
   } catch(e){}
 }
@@ -1244,7 +1269,7 @@ function startMusic() {
 
     const masterGain = ctx.createGain();
     masterGain.gain.value = wm.vol;
-    masterGain.connect(ctx.destination);
+    masterGain.connect(fpMusicGainNode||ctx.destination);
     musicNodes.push(masterGain);
 
     const scale = wm.scale;
@@ -1342,6 +1367,12 @@ function stopMusic() {
   musicNodes.forEach(n => { try { n.stop ? n.stop() : null; } catch(e){} try { n.disconnect(); } catch(e){} });
   musicNodes = [];
 }
+
+// === VOLUME SETTINGS UI ===
+document.getElementById('settingsBtn').addEventListener('click',function(){document.getElementById('settingsOverlay').style.display='flex';document.getElementById('musicVol').value=Math.round(_fpMusicVol*100);document.getElementById('sfxVol').value=Math.round(_fpSfxVol*100);document.getElementById('musicVolVal').textContent=Math.round(_fpMusicVol*100)+'%';document.getElementById('sfxVolVal').textContent=Math.round(_fpSfxVol*100)+'%'});
+document.getElementById('settingsClose').addEventListener('click',function(){document.getElementById('settingsOverlay').style.display='none'});
+document.getElementById('musicVol').addEventListener('input',function(){_fpMusicVol=this.value/100;document.getElementById('musicVolVal').textContent=this.value+'%';localStorage.setItem('fp_musicVol',this.value);if(fpMusicGainNode)fpMusicGainNode.gain.value=_fpMusicVol});
+document.getElementById('sfxVol').addEventListener('input',function(){_fpSfxVol=this.value/100;document.getElementById('sfxVolVal').textContent=this.value+'%';localStorage.setItem('fp_sfxVol',this.value);if(fpSfxGain)fpSfxGain.gain.value=_fpSfxVol});
 
 document.getElementById('music-btn').addEventListener('click', () => {
   musicOn = !musicOn;

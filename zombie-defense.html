@@ -60,6 +60,15 @@ button.play-btn:hover{transform:scale(1.05)}
 #death-submit{background:linear-gradient(135deg,#22c55e,#16a34a)}
 #death-retry{background:linear-gradient(135deg,#3b82f6,#8b5cf6)}
 #death-lb{background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2)!important}
+#settingsBtn{position:fixed;bottom:16px;right:70px;z-index:20;width:44px;height:44px;border-radius:50%;border:2px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.08);color:#e2e8f0;font-size:1.2rem;cursor:pointer;display:flex;align-items:center;justify-content:center}
+#settingsOverlay{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;z-index:110;background:rgba(0,0,0,0.92)}
+#settingsOverlay h2{font-size:24px;color:#fbbf24;margin-bottom:16px;font-weight:900}
+.vol-row{display:flex;align-items:center;gap:12px;margin-bottom:14px;width:min(300px,80vw)}
+.vol-label{font-size:14px;font-weight:700;width:70px;color:#e2e8f0}
+.vol-slider{flex:1;-webkit-appearance:none;height:8px;border-radius:4px;background:rgba(255,255,255,0.15);outline:none}
+.vol-slider::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:#fbbf24;cursor:pointer}
+.vol-val{font-size:13px;font-weight:700;color:#fbbf24;width:35px;text-align:right}
+#settingsClose{margin-top:16px;padding:10px 30px;font-size:16px;font-weight:700;color:#fff;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:10px;cursor:pointer}
 </style>
 </head>
 <body>
@@ -88,6 +97,13 @@ button.play-btn:hover{transform:scale(1.05)}
 <div id="waveBanner"></div>
 <div id="bossBar"><div id="bossName">💀 BOSS</div><div id="bossHpOuter"><div id="bossHpInner"></div></div></div>
 <canvas id="game"></canvas>
+<button id="settingsBtn">⚙️</button>
+<div id="settingsOverlay">
+<h2>⚙️ Settings</h2>
+<div class="vol-row"><span class="vol-label">🎵 Music</span><input type="range" class="vol-slider" id="musicVol" min="0" max="100" value="50"><span class="vol-val" id="musicVolVal">50%</span></div>
+<div class="vol-row"><span class="vol-label">🔊 SFX</span><input type="range" class="vol-slider" id="sfxVol" min="0" max="100" value="70"><span class="vol-val" id="sfxVolVal">70%</span></div>
+<button id="settingsClose">Close</button>
+</div>
 <button id="musicBtn">🔊</button>
 
 <div id="towerBar">
@@ -125,8 +141,8 @@ resize();window.addEventListener('resize',resize);
 
 // === AUDIO ===
 var AudioCtx=window.AudioContext||window.webkitAudioContext,audioCtx=null,musicPlaying=false,musicGain=null,musicInterval=null,droneOsc=null,droneOsc2=null;
-function initAudio(){if(audioCtx)return;audioCtx=new AudioCtx();musicGain=audioCtx.createGain();musicGain.gain.value=0.2;musicGain.connect(audioCtx.destination)}
-function playNote(freq,dur,type,vol){if(!audioCtx)return;var o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type=type||'sine';o.frequency.value=freq;g.gain.setValueAtTime(vol||0.1,audioCtx.currentTime);g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+dur);o.connect(g);g.connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+dur)}
+function initAudio(){if(audioCtx)return;audioCtx=new AudioCtx();musicGain=audioCtx.createGain();musicGain.gain.value=_musicVol*0.5;musicGain.connect(audioCtx.destination);sfxGain=audioCtx.createGain();sfxGain.gain.value=_sfxVol;sfxGain.connect(audioCtx.destination)}
+function playNote(freq,dur,type,vol){if(!audioCtx)return;var o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type=type||'sine';o.frequency.value=freq;g.gain.setValueAtTime(vol||0.1,audioCtx.currentTime);g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+dur);o.connect(g);g.connect(sfxGain||audioCtx.destination);o.start();o.stop(audioCtx.currentTime+dur)}
 function sfxPlace(){playNote(400,0.1,'triangle',0.08)}
 function sfxKill(){playNote(600,0.08,'sine',0.06);playNote(800,0.06,'sine',0.04)}
 function sfxBossHit(){playNote(150,0.2,'sawtooth',0.1)}
@@ -555,6 +571,17 @@ document.getElementById('death-retry').addEventListener('click',function(){
 });
 document.getElementById('death-lb').addEventListener('click',()=>_lbShow());
 document.getElementById('death-name').addEventListener('keydown',function(e){if(e.key==='Enter')document.getElementById('death-submit').click()});
+
+// === VOLUME SETTINGS ===
+var sfxGain=null;
+var _musicVol=parseInt(localStorage.getItem('zd_musicVol')||'50')/100;
+var _sfxVol=parseInt(localStorage.getItem('zd_sfxVol')||'70')/100;
+function _applyVol(){if(musicGain)musicGain.gain.value=_musicVol*0.5;if(sfxGain)sfxGain.gain.value=_sfxVol}
+document.getElementById('settingsBtn').addEventListener('click',function(){document.getElementById('settingsOverlay').style.display='flex';document.getElementById('musicVol').value=Math.round(_musicVol*100);document.getElementById('sfxVol').value=Math.round(_sfxVol*100);document.getElementById('musicVolVal').textContent=Math.round(_musicVol*100)+'%';document.getElementById('sfxVolVal').textContent=Math.round(_sfxVol*100)+'%'});
+document.getElementById('settingsClose').addEventListener('click',function(){document.getElementById('settingsOverlay').style.display='none'});
+document.getElementById('musicVol').addEventListener('input',function(){_musicVol=this.value/100;document.getElementById('musicVolVal').textContent=this.value+'%';localStorage.setItem('zd_musicVol',this.value);_applyVol()});
+document.getElementById('sfxVol').addEventListener('input',function(){_sfxVol=this.value/100;document.getElementById('sfxVolVal').textContent=this.value+'%';localStorage.setItem('zd_sfxVol',this.value);_applyVol()});
+
 </script>
 </body>
 </html>
