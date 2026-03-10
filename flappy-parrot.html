@@ -796,12 +796,35 @@ function draw() {
     }
   }
   if (bg.dinos) {
-    X.font = '24px serif'; X.globalAlpha = 0.3;
-    var dinos = ['🦕','🦖','🌿','🌴'];
-    for (var di = 0; di < 4; di++) {
-      var dx = (di * 130 + frame * 0.2) % (W + 60) - 30;
-      var dy = H - GROUND_H - 30 - di * 20;
-      X.fillText(dinos[di % dinos.length], dx, dy);
+    // Big walking dinosaurs on the ground
+    var bigDinos = ['🦕','🦖','🦕','🦖','🦖','🦕'];
+    X.font = '48px serif'; X.globalAlpha = 0.7;
+    for (var di = 0; di < bigDinos.length; di++) {
+      var dx = (di * 180 + frame * 0.4) % (W + 100) - 50;
+      var dy = H - GROUND_H - 30 + Math.sin(frame * 0.03 + di * 2) * 5;
+      X.fillText(bigDinos[di], dx, dy);
+    }
+    // Small flying pterodactyls in the sky
+    X.font = '32px serif'; X.globalAlpha = 0.5;
+    for (var pi = 0; pi < 4; pi++) {
+      var px = (pi * 200 + frame * 0.8) % (W + 80) - 40;
+      var py = 60 + pi * 40 + Math.sin(frame * 0.05 + pi * 3) * 25;
+      X.fillText('🦅', px, py);
+    }
+    // Plants and trees
+    X.font = '36px serif'; X.globalAlpha = 0.5;
+    var plants = ['🌿','🌴','🪨','🌿','🌴','🪨','🌿','🌴'];
+    for (var pli = 0; pli < plants.length; pli++) {
+      var plx = (pli * 120 + frame * 0.15) % (W + 60) - 30;
+      var ply = H - GROUND_H - 10;
+      X.fillText(plants[pli], plx, ply);
+    }
+    // Eggs scattered
+    X.font = '18px serif'; X.globalAlpha = 0.4;
+    for (var ei = 0; ei < 5; ei++) {
+      var ex = (ei * 170 + 50) % W;
+      var ey = H - GROUND_H - 5;
+      X.fillText('🥚', ex, ey);
     }
     X.globalAlpha = 1;
   }
