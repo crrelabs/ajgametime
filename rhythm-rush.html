@@ -184,20 +184,20 @@ function sfxMiss(){playNote(150,0.2,'sawtooth',0.15)}
 function sfxCombo(){playNote(523,0.06,'sine',0.1);setTimeout(function(){playNote(659,0.06,'sine',0.1)},40);setTimeout(function(){playNote(784,0.1,'sine',0.12)},80)}
 
 var musicPlaying=false,beatTimer=0;
-// Song patterns — multiple sections for variety
+// Song patterns — low frequency, chill vibes
 var SONGS=[
-  // Section A: energetic EDM
-  {melody:[523,523,659,784,659,523,392,440,523,523,659,784,880,784,659,523],
-   bass:[130,130,164,196,130,130,164,196,110,110,146,164,130,130,164,196],
-   chord:[[261,329,392],[261,329,392],[293,369,440],[349,440,523],[261,329,392],[261,329,392],[293,369,440],[349,440,523]]},
-  // Section B: darker vibe
-  {melody:[440,523,659,523,440,392,440,523,659,784,659,523,440,392,349,392],
-   bass:[110,110,130,146,110,110,130,146,98,98,110,130,110,110,130,146],
-   chord:[[220,277,330],[220,277,330],[261,329,392],[293,349,440],[220,277,330],[220,277,330],[261,329,392],[293,349,440]]},
-  // Section C: uplifting
-  {melody:[659,784,880,784,659,784,1046,880,784,659,523,659,784,880,1046,880],
-   bass:[164,164,196,220,164,164,196,220,146,146,164,196,164,164,196,220],
-   chord:[[329,415,523],[329,415,523],[349,440,523],[392,494,587],[329,415,523],[329,415,523],[349,440,523],[392,494,587]]},
+  // Section A
+  {melody:[261,261,329,392,329,261,196,220,261,261,329,392,440,392,329,261],
+   bass:[65,65,82,98,65,65,82,98,55,55,73,82,65,65,82,98],
+   chord:[[130,164,196],[130,164,196],[146,184,220],[174,220,261],[130,164,196],[130,164,196],[146,184,220],[174,220,261]]},
+  // Section B
+  {melody:[220,261,329,261,220,196,220,261,329,392,329,261,220,196,174,196],
+   bass:[55,55,65,73,55,55,65,73,49,49,55,65,55,55,65,73],
+   chord:[[110,138,165],[110,138,165],[130,164,196],[146,174,220],[110,138,165],[110,138,165],[130,164,196],[146,174,220]]},
+  // Section C
+  {melody:[329,392,440,392,329,392,523,440,392,329,261,329,392,440,523,440],
+   bass:[82,82,98,110,82,82,98,110,73,73,82,98,82,82,98,110],
+   chord:[[164,207,261],[164,207,261],[174,220,261],[196,247,293],[164,207,261],[164,207,261],[174,220,261],[196,247,293]]},
 ];
 var songSection=0;
 
@@ -217,26 +217,13 @@ function startMusic(){
     ok.frequency.exponentialRampToValueAtTime(30,t+0.12);
     gk.gain.exponentialRampToValueAtTime(0.001,t+0.18);ok.stop(t+0.2);
 
-    // Snare on beats 4,12
+    // Snare on beats 4,12 (just a soft thump)
     if(step===4||step===12){
       var os=audioCtx.createOscillator(),gs=audioCtx.createGain();
-      os.type='square';os.frequency.value=200;gs.gain.value=0.08;
+      os.type='sine';os.frequency.value=180;gs.gain.value=0.06;
       os.connect(gs);gs.connect(musicGain);os.start(t);
-      os.frequency.exponentialRampToValueAtTime(100,t+0.08);
-      gs.gain.exponentialRampToValueAtTime(0.001,t+0.12);os.stop(t+0.15);
-      // Noise burst for snare texture
-      var on=audioCtx.createOscillator(),gn=audioCtx.createGain();
-      on.type='sine';on.frequency.value=2000+Math.random()*1000;gn.gain.value=0.02;
-      on.connect(gn);gn.connect(musicGain);on.start(t);gn.gain.exponentialRampToValueAtTime(0.001,t+0.08);on.stop(t+0.1);
-    }
-
-    // Hi-hat (every other beat, offbeat on fast sections)
-    if(step%2===0||(bpm>160&&step%2===1)){
-      var oh=audioCtx.createOscillator(),gh=audioCtx.createGain();
-      oh.type='sine';oh.frequency.value=3000+Math.random()*1000;gh.gain.value=step%2===0?0.02:0.01;
-      oh.connect(gh);gh.connect(musicGain);
-      var hStart=step%2===0?t:t+beatMs/2000;
-      oh.start(hStart);gh.gain.exponentialRampToValueAtTime(0.001,hStart+0.04);oh.stop(hStart+0.05);
+      os.frequency.exponentialRampToValueAtTime(80,t+0.08);
+      gs.gain.exponentialRampToValueAtTime(0.001,t+0.1);os.stop(t+0.12);
     }
 
     // Melody (soft triangle lead — no screech!)
