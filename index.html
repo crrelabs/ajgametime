@@ -234,6 +234,17 @@ footer a:hover { color: #94a3b8; }
     <p class="creator">Designed by <span>AJ & Ignacio Rovira</span></p>
   </section>
 
+  <!-- Update Log -->
+  <div id="updateLog" style="position:fixed;top:16px;right:16px;z-index:100;max-width:280px;max-height:80vh;overflow-y:auto">
+    <div style="background:rgba(22,19,42,0.95);border:2px solid rgba(124,58,237,0.3);border-radius:16px;padding:14px 16px;backdrop-filter:blur(10px)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <span style="font-family:'Lilita One',cursive;font-size:1rem;color:#e2e8f0">📋 Update Log</span>
+        <button onclick="document.getElementById('updateLog').style.display='none'" style="background:none;border:none;color:#64748b;cursor:pointer;font-size:1.1rem">✕</button>
+      </div>
+      <div id="updateEntries" style="display:flex;flex-direction:column;gap:10px;font-size:0.78rem;line-height:1.4"></div>
+    </div>
+  </div>
+
   <h2 class="section-title"><span class="emoji">🕹️</span>Games</h2>
 
   <!-- Search, Filter, Sort -->
@@ -273,6 +284,29 @@ footer a:hover { color: #94a3b8; }
 </footer>
 
 <script>
+// Update log data
+const UPDATES = [
+  { date: 'Mar 11', game: '🐍 Snake', items: ['Boss snake every 50pts', 'Shield power-up', 'Magnet power-up'] },
+  { date: 'Mar 11', game: '🦜 Flappy Parrot', items: ['Moving pipes', 'Boss eagles', 'Slow-mo, Shield & Tiny bird power-ups'] },
+  { date: 'Mar 11', game: '🍉 Fruit Ninja', items: ['Boss fruits (multi-slice)', 'Combo recipes (Rainbow, Melon, Berry, Tropical)'] },
+  { date: 'Mar 11', game: '🐔 Crossy Road', items: ['Night mode (flashlight)', 'Rush hour waves', 'Bonus coin lanes'] },
+  { date: 'Mar 10', game: '🧟 Zombie Defense', items: ['Bank, Mage, Trap & Banana towers', '10 bosses, Pause, 3 upgrade paths', 'Gem currency & Skill tree'] },
+  { date: 'Mar 9', game: '🐍 Snake', items: ['Full shop system', 'Volume settings'] },
+  { date: 'Mar 9', game: '🎣 Fishing Frenzy', items: ['New game launched!'] },
+];
+(function(){
+  var el = document.getElementById('updateEntries');
+  if(!el) return;
+  UPDATES.forEach(function(u){
+    var d = document.createElement('div');
+    d.style.cssText = 'border-left:3px solid #7c3aed;padding-left:10px';
+    d.innerHTML = '<div style="color:#7c3aed;font-weight:800;font-size:0.7rem">'+u.date+'</div>'
+      + '<div style="color:#e2e8f0;font-weight:700">'+u.game+'</div>'
+      + u.items.map(function(i){return '<div style="color:#94a3b8">• '+i+'</div>'}).join('');
+    el.appendChild(d);
+  });
+})();
+
 // Game data — all in one place for easy updates
 const GAMES = [
   {
