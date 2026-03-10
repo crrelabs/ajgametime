@@ -96,7 +96,16 @@ button.play-btn:hover { transform: scale(1.05); }
   <h1>Zombie Defense</h1>
   <p>Place turrets to stop waves of zombies from reaching your base! Earn gold from kills to build more defenses.</p>
   <p style="color:#64748b;font-size:0.8rem;">Tap/click to place towers. Upgrade by clicking existing towers.</p>
-  <button class="play-btn" id="startBtn">⚔️ Defend!</button>
+  <p style="color:#fbbf24;font-weight:700;margin-top:12px;font-size:0.9rem">Choose Difficulty:</p>
+  <div id="diffPicker" style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-top:8px">
+    <button class="diff-btn" data-diff="easy" style="padding:8px 14px;border-radius:10px;border:2px solid #22c55e;background:rgba(34,197,94,0.15);color:#22c55e;font-weight:700;font-size:13px;cursor:pointer">😊 Easy</button>
+    <button class="diff-btn active" data-diff="normal" style="padding:8px 14px;border-radius:10px;border:2px solid #3b82f6;background:rgba(59,130,246,0.15);color:#3b82f6;font-weight:700;font-size:13px;cursor:pointer">😐 Normal</button>
+    <button class="diff-btn" data-diff="medium" style="padding:8px 14px;border-radius:10px;border:2px solid #f59e0b;background:rgba(245,158,11,0.15);color:#f59e0b;font-weight:700;font-size:13px;cursor:pointer">😤 Medium</button>
+    <button class="diff-btn" data-diff="hard" style="padding:8px 14px;border-radius:10px;border:2px solid #ef4444;background:rgba(239,68,68,0.15);color:#ef4444;font-weight:700;font-size:13px;cursor:pointer">😈 Hard</button>
+    <button class="diff-btn" data-diff="insane" style="padding:8px 14px;border-radius:10px;border:2px solid #a855f7;background:rgba(168,85,247,0.15);color:#a855f7;font-weight:700;font-size:13px;cursor:pointer">🤯 Insane</button>
+    <button class="diff-btn" data-diff="impossible" style="padding:8px 14px;border-radius:10px;border:2px solid #ec4899;background:rgba(236,72,153,0.15);color:#ec4899;font-weight:700;font-size:13px;cursor:pointer">💀 Impossible</button>
+  </div>
+  <button class="play-btn" id="startBtn" style="margin-top:16px">⚔️ Defend!</button>
   <button id="lb-show-btn" style="margin-top:12px">🏆 Leaderboard</button>
 </div>
 
@@ -150,6 +159,29 @@ function resize() {
 }
 resize();
 window.addEventListener('resize', resize);
+
+// Difficulty settings
+let difficulty = 'normal';
+const DIFF_SETTINGS = {
+  easy:       { startGold: 200, lives: 30, hpScale: 0.6,  speedScale: 0.7,  spawnScale: 0.7,  goldScale: 1.5, waveGrowth: 1,   scoreMulti: 0.5, label: '😊 Easy' },
+  normal:     { startGold: 100, lives: 20, hpScale: 1.0,  speedScale: 1.0,  spawnScale: 1.0,  goldScale: 1.0, waveGrowth: 2,   scoreMulti: 1.0, label: '😐 Normal' },
+  medium:     { startGold: 80,  lives: 15, hpScale: 1.4,  speedScale: 1.15, spawnScale: 1.3,  goldScale: 0.9, waveGrowth: 3,   scoreMulti: 1.5, label: '😤 Medium' },
+  hard:       { startGold: 60,  lives: 10, hpScale: 2.0,  speedScale: 1.3,  spawnScale: 1.6,  goldScale: 0.75,waveGrowth: 4,   scoreMulti: 2.0, label: '😈 Hard' },
+  insane:     { startGold: 50,  lives: 5,  hpScale: 3.0,  speedScale: 1.5,  spawnScale: 2.0,  goldScale: 0.6, waveGrowth: 5,   scoreMulti: 3.0, label: '🤯 Insane' },
+  impossible: { startGold: 30,  lives: 3,  hpScale: 5.0,  speedScale: 1.8,  spawnScale: 2.5,  goldScale: 0.5, waveGrowth: 7,   scoreMulti: 5.0, label: '💀 Impossible' },
+};
+
+// Difficulty picker
+document.querySelectorAll('.diff-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.diff-btn').forEach(b => { b.style.opacity = '0.5'; b.style.transform = 'scale(1)'; });
+    btn.style.opacity = '1'; btn.style.transform = 'scale(1.1)';
+    difficulty = btn.dataset.diff;
+  });
+});
+// Set initial active state
+document.querySelector('.diff-btn[data-diff="normal"]').style.opacity = '1';
+document.querySelectorAll('.diff-btn:not([data-diff="normal"])').forEach(b => b.style.opacity = '0.5');
 
 // Game state
 let gold, lives, wave, score, gameRunning, zombies, towers, projectiles, particles;
@@ -216,8 +248,9 @@ function hasTower(col, row) {
 }
 
 function init() {
-  gold = 100;
-  lives = 20;
+  var ds = DIFF_SETTINGS[difficulty];
+  gold = ds.startGold;
+  lives = ds.lives;
   wave = 0;
   score = 0;
   gameRunning = true;
@@ -248,7 +281,8 @@ function nextWave() {
   waveActive = false;
   waveDelay = 120;
   spawnCount = 0;
-  spawnMax = 5 + wave * 2;
+  var ds = DIFF_SETTINGS[difficulty];
+  spawnMax = Math.round((5 + wave * ds.waveGrowth) * ds.spawnScale);
   spawnTimer = 0;
   
   // Show wave banner
@@ -274,7 +308,9 @@ function spawnZombie() {
   else typeIndex = Math.floor(Math.random() * 3);
   
   const type = ZOMBIE_TYPES[typeIndex];
-  const hpScale = 1 + (wave - 1) * 0.3;
+  const ds = DIFF_SETTINGS[difficulty];
+  const hpScale = (1 + (wave - 1) * 0.3) * ds.hpScale;
+  const spdMult = (0.9 + diff * 0.3) * ds.speedScale;
   
   zombies.push({
     pathIdx: 0,
@@ -282,10 +318,10 @@ function spawnZombie() {
     y: path[0].y * TILE + MAP_OFFSET_Y + TILE / 2,
     hp: type.hp * hpScale,
     maxHp: type.hp * hpScale,
-    speed: type.speed * (0.9 + diff * 0.3),
-    baseSpeed: type.speed * (0.9 + diff * 0.3),
-    gold: type.gold,
-    points: type.points,
+    speed: type.speed * spdMult,
+    baseSpeed: type.speed * spdMult,
+    gold: Math.round(type.gold * ds.goldScale),
+    points: Math.round(type.points * ds.scoreMulti),
     emoji: type.emoji,
     slowTimer: 0,
     dotTimer: 0,
@@ -491,7 +527,7 @@ function update() {
   // Check wave complete
   if (spawnCount >= spawnMax && zombies.length === 0 && waveActive) {
     // Bonus gold
-    gold += 10 + wave * 5;
+    gold += Math.round((10 + wave * 5) * DIFF_SETTINGS[difficulty].goldScale);
     updateHUD();
     updateTowerButtons();
     nextWave();
@@ -636,7 +672,7 @@ function gameOver() {
   gameRunning = false;
   document.getElementById('towerBar').style.display = 'none';
   document.getElementById('death-score').textContent = score;
-  document.getElementById('death-wave').textContent = 'Wave ' + wave;
+  document.getElementById('death-wave').textContent = 'Wave ' + wave + ' | ' + DIFF_SETTINGS[difficulty].label;
   document.getElementById('death-name').value = localStorage.getItem('ajgt_name') || '';
   document.getElementById('death-screen').style.display = 'flex';
 }
