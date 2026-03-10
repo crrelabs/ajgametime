@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Play Pirate Ship Battle - sail your ship, fire cannons at enemies! Free browser game at AJ GameTime.">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://ajgametime.com/pirate-ship-battle.html">
+<meta property="og:title" content="Pirate Ship Battle — AJ GameTime">
+<meta property="og:description" content="Sail the seas, fire cannons, defeat boss ships! Full shop and leaderboard.">
+<title>Pirate Ship Battle — AJ GameTime</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{min-height:100vh;display:flex;flex-direction:column;align-items:center;font-family:-apple-system,sans-serif;background:#0a0a12;color:#e2e8f0;overflow:hidden;user-select:none;-webkit-user-select:none}
+#header{width:100%;padding:0.5rem 1rem;display:flex;justify-content:space-between;align-items:center;z-index:10;position:fixed;top:0;background:rgba(10,10,18,0.85)}
+#header a{color:#64748b;text-decoration:none;font-size:0.85rem}
+#header a:hover{color:#e2e8f0}
+#hud{display:flex;gap:1.2rem;align-items:center}
+.stat{text-align:center}.stat-val{font-size:1.3rem;font-weight:800}.stat-label{font-size:0.55rem;text-transform:uppercase;letter-spacing:0.1em;color:#64748b}
+#scoreVal{color:#fbbf24}#coinsVal{color:#fbbf24}#waveVal{color:#06b6d4}#hpVal{color:#22c55e}#bestVal{color:#a78bfa}
+canvas{display:block;touch-action:none}
+#startScreen{position:fixed;inset:0;background:rgba(10,10,18,0.97);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:30}
+#startScreen.hidden{display:none}
+#startScreen h1{font-size:2.5rem;margin-bottom:0.5rem}
+#startScreen .emoji{font-size:5rem;margin-bottom:1rem}
+#startScreen p{color:#94a3b8;margin-bottom:0.5rem;font-size:0.9rem;text-align:center;max-width:340px}
+button.play-btn{margin-top:1rem;padding:0.8rem 2rem;font-size:1rem;font-weight:700;background:linear-gradient(135deg,#f59e0b,#d97706);color:white;border:none;border-radius:12px;cursor:pointer;transition:0.2s}
+button.play-btn:hover{transform:scale(1.05)}
+.menu-btn{padding:8px 20px;font-size:14px;font-weight:700;color:#fff;border:none;border-radius:8px;cursor:pointer;margin-top:8px}
+#settingsBtn{position:fixed;bottom:16px;right:62px;z-index:20;width:44px;height:44px;border-radius:50%;border:2px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.08);color:#e2e8f0;font-size:1.2rem;cursor:pointer;display:flex;align-items:center;justify-content:center}
+#musicBtn{position:fixed;bottom:16px;right:16px;z-index:20;width:44px;height:44px;border-radius:50%;border:2px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.08);color:#e2e8f0;font-size:1.2rem;cursor:pointer;display:flex;align-items:center;justify-content:center}
+#settingsOverlay{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:110;background:rgba(0,0,0,0.85)}
+#settingsPanel{background:rgba(20,20,40,0.98);border:2px solid rgba(255,255,255,0.15);border-radius:16px;padding:24px;width:min(320px,85vw)}
+#settingsPanel h3{text-align:center;color:#f59e0b;margin-bottom:16px;font-size:18px}
+.vol-row{display:flex;align-items:center;gap:12px;margin-bottom:14px;width:min(300px,80vw)}
+.vol-row label{width:50px;font-size:13px;font-weight:700;color:#94a3b8}
+.vol-row input[type=range]{flex:1;accent-color:#f59e0b}
+.vol-row span{width:35px;text-align:right;font-size:13px;color:#e2e8f0}
+#controls{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:15;display:none;gap:8px}
+.ctrl-btn{width:56px;height:56px;border-radius:14px;border:2px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.08);color:#fff;font-size:1.3rem;cursor:pointer;display:flex;align-items:center;justify-content:center}
+#fireBtn{position:fixed;bottom:20px;right:80px;z-index:15;display:none;width:70px;height:70px;border-radius:50%;border:3px solid #ef4444;background:rgba(239,68,68,0.2);color:#fff;font-size:1.5rem;cursor:pointer;align-items:center;justify-content:center}
+#lb-overlay{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;z-index:100;background:rgba(0,0,0,0.92)}
+#lb-overlay h2{font-size:28px;color:#f59e0b;margin-bottom:12px;font-weight:900}
+#lb-list{width:min(340px,90vw);max-height:50vh;overflow-y:auto}
+.lb-row{display:flex;justify-content:space-between;padding:8px 14px;border-bottom:1px solid rgba(255,255,255,0.08);color:#e2e8f0;font-size:14px;font-weight:600}
+.lb-row:nth-child(1) .lb-rank{color:#fbbf24}.lb-row:nth-child(2) .lb-rank{color:#94a3b8}.lb-row:nth-child(3) .lb-rank{color:#b45309}
+.lb-rank{width:30px;color:#64748b}.lb-name{flex:1;margin:0 8px}.lb-score{color:#22d3ee}
+#lb-close-btn{margin-top:16px;padding:10px 30px;font-size:16px;font-weight:700;color:#fff;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:10px;cursor:pointer}
+#death-screen{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;z-index:90;background:rgba(10,10,18,0.97)}
+#death-screen h1{font-size:2.5rem;margin-bottom:0.5rem;color:#e2e8f0}
+#death-score{font-size:3rem;font-weight:900;color:#fbbf24;margin-bottom:4px}
+#death-wave{font-size:1.1rem;color:#06b6d4;font-weight:700;margin-bottom:4px}
+#death-coins{color:#fbbf24;font-size:1rem;font-weight:700;margin-bottom:12px}
+#death-screen input{padding:10px 16px;font-size:16px;border-radius:8px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.1);color:#fff;text-align:center;width:200px;margin-bottom:12px}
+#death-screen button{margin:4px;padding:10px 24px;font-size:14px;font-weight:700;border:none;border-radius:10px;cursor:pointer;color:#fff}
+#death-submit{background:linear-gradient(135deg,#f59e0b,#d97706)}
+#death-retry{background:linear-gradient(135deg,#3b82f6,#8b5cf6)}
+#death-lb{background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2)!important}
+#shop-screen{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;z-index:95;background:rgba(10,10,18,0.98);overflow-y:auto;padding:20px 10px}
+#shop-screen h2{font-size:24px;color:#f59e0b;margin-bottom:4px}
+#shop-coins{color:#fbbf24;font-size:16px;font-weight:700;margin-bottom:8px}
+#shop-tabs{display:flex;gap:8px;margin:10px 0;flex-wrap:wrap;justify-content:center}
+.shop-tab{padding:6px 14px;border-radius:20px;border:1.5px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.05);color:#94a3b8;font-size:12px;font-weight:700;cursor:pointer}
+.shop-tab.active{background:#f59e0b;color:#fff;border-color:#f59e0b}
+#shop-grid{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;max-width:400px;padding:0 16px}
+.skin-card{width:90px;padding:10px 6px;border-radius:12px;border:2px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.05);text-align:center;cursor:pointer;transition:0.2s}
+.skin-card:hover{border-color:#f59e0b}.skin-card.selected{border-color:#f59e0b;background:rgba(245,158,11,0.15)}
+.skin-card.locked{opacity:0.5}.skin-name{font-size:11px;font-weight:700;margin-top:4px;color:#e2e8f0}
+.skin-cost{font-size:11px;color:#fbbf24;margin-top:2px}.skin-owned{font-size:10px;color:#22c55e;margin-top:2px}
+</style>
+</head>
+<body>
+
+<div id="header">
+  <a href="index.html">← AJ GameTime</a>
+  <div id="hud">
+    <div class="stat"><div class="stat-val" id="scoreVal">0</div><div class="stat-label">Score</div></div>
+    <div class="stat"><div class="stat-val" id="waveVal">1</div><div class="stat-label">Wave</div></div>
+    <div class="stat"><div class="stat-val" id="hpVal">❤️❤️❤️</div><div class="stat-label">HP</div></div>
+    <div class="stat"><div class="stat-val" id="coinsVal">0</div><div class="stat-label">Coins</div></div>
+    <div class="stat"><div class="stat-val" id="bestVal">0</div><div class="stat-label">Best</div></div>
+  </div>
+</div>
+
+<canvas id="canvas"></canvas>
+
+<div id="startScreen">
+  <div class="emoji">🏴‍☠️</div>
+  <h1>Pirate Ship Battle</h1>
+  <p>Sail the seas and blast enemy ships! Move up/down, fire cannons! Boss ships every 10 waves. Collect gold from defeated enemies!</p>
+  <button class="play-btn" onclick="startGame()">⚓ Set Sail!</button>
+  <button class="menu-btn" style="background:linear-gradient(135deg,#f59e0b,#d97706)" onclick="openShop()">🛍️ Shop</button>
+  <button class="menu-btn" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2)" onclick="showLeaderboard()">🏆 Leaderboard</button>
+</div>
+
+<div id="death-screen">
+  <h1>☠️ Sunk!</h1>
+  <div id="death-score">0</div>
+  <div id="death-wave">Wave 1</div>
+  <div id="death-coins">+0 🪙</div>
+  <input type="text" id="death-name" placeholder="Captain name" maxlength="20">
+  <div>
+    <button id="death-submit" onclick="submitScore()">Submit Score</button>
+    <button id="death-retry" onclick="retry()">🔄 Retry</button>
+    <button id="death-lb" onclick="showLeaderboard()">🏆 Board</button>
+  </div>
+</div>
+
+<div id="lb-overlay">
+  <h2>🏆 Leaderboard</h2>
+  <div id="lb-list"></div>
+  <button id="lb-close-btn" onclick="document.getElementById('lb-overlay').style.display='none'">Close</button>
+</div>
+
+<div id="shop-screen">
+  <h2>🛍️ Pirate Shop</h2>
+  <div id="shop-coins">🪙 0</div>
+  <div id="shop-tabs">
+    <button class="shop-tab active" onclick="shopTab('ships')">⛵ Ships</button>
+    <button class="shop-tab" onclick="shopTab('cannons')">💥 Cannons</button>
+    <button class="shop-tab" onclick="shopTab('flags')">🏴 Flags</button>
+    <button class="shop-tab" onclick="shopTab('seas')">🌊 Seas</button>
+    <button class="shop-tab" onclick="shopTab('explosions')">💣 Sinks</button>
+  </div>
+  <div id="shop-grid"></div>
+  <button class="menu-btn" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);margin-top:16px" onclick="closeShop()">✕ Close</button>
+</div>
+
+<button id="settingsBtn" onclick="toggleSettings()">⚙️</button>
+<button id="musicBtn" onclick="toggleMusic()">🔊</button>
+
+<div id="settingsOverlay" onclick="if(event.target===this)toggleSettings()">
+  <div id="settingsPanel">
+    <h3>⚙️ Sound Settings</h3>
+    <div class="vol-row"><label>Music</label><input type="range" id="musicVol" min="0" max="100" value="50" oninput="setMusicVol(this.value)"><span id="musicVolVal">50</span></div>
+    <div class="vol-row"><label>SFX</label><input type="range" id="sfxVol" min="0" max="100" value="70" oninput="setSfxVol(this.value)"><span id="sfxVolVal">70</span></div>
+    <button class="menu-btn" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);width:100%;margin-top:8px" onclick="toggleSettings()">Close</button>
+  </div>
+</div>
+
+<div id="controls">
+  <button class="ctrl-btn" ontouchstart="moveUp()" onmousedown="moveUp()">⬆️</button>
+  <button class="ctrl-btn" ontouchstart="moveDown()" onmousedown="moveDown()">⬇️</button>
+</div>
+<button id="fireBtn" ontouchstart="fireCannon()" onmousedown="fireCannon()">🔥</button>
+
+<script>
+var canvas=document.getElementById('canvas'),ctx=canvas.getContext('2d');
+var W,H;
+function resize(){W=canvas.width=window.innerWidth;H=canvas.height=window.innerHeight}
+window.addEventListener('resize',resize);resize();
+
+// === AUDIO ===
+var audioCtx,musicGain,sfxGain,musicNode;
+function initAudio(){
+  if(audioCtx)return;
+  audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+  musicGain=audioCtx.createGain();sfxGain=audioCtx.createGain();
+  musicGain.connect(audioCtx.destination);sfxGain.connect(audioCtx.destination);
+  musicGain.gain.value=parseFloat(localStorage.getItem('psb_musicVol')||'0.5');
+  sfxGain.gain.value=parseFloat(localStorage.getItem('psb_sfxVol')||'0.7');
+  document.getElementById('musicVol').value=Math.round(musicGain.gain.value*100);
+  document.getElementById('musicVolVal').textContent=Math.round(musicGain.gain.value*100);
+  document.getElementById('sfxVol').value=Math.round(sfxGain.gain.value*100);
+  document.getElementById('sfxVolVal').textContent=Math.round(sfxGain.gain.value*100);
+}
+function setMusicVol(v){if(!audioCtx)initAudio();musicGain.gain.value=v/100;localStorage.setItem('psb_musicVol',v/100);document.getElementById('musicVolVal').textContent=v}
+function setSfxVol(v){if(!audioCtx)initAudio();sfxGain.gain.value=v/100;localStorage.setItem('psb_sfxVol',v/100);document.getElementById('sfxVolVal').textContent=v}
+var musicOn=true;
+function toggleMusic(){musicOn=!musicOn;document.getElementById('musicBtn').textContent=musicOn?'🔊':'🔇';if(musicOn)startMusic();else stopMusic()}
+function toggleSettings(){var o=document.getElementById('settingsOverlay');o.style.display=o.style.display==='flex'?'none':'flex'}
+
+function playNote(freq,dur,type,vol){
+  if(!audioCtx)return;var o=audioCtx.createOscillator(),g=audioCtx.createGain();
+  o.type=type||'sine';o.frequency.value=freq;g.gain.value=(vol||0.1);
+  o.connect(g);g.connect(sfxGain);o.start();g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+dur);o.stop(audioCtx.currentTime+dur);
+}
+function sfxFire(){playNote(150,0.15,'square',0.2);playNote(100,0.2,'sawtooth',0.15)}
+function sfxHit(){playNote(200,0.1,'sine',0.15);playNote(300,0.08,'square',0.1)}
+function sfxExplode(){playNote(80,0.4,'sawtooth',0.25);playNote(60,0.5,'square',0.2)}
+function sfxCoin(){playNote(880,0.1,'sine',0.15);setTimeout(function(){playNote(1100,0.15,'sine',0.12)},60)}
+function sfxBossWarn(){playNote(200,0.3,'sawtooth',0.15);setTimeout(function(){playNote(150,0.4,'sawtooth',0.2)},200)}
+
+var musicPlaying=false;
+function startMusic(){
+  if(!audioCtx||!musicOn||musicPlaying)return;musicPlaying=true;
+  function playLoop(){
+    if(!musicPlaying||!musicOn)return;
+    var notes=[196,220,261,196,164,196,220,261];
+    var t=audioCtx.currentTime;
+    for(var i=0;i<notes.length;i++){
+      var o=audioCtx.createOscillator(),g=audioCtx.createGain();
+      o.type='triangle';o.frequency.value=notes[i];g.gain.value=0.05;
+      o.connect(g);g.connect(musicGain);o.start(t+i*0.5);
+      g.gain.exponentialRampToValueAtTime(0.001,t+i*0.5+0.45);o.stop(t+i*0.5+0.48);
+    }
+    var bass=[98,110,130,98];
+    for(var j=0;j<bass.length;j++){
+      var ob=audioCtx.createOscillator(),gb=audioCtx.createGain();
+      ob.type='sine';ob.frequency.value=bass[j];gb.gain.value=0.07;
+      ob.connect(gb);gb.connect(musicGain);ob.start(t+j*1);
+      gb.gain.exponentialRampToValueAtTime(0.001,t+j*1+0.9);ob.stop(t+j*1+0.95);
+    }
+    musicNode=setTimeout(playLoop,notes.length*500);
+  }
+  playLoop();
+}
+function stopMusic(){musicPlaying=false;if(musicNode)clearTimeout(musicNode)}
+
+// === LEADERBOARD ===
+var _LB_URL='https://adudgrfxwildzwpcvyil.supabase.co/rest/v1/ajgametime_leaderboard';
+var _LB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFkdWRncmZ4d2lsZHp3cGN2eWlsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzk0MDk2ODIsImV4cCI6MjA1NDk4NTY4Mn0.p-YPGEeVqbhFEsTe1VpAVSH0jfXGMx8GzBBzfSaSaEI';
+var _LB_GAME='pirate_ship';
+function submitScore(){
+  var name=document.getElementById('death-name').value.trim()||'Anonymous';
+  localStorage.setItem('ajgt_name',name);
+  fetch(_LB_URL,{method:'POST',headers:{'Content-Type':'application/json','apikey':_LB_KEY,'Authorization':'Bearer '+_LB_KEY,'Prefer':'return=minimal'},
+    body:JSON.stringify({player_name:name,score:score,game:_LB_GAME})}).then(function(){showLeaderboard()}).catch(function(){});
+}
+function showLeaderboard(){
+  fetch(_LB_URL+'?game=eq.'+_LB_GAME+'&order=score.desc&limit=20',{headers:{'apikey':_LB_KEY,'Authorization':'Bearer '+_LB_KEY}})
+  .then(function(r){return r.json()}).then(function(data){
+    var list=document.getElementById('lb-list');list.innerHTML='';
+    data.forEach(function(d,i){
+      var row=document.createElement('div');row.className='lb-row';
+      row.innerHTML='<span class="lb-rank">#'+(i+1)+'</span><span class="lb-name">'+d.player_name+'</span><span class="lb-score">'+d.score+'</span>';
+      list.appendChild(row);
+    });
+    document.getElementById('lb-overlay').style.display='flex';
+  }).catch(function(){});
+}
+
+// === SHOP ===
+var SHIPS=[
+  {id:'sloop',name:'Sloop',emoji:'⛵',cost:0,color:'#92400e',hullColor:'#78350f'},
+  {id:'galleon',name:'Galleon',emoji:'🚢',cost:50,color:'#1e3a5f',hullColor:'#1e293b'},
+  {id:'warship',name:'Warship',emoji:'⚓',cost:80,color:'#7f1d1d',hullColor:'#450a0a'},
+  {id:'ghost_ship',name:'Ghost Ship',emoji:'👻',cost:100,color:'#4a5568',hullColor:'#2d3748'},
+  {id:'gold_ship',name:'Gold Ship',emoji:'✨',cost:120,color:'#92400e',hullColor:'#78350f'},
+  {id:'dragon',name:'Dragon',emoji:'🐉',cost:150,color:'#065f46',hullColor:'#064e3b'},
+  {id:'kraken',name:'Kraken',emoji:'🐙',cost:130,color:'#4c1d95',hullColor:'#3b0764'},
+  {id:'viking',name:'Viking',emoji:'⚔️',cost:90,color:'#78350f',hullColor:'#451a03'},
+];
+var CANNONS=[
+  {id:'iron',name:'Iron',emoji:'💥',cost:0,color:'#6b7280',projColor:'#4b5563'},
+  {id:'fire',name:'Fire',emoji:'🔥',cost:40,color:'#ef4444',projColor:'#dc2626'},
+  {id:'ice',name:'Ice',emoji:'❄️',cost:40,color:'#60a5fa',projColor:'#3b82f6'},
+  {id:'gold',name:'Gold',emoji:'✨',cost:60,color:'#fbbf24',projColor:'#f59e0b'},
+  {id:'poison',name:'Poison',emoji:'☠️',cost:50,color:'#22c55e',projColor:'#16a34a'},
+  {id:'lightning',name:'Lightning',emoji:'⚡',cost:70,color:'#a855f7',projColor:'#7c3aed'},
+  {id:'plasma',name:'Plasma',emoji:'🔮',cost:90,color:'#ec4899',projColor:'#db2777'},
+];
+var FLAGS=[
+  {id:'skull',name:'Skull',emoji:'☠️',cost:0},
+  {id:'swords',name:'Swords',emoji:'⚔️',cost:20},
+  {id:'crown',name:'Crown',emoji:'👑',cost:30},
+  {id:'fire',name:'Fire',emoji:'🔥',cost:25},
+  {id:'diamond',name:'Diamond',emoji:'💎',cost:40},
+  {id:'star',name:'Star',emoji:'⭐',cost:25},
+  {id:'anchor',name:'Anchor',emoji:'⚓',cost:20},
+  {id:'trident',name:'Trident',emoji:'🔱',cost:35},
+];
+var SEAS=[
+  {id:'caribbean',name:'Caribbean',emoji:'🌴',cost:0,water1:'#0c4a6e',water2:'#164e63',sky1:'#0f172a',sky2:'#1e3a5f'},
+  {id:'arctic',name:'Arctic',emoji:'🧊',cost:40,water1:'#1e3a5f',water2:'#334155',sky1:'#0f172a',sky2:'#475569'},
+  {id:'blood',name:'Blood Sea',emoji:'🩸',cost:60,water1:'#7f1d1d',water2:'#991b1b',sky1:'#1c1917',sky2:'#44403c'},
+  {id:'phantom',name:'Phantom',emoji:'👻',cost:50,water1:'#1e1b4b',water2:'#312e81',sky1:'#0a0a12',sky2:'#1e1b4b'},
+  {id:'golden',name:'Golden',emoji:'✨',cost:55,water1:'#78350f',water2:'#92400e',sky1:'#431407',sky2:'#7c2d12'},
+  {id:'emerald',name:'Emerald',emoji:'💚',cost:45,water1:'#064e3b',water2:'#065f46',sky1:'#042f2e',sky2:'#115e59'},
+];
+var EXPLOSIONS=[
+  {id:'cannonball',name:'Cannonball',emoji:'💥',cost:0,colors:['#f97316','#fbbf24','#ef4444']},
+  {id:'fireworks',name:'Fireworks',emoji:'🎆',cost:35,colors:['#ef4444','#fbbf24','#22c55e','#3b82f6','#a855f7']},
+  {id:'skull',name:'Skull',emoji:'💀',cost:50,colors:['#1f2937','#4b5563','#9ca3af','#fff']},
+  {id:'confetti',name:'Confetti',emoji:'🎉',cost:30,colors:['#ef4444','#f97316','#fbbf24','#22c55e','#3b82f6']},
+  {id:'ice',name:'Ice',emoji:'🧊',cost:40,colors:['#bae6fd','#7dd3fc','#38bdf8','#fff']},
+  {id:'lava',name:'Lava',emoji:'🌋',cost:55,colors:['#ef4444','#f97316','#fbbf24','#dc2626']},
+  {id:'portal',name:'Portal',emoji:'🌀',cost:60,colors:['#a855f7','#ec4899','#6366f1']},
+];
+
+var totalCoins=parseInt(localStorage.getItem('psb_coins')||'0');
+var ownedShips=JSON.parse(localStorage.getItem('psb_ships')||'["sloop"]');
+var ownedCannons=JSON.parse(localStorage.getItem('psb_cannons')||'["iron"]');
+var ownedFlags=JSON.parse(localStorage.getItem('psb_flags')||'["skull"]');
+var ownedSeas=JSON.parse(localStorage.getItem('psb_seas')||'["caribbean"]');
+var ownedExplo=JSON.parse(localStorage.getItem('psb_explo')||'["cannonball"]');
+var activeShip=localStorage.getItem('psb_active_ship')||'sloop';
+var activeCannon=localStorage.getItem('psb_active_cannon')||'iron';
+var activeFlag=localStorage.getItem('psb_active_flag')||'skull';
+var activeSea=localStorage.getItem('psb_active_sea')||'caribbean';
+var activeExplo=localStorage.getItem('psb_active_explo')||'cannonball';
+
+function saveShop(){
+  localStorage.setItem('psb_coins',totalCoins);
+  localStorage.setItem('psb_ships',JSON.stringify(ownedShips));
+  localStorage.setItem('psb_cannons',JSON.stringify(ownedCannons));
+  localStorage.setItem('psb_flags',JSON.stringify(ownedFlags));
+  localStorage.setItem('psb_seas',JSON.stringify(ownedSeas));
+  localStorage.setItem('psb_explo',JSON.stringify(ownedExplo));
+  localStorage.setItem('psb_active_ship',activeShip);
+  localStorage.setItem('psb_active_cannon',activeCannon);
+  localStorage.setItem('psb_active_flag',activeFlag);
+  localStorage.setItem('psb_active_sea',activeSea);
+  localStorage.setItem('psb_active_explo',activeExplo);
+}
+function updateCoinDisplays(){document.getElementById('coinsVal').textContent=totalCoins;document.getElementById('shop-coins').textContent='🪙 '+totalCoins}
+function getShip(){return SHIPS.find(function(s){return s.id===activeShip})||SHIPS[0]}
+function getCannon(){return CANNONS.find(function(c){return c.id===activeCannon})||CANNONS[0]}
+function getFlag(){return FLAGS.find(function(f){return f.id===activeFlag})||FLAGS[0]}
+function getSea(){return SEAS.find(function(s){return s.id===activeSea})||SEAS[0]}
+function getExplo(){return EXPLOSIONS.find(function(e){return e.id===activeExplo})||EXPLOSIONS[0]}
+
+var currentShopTab='ships';
+function openShop(){document.getElementById('shop-screen').style.display='flex';shopTab('ships');updateCoinDisplays()}
+function closeShop(){document.getElementById('shop-screen').style.display='none'}
+function shopTab(tab){
+  currentShopTab=tab;
+  document.querySelectorAll('.shop-tab').forEach(function(t){t.classList.remove('active')});
+  document.querySelectorAll('.shop-tab').forEach(function(t){if(t.textContent.toLowerCase().includes(tab.slice(0,4)))t.classList.add('active')});
+  renderShop();
+}
+function renderShop(){
+  var grid=document.getElementById('shop-grid');grid.innerHTML='';
+  var items,owned,active;
+  if(currentShopTab==='ships'){items=SHIPS;owned=ownedShips;active=activeShip}
+  else if(currentShopTab==='cannons'){items=CANNONS;owned=ownedCannons;active=activeCannon}
+  else if(currentShopTab==='flags'){items=FLAGS;owned=ownedFlags;active=activeFlag}
+  else if(currentShopTab==='seas'){items=SEAS;owned=ownedSeas;active=activeSea}
+  else{items=EXPLOSIONS;owned=ownedExplo;active=activeExplo}
+  items.forEach(function(item){
+    var own=owned.includes(item.id),sel=active===item.id,canBuy=totalCoins>=item.cost;
+    var card=document.createElement('div');card.className='skin-card'+(sel?' selected':'')+(!own&&!canBuy?' locked':'');
+    var em=document.createElement('div');em.style.fontSize='28px';em.textContent=item.emoji;card.appendChild(em);
+    var nm=document.createElement('div');nm.className='skin-name';nm.textContent=item.name;card.appendChild(nm);
+    if(sel){var t=document.createElement('div');t.className='skin-owned';t.textContent='✅ Active';card.appendChild(t)}
+    else if(own){var t=document.createElement('div');t.className='skin-owned';t.textContent='✓ Owned';card.appendChild(t)}
+    else{var t=document.createElement('div');t.className='skin-cost';t.textContent='🪙 '+item.cost;card.appendChild(t)}
+    card.addEventListener('click',function(){
+      if(own){
+        if(currentShopTab==='ships')activeShip=item.id;
+        else if(currentShopTab==='cannons')activeCannon=item.id;
+        else if(currentShopTab==='flags')activeFlag=item.id;
+        else if(currentShopTab==='seas')activeSea=item.id;
+        else activeExplo=item.id;
+        saveShop();renderShop();
+      }else if(canBuy&&totalCoins>=item.cost){
+        totalCoins-=item.cost;owned.push(item.id);
+        if(currentShopTab==='ships'){activeShip=item.id;ownedShips=owned}
+        else if(currentShopTab==='cannons'){activeCannon=item.id;ownedCannons=owned}
+        else if(currentShopTab==='flags'){activeFlag=item.id;ownedFlags=owned}
+        else if(currentShopTab==='seas'){activeSea=item.id;ownedSeas=owned}
+        else{activeExplo=item.id;ownedExplo=owned}
+        saveShop();updateCoinDisplays();renderShop();
+      }
+    });
+    grid.appendChild(card);
+  });
+}
+
+// === GAME STATE ===
+var score,sessionCoins,wave,hp,maxHp,gameRunning,frame;
+var player={x:0,y:0,targetY:0};
+var enemies=[],cannonballs=[],enemyBalls=[],particles=[],textPops=[],floatingCoins=[];
+var waveTimer,waveEnemies,waveSpawned,waveBetween;
+var fireTimer=0,FIRE_RATE=25;
+var highScore=parseInt(localStorage.getItem('psb_high')||'0');
+document.getElementById('bestVal').textContent=highScore;
+
+function init(){
+  score=0;sessionCoins=0;wave=0;hp=3;maxHp=3;frame=0;
+  gameRunning=true;waveBetween=120;waveTimer=60;waveEnemies=0;waveSpawned=0;
+  player.x=80;player.y=H/2;player.targetY=H/2;
+  enemies=[];cannonballs=[];enemyBalls=[];particles=[];textPops=[];floatingCoins=[];
+  fireTimer=0;
+  nextWave();
+  updateHUD();
+}
+
+function nextWave(){
+  wave++;
+  var isBoss=wave%10===0;
+  if(isBoss){
+    waveEnemies=1;sfxBossWarn();
+    textPops.push({x:W/2,y:H/3,text:'⚠️ BOSS SHIP! Wave '+wave,color:'#ef4444',size:28,life:60});
+  }else{
+    waveEnemies=2+Math.floor(wave*0.8);
+  }
+  waveSpawned=0;waveTimer=60;
+  updateHUD();
+}
+
+function spawnEnemy(){
+  var isBoss=wave%10===0&&waveSpawned===0;
+  var y=80+Math.random()*(H-160);
+  var hpMult=1+wave*0.3;
+  if(isBoss){
+    enemies.push({x:W+80,y:y,targetY:y,hp:Math.round(20*hpMult),maxHp:Math.round(20*hpMult),speed:0.5+wave*0.02,
+      fireRate:60,fireTimer:0,isBoss:true,emoji:'🏴‍☠️',size:50,points:wave*10,coinDrop:5+wave});
+  }else{
+    var types=[
+      {emoji:'⛵',hp:3,speed:1,fireRate:90,size:30,points:10,coinDrop:1},
+      {emoji:'🚢',hp:5,speed:0.8,fireRate:70,size:35,points:15,coinDrop:2},
+      {emoji:'🛥️',hp:2,speed:2,fireRate:120,size:25,points:8,coinDrop:1},
+    ];
+    var et=types[Math.floor(Math.random()*types.length)];
+    enemies.push({x:W+50,y:y,targetY:y,hp:Math.round(et.hp*hpMult),maxHp:Math.round(et.hp*hpMult),
+      speed:et.speed+wave*0.05,fireRate:Math.max(30,et.fireRate-wave*2),fireTimer:Math.floor(Math.random()*40),
+      isBoss:false,emoji:et.emoji,size:et.size,points:et.points+wave,coinDrop:et.coinDrop});
+  }
+  waveSpawned++;
+}
+
+function updateHUD(){
+  document.getElementById('scoreVal').textContent=score;
+  document.getElementById('waveVal').textContent=wave;
+  document.getElementById('hpVal').textContent='❤️'.repeat(hp)+'🖤'.repeat(Math.max(0,maxHp-hp));
+}
+
+function startGame(){
+  initAudio();startMusic();
+  document.getElementById('startScreen').classList.add('hidden');
+  document.getElementById('death-screen').style.display='none';
+  canvas.style.pointerEvents='auto';
+  if('ontouchstart' in window||navigator.maxTouchPoints>0){document.getElementById('controls').style.display='flex';document.getElementById('fireBtn').style.display='flex'}
+  init();
+}
+function retry(){startGame()}
+
+function moveUp(){if(!gameRunning)return;player.targetY=Math.max(60,player.targetY-50)}
+function moveDown(){if(!gameRunning)return;player.targetY=Math.min(H-60,player.targetY+50)}
+function fireCannon(){
+  if(!gameRunning||fireTimer>0)return;
+  fireTimer=FIRE_RATE;
+  var cannon=getCannon();
+  cannonballs.push({x:player.x+40,y:player.y,vx:8,vy:0,color:cannon.projColor,damage:1});
+  sfxFire();
+}
+
+function update(){
+  for(var pi=particles.length-1;pi>=0;pi--){var p=particles[pi];p.x+=p.vx;p.y+=p.vy;p.life--;if(p.life<=0)particles.splice(pi,1)}
+  for(var xi=textPops.length-1;xi>=0;xi--){textPops[xi].y-=1;textPops[xi].life--;if(textPops[xi].life<=0)textPops.splice(xi,1)}
+  for(var fi=floatingCoins.length-1;fi>=0;fi--){var fc=floatingCoins[fi];fc.y-=0.8;fc.life--;if(fc.life<=0)floatingCoins.splice(fi,1)}
+  if(!gameRunning)return;
+  frame++;if(fireTimer>0)fireTimer--;
+
+  // Auto-fire on desktop
+  if(frame%FIRE_RATE===0&&!('ontouchstart' in window))fireCannon();
+
+  // Player movement
+  player.y+=(player.targetY-player.y)*0.1;
+
+  // Wave spawning
+  if(waveSpawned<waveEnemies){
+    waveTimer--;
+    if(waveTimer<=0){spawnEnemy();waveTimer=40+Math.floor(Math.random()*30)}
+  }
+  // Check wave complete
+  if(waveSpawned>=waveEnemies&&enemies.length===0){
+    waveBetween--;
+    if(waveBetween<=0){waveBetween=90;nextWave()}
+  }
+
+  // Move enemies
+  for(var ei=enemies.length-1;ei>=0;ei--){
+    var e=enemies[ei];
+    // Drift to target
+    e.y+=(e.targetY-e.y)*0.03;
+    if(Math.abs(e.y-e.targetY)<10)e.targetY=80+Math.random()*(H-160);
+    // Approach
+    if(e.x>W*0.55)e.x-=e.speed;
+    else e.x+=(W*0.55-e.x)*0.01;
+    // Fire
+    e.fireTimer++;
+    if(e.fireTimer>=e.fireRate){
+      e.fireTimer=0;
+      enemyBalls.push({x:e.x-e.size/2,y:e.y,vx:-5-Math.random()*2,vy:(Math.random()-0.5)*2,size:e.isBoss?6:4});
+    }
+    // Hit player check
+    if(Math.abs(e.x-player.x)<40&&Math.abs(e.y-player.y)<30){
+      takeDamage();if(!gameRunning)return;
+    }
+  }
+
+  // Move cannonballs
+  for(var ci=cannonballs.length-1;ci>=0;ci--){
+    var cb=cannonballs[ci];cb.x+=cb.vx;cb.y+=cb.vy;
+    if(cb.x>W+20){cannonballs.splice(ci,1);continue}
+    // Hit enemies
+    for(var ei2=enemies.length-1;ei2>=0;ei2--){
+      var e2=enemies[ei2];
+      if(Math.abs(cb.x-e2.x)<e2.size&&Math.abs(cb.y-e2.y)<e2.size){
+        e2.hp-=cb.damage;sfxHit();
+        cannonballs.splice(ci,1);
+        // Hit particles
+        for(var hp2=0;hp2<5;hp2++)particles.push({x:cb.x,y:cb.y,vx:(Math.random()-0.5)*4,vy:(Math.random()-0.5)*4,life:15,color:cb.color,size:2+Math.random()*2});
+        if(e2.hp<=0){
+          // Destroyed!
+          score+=e2.points;sfxExplode();
+          var explo=getExplo();
+          for(var dp=0;dp<15;dp++)particles.push({x:e2.x,y:e2.y,vx:(Math.random()-0.5)*8,vy:(Math.random()-0.5)*8,life:30,color:explo.colors[dp%explo.colors.length],size:3+Math.random()*4});
+          textPops.push({x:e2.x,y:e2.y-30,text:'+'+e2.points,color:'#fbbf24',size:24,life:35});
+          // Drop coins
+          for(var dc=0;dc<e2.coinDrop;dc++){
+            totalCoins++;sessionCoins++;
+            floatingCoins.push({x:e2.x+(Math.random()-0.5)*30,y:e2.y+(Math.random()-0.5)*20,life:50});
+          }
+          saveShop();updateCoinDisplays();
+          enemies.splice(ei2,1);
+          if(score>highScore){highScore=score;localStorage.setItem('psb_high',highScore.toString());document.getElementById('bestVal').textContent=highScore}
+        }
+        updateHUD();break;
+      }
+    }
+  }
+
+  // Move enemy balls
+  for(var ebi=enemyBalls.length-1;ebi>=0;ebi--){
+    var eb=enemyBalls[ebi];eb.x+=eb.vx;eb.y+=eb.vy;
+    if(eb.x<-20){enemyBalls.splice(ebi,1);continue}
+    if(Math.abs(eb.x-player.x)<25&&Math.abs(eb.y-player.y)<20){
+      enemyBalls.splice(ebi,1);takeDamage();if(!gameRunning)return;
+    }
+  }
+}
+
+function takeDamage(){
+  hp--;
+  for(var i=0;i<8;i++)particles.push({x:player.x,y:player.y,vx:(Math.random()-0.5)*6,vy:(Math.random()-0.5)*6,life:20,color:'#ef4444',size:3});
+  if(hp<=0)die();
+  updateHUD();
+}
+
+function die(){
+  gameRunning=false;sfxExplode();stopMusic();
+  canvas.style.pointerEvents='none';
+  var explo=getExplo();
+  for(var i=0;i<30;i++){var ang=Math.random()*Math.PI*2,spd=3+Math.random()*7;
+    particles.push({x:player.x,y:player.y,vx:Math.cos(ang)*spd,vy:Math.sin(ang)*spd,life:35,color:explo.colors[i%explo.colors.length],size:4+Math.random()*4})}
+  setTimeout(function(){
+    document.getElementById('death-score').textContent=score;
+    document.getElementById('death-wave').textContent='Wave '+wave;
+    document.getElementById('death-coins').textContent='+'+sessionCoins+' 🪙';
+    document.getElementById('death-name').value=localStorage.getItem('ajgt_name')||'';
+    document.getElementById('death-screen').style.display='flex';
+  },600);
+}
+
+function draw(){
+  var sea=getSea();
+  var skyGrad=ctx.createLinearGradient(0,0,0,H*0.3);
+  skyGrad.addColorStop(0,sea.sky1);skyGrad.addColorStop(1,sea.sky2);
+  ctx.fillStyle=skyGrad;ctx.fillRect(0,0,W,H*0.3);
+  var waterGrad=ctx.createLinearGradient(0,H*0.2,0,H);
+  waterGrad.addColorStop(0,sea.water1);waterGrad.addColorStop(1,sea.water2);
+  ctx.fillStyle=waterGrad;ctx.fillRect(0,H*0.2,W,H*0.8);
+
+  // Waves
+  ctx.strokeStyle='rgba(255,255,255,0.06)';ctx.lineWidth=2;
+  for(var wi=0;wi<10;wi++){ctx.beginPath();var wy=H*0.2+wi*(H*0.08);
+    for(var wx=0;wx<W+20;wx+=20){var wvy=wy+Math.sin((wx+frame*1.5+wi*60)*0.015)*10;if(wx===0)ctx.moveTo(wx,wvy);else ctx.lineTo(wx,wvy)}ctx.stroke()}
+
+  // Floating coins
+  ctx.font='18px sans-serif';ctx.textAlign='center';
+  for(var fi=0;fi<floatingCoins.length;fi++){var fc=floatingCoins[fi];ctx.globalAlpha=fc.life/50;ctx.fillText('🪙',fc.x,fc.y);ctx.globalAlpha=1}
+
+  // Player ship
+  var ship=getShip(),flag=getFlag();
+  ctx.save();ctx.translate(player.x,player.y);
+  // Hull
+  ctx.fillStyle=ship.hullColor;ctx.beginPath();ctx.moveTo(-30,10);ctx.lineTo(35,10);ctx.lineTo(25,25);ctx.lineTo(-25,25);ctx.closePath();ctx.fill();
+  // Deck
+  ctx.fillStyle=ship.color;ctx.fillRect(-20,-5,40,15);
+  // Mast
+  ctx.fillStyle='#78350f';ctx.fillRect(-2,-35,4,35);
+  // Sail
+  ctx.fillStyle='#f5f5f4';ctx.beginPath();ctx.moveTo(2,-30);ctx.lineTo(20,-20);ctx.lineTo(2,-5);ctx.closePath();ctx.fill();
+  // Flag
+  ctx.font='14px sans-serif';ctx.textAlign='center';ctx.fillText(flag.emoji,-2,-38);
+  ctx.restore();
+
+  // Enemies
+  for(var ei=0;ei<enemies.length;ei++){
+    var e=enemies[ei];
+    ctx.font=e.size+'px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText(e.emoji,e.x,e.y);
+    // HP bar
+    if(e.hp<e.maxHp||e.isBoss){
+      var bw=e.size*1.5,bh=5,bx=e.x-bw/2,by=e.y-e.size/2-10;
+      ctx.fillStyle='#1f2937';ctx.fillRect(bx,by,bw,bh);
+      ctx.fillStyle=e.isBoss?'#ef4444':'#22c55e';ctx.fillRect(bx,by,bw*(e.hp/e.maxHp),bh);
+      if(e.isBoss){ctx.fillStyle='#fff';ctx.font='bold 10px sans-serif';ctx.fillText('BOSS',e.x,by-6)}
+    }
+  }
+
+  // Cannonballs
+  var cannon=getCannon();
+  for(var ci=0;ci<cannonballs.length;ci++){
+    var cb=cannonballs[ci];ctx.fillStyle=cannon.projColor;
+    ctx.beginPath();ctx.arc(cb.x,cb.y,4,0,Math.PI*2);ctx.fill();
+    // Trail
+    ctx.fillStyle=cannon.color;ctx.globalAlpha=0.3;ctx.beginPath();ctx.arc(cb.x-6,cb.y,3,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+  }
+
+  // Enemy balls
+  ctx.fillStyle='#1f2937';
+  for(var ebi=0;ebi<enemyBalls.length;ebi++){var eb=enemyBalls[ebi];ctx.beginPath();ctx.arc(eb.x,eb.y,eb.size,0,Math.PI*2);ctx.fill()}
+
+  // Particles
+  for(var pi=0;pi<particles.length;pi++){var p=particles[pi];ctx.globalAlpha=p.life/35;ctx.fillStyle=p.color;ctx.beginPath();ctx.arc(p.x,p.y,p.size,0,Math.PI*2);ctx.fill()}
+  ctx.globalAlpha=1;
+
+  // Text pops
+  for(var xi=0;xi<textPops.length;xi++){var tp=textPops[xi];ctx.globalAlpha=tp.life/40;ctx.fillStyle=tp.color;ctx.font='bold '+tp.size+'px sans-serif';ctx.textAlign='center';ctx.fillText(tp.text,tp.x,tp.y)}
+  ctx.globalAlpha=1;
+}
+
+function loop(){update();draw();requestAnimationFrame(loop)}
+
+// Input
+document.addEventListener('keydown',function(e){
+  if(e.key==='ArrowUp'||e.key==='w')moveUp();
+  else if(e.key==='ArrowDown'||e.key==='s')moveDown();
+  else if(e.key===' '||e.key==='ArrowRight')fireCannon();
+});
+
+// Touch: tap to fire, swipe to move
+var touchStartY2=0;
+canvas.addEventListener('touchstart',function(e){touchStartY2=e.touches[0].clientY;e.preventDefault()},{passive:false});
+canvas.addEventListener('touchend',function(e){
+  var dy=e.changedTouches[0].clientY-touchStartY2;
+  if(Math.abs(dy)<20)fireCannon();
+  else if(dy<-30)moveUp();
+  else if(dy>30)moveDown();
+  e.preventDefault();
+},{passive:false});
+
+updateCoinDisplays();
+document.getElementById('bestVal').textContent=highScore;
+loop();
+</script>
+</body>
+</html>

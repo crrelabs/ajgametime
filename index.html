@@ -286,6 +286,9 @@ footer a:hover { color: #94a3b8; }
 <script>
 // Update log data
 const UPDATES = [
+  { date: 'Mar 11', game: '🏄‍♂️ Surfer Dude', items: ['NEW GAME! Endless wave surfing', 'Tricks & combos', 'Shop: boards, wetsuits, trails, waves, wipeouts'] },
+  { date: 'Mar 11', game: '🏴‍☠️ Pirate Ship Battle', items: ['NEW GAME! Sail & fire cannons', 'Boss ships every 10 waves', 'Shop: ships, cannons, flags, seas, sinks'] },
+  { date: 'Mar 11', game: '🧟 Zombie Defense', items: ['Traps/bananas snap to path', 'Stay until walked on (no timer)', '+1 Cap upgrade, Bank $50/2.5s'] },
   { date: 'Mar 11', game: '🐍 Snake', items: ['Boss snake every 50pts', 'Shield power-up', 'Magnet power-up'] },
   { date: 'Mar 11', game: '🦜 Flappy Parrot', items: ['Moving pipes', 'Boss eagles', 'Slow-mo, Shield & Tiny bird power-ups'] },
   { date: 'Mar 11', game: '🍉 Fruit Ninja', items: ['Boss fruits (multi-slice)', 'Combo recipes (Rainbow, Melon, Berry, Tropical)'] },
@@ -309,6 +312,18 @@ const UPDATES = [
 
 // Game data — all in one place for easy updates
 const GAMES = [
+  {
+    id: 'surfer-dude', name: 'Surfer Dude', href: 'surfer-dude.html',
+    desc: 'Ride the endless wave! Dodge obstacles, do tricks, chain combos. Full shop with boards, wetsuits & trails!',
+    category: 'Arcade', emoji: '🏄‍♂️',
+    added: '2026-03-11', color1: '#06b6d4', color2: '#0891b2'
+  },
+  {
+    id: 'pirate-ship-battle', name: 'Pirate Ship Battle', href: 'pirate-ship-battle.html',
+    desc: 'Sail the seas and blast enemy ships! Boss battles every 10 waves. Collect gold, upgrade your ship!',
+    category: 'Action', emoji: '🏴‍☠️',
+    added: '2026-03-11', color1: '#f59e0b', color2: '#d97706'
+  },
   {
     id: 'snake', name: 'Snake', href: 'snake.html',
     desc: 'Eat food to grow! Don\'t hit yourself or the walls. Power-ups, coins, and a full shop!',
