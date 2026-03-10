@@ -334,6 +334,7 @@ var player, rows, score, sessionCoins, gameRunning, cameraY, deathType;
 var hopAnim = { active: false, fromX: 0, fromY: 0, toX: 0, toY: 0, t: 0 };
 var particles = [];
 var trailParticles = [];
+var nightMode=false,rushHour=false,rushTimer=0;
 
 function generateRow(index) {
   if (index === 0) return { type: 'grass', items: [], coins: generateCoins(), trees: [] };
@@ -376,13 +377,16 @@ function generateRow(index) {
 
 function generateCoins() {
   var c = [];
-  if (Math.random() < 0.3) c.push(Math.floor(Math.random() * (COLS - 2)) + 1);
+  // 30% chance of 1 coin, 10% chance of bonus lane (3 coins in a row)
+  if(Math.random()<0.1){var start=Math.floor(Math.random()*(COLS-4))+1;c.push(start,start+1,start+2)}
+  else if (Math.random() < 0.3) c.push(Math.floor(Math.random() * (COLS - 2)) + 1);
   return c;
 }
 
 function init() {
   score = 0; sessionCoins = 0; deathType = '';
   gameRunning = true; particles = []; trailParticles = [];
+  nightMode=false;rushHour=false;rushTimer=0;
   player = { col: Math.floor(COLS / 2), row: 0, onLog: null };
   cameraY = 0; hopAnim.active = false;
   rows = {};
@@ -429,6 +433,10 @@ function tryMove(dx, dy) {
 
   if (newRow > score) {
     score = newRow; scoreEl.textContent = score;
+    // Night mode after 25
+    if(score>=25&&!nightMode){nightMode=true}
+    // Rush hour every 15 rows
+    if(score>0&&score%15===0&&!rushHour){rushHour=true;rushTimer=180}
     if (score > highScore) { highScore = score; highEl.textContent = highScore; localStorage.setItem('crossy_high', highScore.toString()); }
   }
   var roundedCol = Math.round(newCol);
@@ -486,6 +494,9 @@ function update() {
     return;
   }
 
+  // Rush hour timer
+  if(rushHour){rushTimer--;if(rushTimer<=0)rushHour=false}
+
   if (hopAnim.active) {
     hopAnim.t += 0.15;
     if (hopAnim.t >= 1) { hopAnim.active = false; hopAnim.t = 1; }
@@ -501,7 +512,8 @@ function update() {
     if (row.type === 'road' || row.type === 'river') {
       for (var ii = 0; ii < row.items.length; ii++) {
         var item = row.items[ii];
-        item.x += item.speed;
+        var rushMult=rushHour&&row.type==='road'?2.5:1;
+        item.x += item.speed*rushMult;
         if (item.speed > 0 && item.x > (COLS + 4) * TILE) item.x = -4 * TILE;
         if (item.speed < 0 && item.x < -4 * TILE) item.x = (COLS + 4) * TILE;
       }
@@ -708,6 +720,7 @@ function draw() {
     py = H - (player.row - cameraY) * TILE - TILE;
   }
 
+  playerDrawX=px+TILE/2;playerDrawY=py+TILE/2;
   // Shadow
   ctx.fillStyle = 'rgba(0,0,0,0.2)';
   ctx.beginPath(); ctx.ellipse(px + TILE / 2, py + TILE * 0.9, TILE * 0.35, TILE * 0.1, 0, 0, Math.PI * 2); ctx.fill();
@@ -749,7 +762,28 @@ function draw() {
     ctx.beginPath(); ctx.arc(dp.x, dp.y, dp.size, 0, Math.PI * 2); ctx.fill();
   }
   ctx.globalAlpha = 1;
+
+  // Night mode: dark overlay with flashlight circle around player
+  if(nightMode&&gameRunning){
+    var px=playerDrawX,py=playerDrawY;
+    ctx.save();
+    ctx.globalCompositeOperation='source-over';
+    ctx.fillStyle='rgba(0,0,0,0.85)';
+    ctx.beginPath();ctx.rect(0,0,W,H);
+    ctx.arc(px,py,TILE*3.5,0,Math.PI*2,true);// cut out circle
+    ctx.fill();
+    // Soft glow edge
+    var grd=ctx.createRadialGradient(px,py,TILE*2.5,px,py,TILE*4);
+    grd.addColorStop(0,'rgba(0,0,0,0)');grd.addColorStop(1,'rgba(0,0,0,0.6)');
+    ctx.fillStyle=grd;ctx.beginPath();ctx.arc(px,py,TILE*4,0,Math.PI*2);ctx.fill();
+    ctx.restore();
+  }
+  // Rush hour warning
+  if(rushHour){ctx.fillStyle='rgba(239,68,68,0.15)';ctx.fillRect(0,0,W,H);
+    ctx.fillStyle='#ef4444';ctx.font='bold 16px sans-serif';ctx.textAlign='center';ctx.fillText('⚠️ RUSH HOUR! ⚠️',W/2,TILE*1.5)}
 }
+
+var playerDrawX=0,playerDrawY=0; // set in draw for night mode
 
 function loop() { update(); draw(); requestAnimationFrame(loop); }
 
