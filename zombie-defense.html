@@ -493,45 +493,65 @@ function update(){
   if(!waveActive){waveDelay--;if(waveDelay<=0)waveActive=true;return}
   // Spawn
   if(spawnCount<spawnMax){spawnTimer--;if(spawnTimer<=0){spawnZombie();spawnCount++;spawnTimer=Math.max(10,40-wave*2)}}
-  // Bank income
+  // Bank income — $50 every 2.5 seconds (150 frames)
   bankTimer++;
-  if(bankTimer>=180){// every 3 seconds
+  if(bankTimer>=150){
     bankTimer=0;
-    towers.forEach(function(t){if(t.type==='bank'){var inc=Math.round(5*(t.upgSpeed+1)*getSkillMult('bnk_income',0.15));gold+=inc;
-      particles.push({x:t.col*TILE+TILE/2,y:t.row*TILE+MAP_OFFSET_Y+TILE/2,vx:0,vy:-1,life:40,color:'#fbbf24',size:0,text:'+'+inc+'💰'})}});
+    towers.forEach(function(t){if(t.type==='bank'){var inc=Math.round(50*(1+t.upgSpeed*0.3)*getSkillMult('bnk_income',0.15));gold+=inc;
+      particles.push({x:t.col*TILE+TILE/2,y:t.row*TILE+MAP_OFFSET_Y+TILE/2,vx:0,vy:-1,life:40,color:'#fbbf24',size:0,text:'+$'+inc+'💰'})}});
   }
-  // Trap spawning
+  // Helper: snap to nearest path cell
+  function nearestPathSpot(cx,cy,range){
+    var best=null,bestD=Infinity;
+    for(var pi=0;pi<path.length;pi++){var px=path[pi].x*TILE+TILE/2,py=path[pi].y*TILE+MAP_OFFSET_Y+TILE/2;
+      var d=Math.sqrt((cx-px)**2+(cy-py)**2);if(d<bestD&&d<=range){bestD=d;best={x:px,y:py}}}
+    return best;
+  }
+  // Trap spawning — snaps to path, stays until walked on, has cap
   towers.forEach(function(t){
     if(!t.trapTower)return;
     t.trapTimer=(t.trapTimer||0)+1;
-    if(t.trapTimer>=120){// every 2 sec
+    var cap=3+t.upgMulti; // base 3, +1 per upgMulti
+    var myTraps=traps.filter(function(tr){return tr.owner===t}).length;
+    if(t.trapTimer>=120&&myTraps<cap){
       t.trapTimer=0;
-      var tx=t.col*TILE+TILE/2+(Math.random()-0.5)*TILE*2,ty=t.row*TILE+MAP_OFFSET_Y+TILE/2+(Math.random()-0.5)*TILE*2;
-      var isMine=Math.random()<(0.1+getSkill('trp_mine')*0.05);
-      traps.push({x:tx,y:ty,damage:(isMine?15:5)*(1+t.upgEffect*0.5)*getSkillMult('trp_dmg',0.15),isMine:isMine,life:600,owner:t});
-    }
-  });
-  // Banana peel spawning
-  towers.forEach(function(t){
-    if(!t.bananaTree)return;
-    t.bTimer=(t.bTimer||0)+1;
-    if(t.bTimer>=200){// every ~3.3 sec
-      t.bTimer=0;
-      var peelCount=2+getSkill('ban_range');
-      for(var bi=0;bi<peelCount;bi++){
-        var bx=t.col*TILE+TILE+(Math.random()-0.5)*TILE*3,by=t.row*TILE+MAP_OFFSET_Y+TILE+(Math.random()-0.5)*TILE*3;
-        bananas.push({x:bx,y:by,stunDur:Math.round(90*(1+t.upgEffect*0.3)*getSkillMult('ban_stun',0.15)),life:400,radius:TILE*1.5});
+      var tcx=t.col*TILE+TILE/2,tcy=t.row*TILE+MAP_OFFSET_Y+TILE/2;
+      var spot=nearestPathSpot(tcx,tcy,TILE*3);
+      if(spot){
+        var isMine=Math.random()<(0.1+getSkill('trp_mine')*0.05);
+        traps.push({x:spot.x,y:spot.y,damage:(isMine?15:5)*(1+t.upgEffect*0.5)*getSkillMult('trp_dmg',0.15),isMine:isMine,owner:t});
       }
     }
   });
-  // Check traps vs zombies
+  // Banana peel spawning — snaps to path, stays until walked on, has cap
+  towers.forEach(function(t){
+    if(!t.bananaTree)return;
+    t.bTimer=(t.bTimer||0)+1;
+    var cap=4+t.upgMulti; // base 4, +1 per upgMulti
+    var myBananas=bananas.filter(function(bn){return bn.owner===t}).length;
+    if(t.bTimer>=200&&myBananas<cap){
+      t.bTimer=0;
+      var bcx=t.col*TILE+TILE,bcy=t.row*TILE+MAP_OFFSET_Y+TILE;
+      var range=TILE*6; // big range for banana tree
+      var peelCount=2+getSkill('ban_range');
+      for(var bi=0;bi<peelCount&&myBananas+bi<cap;bi++){
+        // Pick random path spot within range
+        var candidates=[];
+        for(var pi=0;pi<path.length;pi++){var px=path[pi].x*TILE+TILE/2,py=path[pi].y*TILE+MAP_OFFSET_Y+TILE/2;
+          if(Math.sqrt((bcx-px)**2+(bcy-py)**2)<=range)candidates.push({x:px,y:py})}
+        if(candidates.length>0){var pick=candidates[Math.floor(Math.random()*candidates.length)];
+          bananas.push({x:pick.x,y:pick.y,stunDur:Math.round(90*(1+t.upgEffect*0.3)*getSkillMult('ban_stun',0.15)),radius:TILE*1.5,owner:t})}
+      }
+    }
+  });
+  // Check traps vs zombies — only removed when walked on
   for(var ti=traps.length-1;ti>=0;ti--){
-    var tr=traps[ti];tr.life--;if(tr.life<=0){traps.splice(ti,1);continue}
+    var tr=traps[ti];
     for(var zi=0;zi<zombies.length;zi++){
       var z=zombies[zi];if(z.isBoss)continue;
       var dx=z.x-tr.x,dy=z.y-tr.y;if(Math.sqrt(dx*dx+dy*dy)<TILE*0.5){
         z.hp-=tr.damage;
-        if(tr.isMine){// explosive
+        if(tr.isMine){
           for(var ez=0;ez<zombies.length;ez++){var ez2=zombies[ez];var ed=Math.sqrt((ez2.x-tr.x)**2+(ez2.y-tr.y)**2);if(ed<TILE*1.5)ez2.hp-=tr.damage*0.5}
           for(var pp=0;pp<10;pp++)particles.push({x:tr.x,y:tr.y,vx:(Math.random()-0.5)*6,vy:(Math.random()-0.5)*6,life:25,color:'#ef4444',size:3+Math.random()*3});
         }
@@ -539,14 +559,13 @@ function update(){
       }
     }
   }
-  // Check bananas vs zombies
+  // Check bananas vs zombies — only removed when walked on
   for(var bi2=bananas.length-1;bi2>=0;bi2--){
-    var bn=bananas[bi2];bn.life--;if(bn.life<=0){bananas.splice(bi2,1);continue}
+    var bn=bananas[bi2];
     var hit=false;
     for(var zi2=0;zi2<zombies.length;zi2++){
       var z2=zombies[zi2];if(z2.stunTimer>0||z2.isBoss)continue;
       if(Math.sqrt((z2.x-bn.x)**2+(z2.y-bn.y)**2)<bn.radius){
-        // Stun all nearby
         for(var zi3=0;zi3<zombies.length;zi3++){var z3=zombies[zi3];if(z3.isBoss)continue;if(Math.sqrt((z3.x-bn.x)**2+(z3.y-bn.y)**2)<bn.radius)z3.stunTimer=bn.stunDur}
         hit=true;break;
       }
@@ -757,7 +776,7 @@ function openUpgradePanel(t){
   var upgrades=[
     {key:'upgSpeed',name:'⚡ Attack Speed',desc:'Fires faster',max:5,baseCost:def.cost*0.5},
     {key:'upgEffect',name:'💪 Effect Power',desc:def.convert?'Stronger ally':def.income?'More income':def.trapTower?'More damage':def.bananaTree?'Longer stun':'More damage/effect',max:5,baseCost:def.cost*0.6},
-    {key:'upgMulti',name:'🎯 Multi-Attack',desc:def.convert?'N/A':def.income?'N/A':def.trapTower?'N/A':def.bananaTree?'N/A':'Extra projectiles',max:def.convert||def.income||def.trapTower||def.bananaTree?0:3,baseCost:def.cost*0.8}
+    {key:'upgMulti',name:def.trapTower?'🪤 +1 Trap Cap':def.bananaTree?'🍌 +1 Banana Cap':'🎯 Multi-Attack',desc:def.trapTower?'+1 max traps on field':def.bananaTree?'+1 max bananas on field':def.convert?'N/A':def.income?'N/A':'Extra projectiles',max:def.convert||def.income?0:def.trapTower||def.bananaTree?5:3,baseCost:def.cost*0.8}
   ];
   upgrades.forEach(function(u){
     if(u.max===0)return;
