@@ -125,6 +125,7 @@ canvas{display:block}
   <h2>Ghost Pirate Ship</h2>
   <p>Fight waves of pirate skeletons on a haunted ghost ship! Punch and kick your way through the undead crew!</p>
   <button id="play-btn">⚔️ Fight!</button>
+  <button id="shop-btn" style="pointer-events:auto;padding:10px 28px;font-family:Lilita One,cursive;font-size:16px;color:#fff;background:linear-gradient(135deg,#8b5cf6,#3b82f6);border:none;border-radius:10px;cursor:pointer;margin-top:8px">🛒 Shop</button>
   <button id="lb-btn" onclick="showLeaderboard()">🏆 Leaderboard</button>
 </div>
 
@@ -184,12 +185,51 @@ const player = {
 };
 
 let enemy = null;
+
+// === COINS & SHOP ===
+var sbCoins = parseInt(localStorage.getItem('sb_coins') || '0');
+var ownedWeapons = JSON.parse(localStorage.getItem('sb_weapons') || '["fists"]');
+var equippedWeapon = localStorage.getItem('sb_weapon') || 'fists';
+var ownedArmors = JSON.parse(localStorage.getItem('sb_armors') || '["none"]');
+var equippedArmor = localStorage.getItem('sb_armor') || 'none';
+var sessionCoins = 0;
+
+var SB_WEAPONS = [
+  {id:'fists',name:'Fists',cost:0,emoji:'👊',dmgMult:1,color:'#d4a574'},
+  {id:'brass',name:'Brass Knuckles',cost:50,emoji:'🥊',dmgMult:1.3,color:'#fbbf24'},
+  {id:'cutlass',name:'Cutlass',cost:100,emoji:'⚔️',dmgMult:1.5,color:'#94a3b8',range:10},
+  {id:'fire_fists',name:'Fire Fists',cost:150,emoji:'🔥',dmgMult:1.4,color:'#ef4444',effect:'fire'},
+  {id:'ice_fists',name:'Ice Fists',cost:150,emoji:'🧊',dmgMult:1.3,color:'#7dd3fc',effect:'ice'},
+  {id:'lightning',name:'Lightning',cost:200,emoji:'⚡',dmgMult:1.6,color:'#fbbf24',effect:'electric'},
+  {id:'shadow',name:'Shadow Blade',cost:250,emoji:'🌑',dmgMult:1.8,color:'#6b21a8',effect:'shadow'},
+  {id:'diamond',name:'Diamond Fists',cost:400,emoji:'💎',dmgMult:2.0,color:'#67e8f9',effect:'diamond'}
+];
+var SB_ARMORS = [
+  {id:'none',name:'None',cost:0,emoji:'🦴',def:0},
+  {id:'leather',name:'Leather',cost:75,emoji:'🧥',def:0.15},
+  {id:'chain',name:'Chainmail',cost:150,emoji:'⛓️',def:0.25},
+  {id:'plate',name:'Plate Armor',cost:300,emoji:'🛡️',def:0.4},
+  {id:'diamond_armor',name:'Diamond Armor',cost:500,emoji:'💎',def:0.5}
+];
+
+function sbSave(){
+  localStorage.setItem('sb_coins',sbCoins);
+  localStorage.setItem('sb_weapons',JSON.stringify(ownedWeapons));
+  localStorage.setItem('sb_weapon',equippedWeapon);
+  localStorage.setItem('sb_armors',JSON.stringify(ownedArmors));
+  localStorage.setItem('sb_armor',equippedArmor);
+}
+function getWeapon(){for(var i=0;i<SB_WEAPONS.length;i++){if(SB_WEAPONS[i].id===equippedWeapon)return SB_WEAPONS[i];}return SB_WEAPONS[0];}
+function getArmor(){for(var i=0;i<SB_ARMORS.length;i++){if(SB_ARMORS[i].id===equippedArmor)return SB_ARMORS[i];}return SB_ARMORS[0];}
+
 function spawnEnemy() {
+  if(wave % 5 === 0){ var msgEl=document.getElementById("ko-text");if(msgEl){msgEl.textContent="👹 BOSS WAVE!";msgEl.style.display="block";setTimeout(function(){msgEl.style.display="none";},1500);} }
   const side = Math.random() > 0.5 ? 1 : -1;
+  var isBoss = (wave % 5 === 0);
   enemy = {
-    x: side > 0 ? W + 40 : -40, w: 48, h: 88,
-    hp: 30 + wave * 15, maxHp: 30 + wave * 15,
-    speed: 1.2 + wave * 0.2,
+    x: side > 0 ? W + 40 : -40, w: isBoss ? 60 : 48, h: isBoss ? 100 : 88,
+    hp: isBoss ? (80 + wave * 25) : (30 + wave * 15), maxHp: isBoss ? (80 + wave * 25) : (30 + wave * 15), isBoss: isBoss,
+    speed: isBoss ? (0.8 + wave * 0.1) : (1.2 + wave * 0.2),
     attackTimer: 0, attackCooldown: 80 - Math.min(wave * 5, 40),
     attacking: false, hurtTimer: 0, facing: 0,
     bobTimer: Math.random() * 100, type: Math.floor(Math.random() * 3),
@@ -198,6 +238,7 @@ function spawnEnemy() {
 }
 
 function resetGame() {
+  sessionCoins = 0;
   score = 0; wave = 1; combo = 0; enemiesDefeated = 0;
   player.hp = player.maxHp = 100;
   player.x = W * 0.35; player.y = 0; player.vy = 0; player.onGround = true;
@@ -242,6 +283,7 @@ function updateHUD() {
   hpBar.style.width = Math.max(0, player.hp / player.maxHp * 100) + '%';
   if (enemy) enemyBar.style.width = Math.max(0, enemy.hp / enemy.maxHp * 100) + '%';
   scoreDisplay.textContent = 'Score: ' + score;
+  document.getElementById('coin-display').textContent = '🪙 ' + sbCoins;
   waveDisplay.textContent = 'Wave ' + wave;
 }
 
@@ -545,7 +587,7 @@ function update() {
       const range = player.attackType === 'kick' ? 65 : player.attackType === 'uppercut' ? 45 : 50;
       const dx = (enemy.x - player.x) * player.facing;
       if (dx > 0 && dx < range && Math.abs(enemy.x - player.x) < range) {
-        const dmg = player.attackType === 'uppercut' ? 20 + wave * 2 : player.attackType === 'kick' ? 12 + wave : 8 + Math.floor(wave / 2);
+        var wep = getWeapon(); const baseDmg = player.attackType === 'uppercut' ? 20 + wave * 2 : player.attackType === 'kick' ? 12 + wave : 8 + Math.floor(wave / 2); const dmg = Math.ceil(baseDmg * wep.dmgMult);
         enemy.hp -= dmg + combo * 2;
         enemy.hurtTimer = 12; combo++; shakeTimer = 6;
         addParticles(enemy.x, ground - 40, player.attackType === 'uppercut' ? '#a855f7' : '#fbbf24', player.attackType === 'uppercut' ? 10 : 6, player.attackType === 'uppercut' ? 6 : 4);
@@ -556,7 +598,7 @@ function update() {
           addParticles(enemy.x, ground - 30, '#a855f7', 12, 6);
           koText.style.display = 'block';
           setTimeout(() => koText.style.display = 'none', 800);
-          enemiesDefeated++;
+          enemiesDefeated++; var coinEarn = (enemy && enemy.isBoss) ? (10 + wave) : (2 + Math.floor(wave/2)); sbCoins += coinEarn; sessionCoins += coinEarn;
           if (enemiesDefeated % 3 === 0) { wave++; player.hp = Math.min(player.maxHp, player.hp + 20); }
           setTimeout(spawnEnemy, 1500);
         }
@@ -580,7 +622,7 @@ function update() {
           if (player.blocking) {
             addParticles(player.x, ground - 30, '#22c55e', 4, 3); shakeTimer = 3;
           } else {
-            player.hp -= 8 + wave * 2; player.hurtTimer = 12; combo = 0; shakeTimer = 5;
+            player.hp -= Math.ceil((8 + wave) * (1 - getArmor().def)) * 2; player.hurtTimer = 12; combo = 0; shakeTimer = 5;
             hitFlash.style.opacity = '1'; setTimeout(() => hitFlash.style.opacity = '0', 100);
             addParticles(player.x, ground - 40, '#ef4444', 5, 3);
             if (player.hp <= 0) { player.hp = 0; player.alive = false; gameOver(); }
@@ -630,6 +672,7 @@ function draw(time) {
 }
 
 function gameOver() {
+  sbSave();
   _showDeathScreen(typeof score !== "undefined" ? score : 0);
 
   playing = false;
@@ -750,5 +793,15 @@ document.getElementById('death-retry').addEventListener('click',function(){
 document.getElementById('death-lb').addEventListener('click',function(){_lbShow();});
 document.getElementById('death-name').addEventListener('keydown',function(e){if(e.key==='Enter')document.getElementById('death-submit').click();});
 </script>
+
+<div id="sb-shop" style="position:fixed;inset:0;display:none;flex-direction:column;align-items:center;z-index:150;background:rgba(0,0,0,0.95);overflow-y:auto;padding:20px 10px">
+  <h2 style="font-family:Lilita One,cursive;font-size:28px;color:#8b5cf6;margin-bottom:4px">🛒 Shop</h2>
+  <div id="sb-shop-coins" style="color:#fbbf24;font-weight:800;font-size:16px;margin-bottom:12px">🪙 0</div>
+  <div style="color:#94a3b8;font-weight:700;font-size:13px;margin:8px 0 6px;text-transform:uppercase;letter-spacing:1px">⚔️ Weapons</div>
+  <div id="sb-weapon-grid" style="display:flex;flex-wrap:wrap;justify-content:center;gap:8px;max-width:400px;margin-bottom:8px"></div>
+  <div style="color:#94a3b8;font-weight:700;font-size:13px;margin:8px 0 6px;text-transform:uppercase;letter-spacing:1px">🛡️ Armor</div>
+  <div id="sb-armor-grid" style="display:flex;flex-wrap:wrap;justify-content:center;gap:8px;max-width:400px;margin-bottom:8px"></div>
+  <button id="sb-shop-close" style="margin:14px 0;padding:10px 30px;font-size:16px;font-weight:700;color:#fff;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:10px;cursor:pointer;pointer-events:auto">Close</button>
+</div>
 </body>
 </html>
