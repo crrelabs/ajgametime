@@ -225,7 +225,7 @@ function releaseBall(){
   ballVX=Math.cos(swingAngle)*speed*swingDir;
   ballVY=-Math.sin(swingAngle)*speed*swingDir;
   ballVX+=3+level*0.3;
-  var hbCount=upgradeCount('heavy_ball');for(var hbi=0;hbi<hbCount;hbi++){ballVX*=1.2;ballVY*=0.85;}
+  var hbCount=upgradeCount('heavy_ball');var hbMult=1+hbCount*0.15;ballVX*=Math.min(hbMult,3);ballVY*=Math.max(1-hbCount*0.05,0.5);
 }
 
 function addParticles(x,y,color,count){
