@@ -443,20 +443,35 @@ function executeNpcShot(){
       var cdx=aimX-cueBall.x,cdy=aimY-cueBall.y;
       var cLen=Math.sqrt(cdx*cdx+cdy*cdy);
       if(cLen<BALL_R*3)continue;
+      // Check if path from cue to target is blocked by other balls
+      var blocked=false;
+      for(var bi=0;bi<balls.length;bi++){
+        var ob=balls[bi];if(ob.pocketed||ob===tb)continue;
+        // Point-to-line distance from ob to cue→aim line
+        var ex=aimX-cueBall.x,ey=aimY-cueBall.y;
+        var fx=ob.x-cueBall.x,fy=ob.y-cueBall.y;
+        var t2=Math.max(0,Math.min(1,(fx*ex+fy*ey)/(ex*ex+ey*ey)));
+        var cx2=cueBall.x+t2*ex-ob.x,cy2=cueBall.y+t2*ey-ob.y;
+        if(Math.sqrt(cx2*cx2+cy2*cy2)<BALL_R*2.2){blocked=true;break}
+      }
       // Score based on alignment and distance
       var dot=(cdx/cLen)*(bpx/bpLen)+(cdy/cLen)*(bpy/bpLen);
       var alignScore=Math.max(0,dot);
       var distScore=1-Math.min(cLen/(TW),1);
-      var sc=alignScore*0.7+distScore*0.3;
+      var pocketDist=1-Math.min(bpLen/(TW*0.8),1);
+      var sc=alignScore*0.5+distScore*0.2+pocketDist*0.3;
+      if(blocked)sc*=0.1; // heavily penalize blocked shots
       // Add randomness based on difficulty
       var ds=DIFF_SETTINGS[npcDifficulty];
       sc*=(1-ds.accuracy)+Math.random()*ds.accuracy*2;
-      if(sc>bestScore){bestScore=sc;bestDx=-cdx;bestDy=-cdy;bestPower=(0.3+sc*0.5)*ds.powerMult}
+      if(sc>bestScore){bestScore=sc;bestDx=cdx;bestDy=cdy;bestPower=(0.3+sc*0.5)*ds.powerMult}
     }
   }
   if(bestScore<0){
-    // Random shot
-    var ang=Math.random()*Math.PI*2;bestDx=Math.cos(ang)*100;bestDy=Math.sin(ang)*100;bestPower=0.5;
+    // Fallback: aim at nearest target ball
+    var nearest=targets[0];var nd=Infinity;
+    for(var ni=0;ni<targets.length;ni++){var dx3=targets[ni].x-cueBall.x,dy3=targets[ni].y-cueBall.y;var d3=dx3*dx3+dy3*dy3;if(d3<nd){nd=d3;nearest=targets[ni]}}
+    bestDx=nearest.x-cueBall.x;bestDy=nearest.y-cueBall.y;bestPower=0.5;
   }
   pocketedThisTurn=[];foulThisTurn=false;firstBallHit=-1;hitRail=false;
   var ds2=DIFF_SETTINGS[npcDifficulty];
