@@ -551,26 +551,14 @@ function handleTurnEnd(){
     return;
   }
 
-  // Handle fouls — ball in hand for opponent
+  // Handle fouls — turn switches, cue resets if scratched
   if(foul){
-    if(scratch){cueBall.pocketed=false}
+    if(scratch){cueBall.pocketed=false;cueBall.x=TX+TW*0.25;cueBall.y=TY+TH/2}
     cueBall.vx=0;cueBall.vy=0;
     playerTurn=!playerTurn;
-    showTurnBanner((foulReason||'Foul!')+' Ball in hand!','#ef4444');
+    showTurnBanner((foulReason||'Foul!'),'#ef4444');
     sfxFoul();
     textPops.push({x:W/2,y:H/2,text:'⚠️ '+(foulReason||'Foul!'),color:'#ef4444',size:24,life:50});
-    if(playerTurn){
-      // Player gets ball in hand
-      ballInHand=true;
-      cueBall.pocketed=false;
-      cueBall.x=TX+TW*0.25;cueBall.y=TY+TH/2;
-      textPops.push({x:W/2,y:H/2+30,text:'Tap to place cue ball',color:'#60a5fa',size:16,life:60});
-    }else{
-      // NPC gets ball in hand — place near best target
-      cueBall.pocketed=false;
-      cueBall.x=TX+TW*0.3;cueBall.y=TY+TH/2;
-      ballInHand=false;
-    }
   }else if(pocketedOwn&&!pocketedOpponent){
     showTurnBanner(playerTurn?'Nice! Go again!':'NPC goes again...', playerTurn?'#22c55e':'#ef4444');
   }else{
