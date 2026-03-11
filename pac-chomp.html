@@ -344,7 +344,7 @@ function update(){
   mouthOpen=(mouthOpen+0.15)%(Math.PI*2);
 
   // Move player every few frames for grid movement
-  if(frame%6===0){
+  if(frame%10===0){
     // Try new direction first
     var tnx=px+ndx,tny=py+ndy;
     if(ndx!==0||ndy!==0){
@@ -378,7 +378,7 @@ function update(){
   if(powerTimer>0){powerTimer--;if(powerTimer<=0){for(var gi=0;gi<ghosts.length;gi++)ghosts[gi].scared=false}}
 
   // Move ghosts
-  if(frame%8===0){
+  if(frame%14===0){
     for(var gi=0;gi<ghosts.length;gi++){
       var g=ghosts[gi];
       if(g.home){g.homeTimer--;if(g.homeTimer<=0){g.home=false;g.x=10;g.y=7;g.dy=-1;g.dx=0}continue}
