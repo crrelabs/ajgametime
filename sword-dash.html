@@ -358,10 +358,17 @@ function update(){
         textPops.push({x:dashTarget.x,y:dashTarget.y-20,text:'+'+pts+(combo>1?' ('+combo+'x)':''),color:combo>=5?'#fbbf24':'#fff',size:combo>=5?22:16,life:35});
         // Remove enemy
         var idx=enemies.indexOf(dashTarget);if(idx>=0)enemies.splice(idx,1);
-        // Brief invincibility after dash
-        invincible=true;invTimer=15;
+        invincible=true;invTimer=30;
+      }else{
+        // Enemy still alive — bounce player back so they don't sit on top
+        invincible=true;invTimer=45;
       }
-      px=dashTarget.x;py=dashTarget.y;
+      // Move player past the enemy (not on top)
+      var bx=dashTarget.x-px,by=dashTarget.y-py;
+      var bl=Math.sqrt(bx*bx+by*by)||1;
+      px=dashTarget.x+bx/bl*(dashTarget.size+20);
+      py=dashTarget.y+by/bl*(dashTarget.size+20);
+      px=Math.max(20,Math.min(W-20,px));py=Math.max(40,Math.min(H-20,py));
       dashing=false;dashTarget=null;dashProgress=0;
       saveShop();updateCoinDisplays();updateHUD();
     }
