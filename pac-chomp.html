@@ -559,8 +559,16 @@ canvas.addEventListener('touchmove',function(e){e.preventDefault();
 },{passive:false});
 
 particles=[];textPops=[];gameRunning=false;
+score=0;level=1;lives=3;frame=0;sessionCoins=0;
 buildMaze();calcSizes();
-updateCoinDisplays();
+px=10;py=15;pdx=0;pdy=0;ndx=0;ndy=0;mouthOpen=0;powerTimer=0;ghostCombo=0;
+ghosts=[
+  {x:9,y:9,dx:0,dy:-1,color:0,speed:1.5,scared:false,eaten:false,home:false,homeTimer:0},
+  {x:10,y:9,dx:0,dy:-1,color:1,speed:1.5,scared:false,eaten:false,home:false,homeTimer:0},
+  {x:11,y:9,dx:0,dy:-1,color:2,speed:1.5,scared:false,eaten:false,home:false,homeTimer:0},
+  {x:10,y:10,dx:0,dy:-1,color:3,speed:1.5,scared:false,eaten:false,home:false,homeTimer:0},
+];
+updateCoinDisplays();updateHUD();
 loop();
 </script>
 </body>
