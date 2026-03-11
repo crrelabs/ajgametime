@@ -320,12 +320,13 @@ function startGame(){initAudio();startMusic();document.getElementById('startScre
   if('ontouchstart' in window)document.getElementById('dpad').style.display='block'}
 function retry(){startGame()}
 
-function canMove(gx,gy){
-  // Wrap
+function canMove(gx,gy,isGhost){
   if(gx<0||gx>=MAZE_W)return true; // tunnel
   if(gy<0||gy>=maze.length)return false;
   var cell=maze[gy][gx];
-  return cell!==1;
+  if(cell===1)return false;
+  if(cell===4&&!isGhost)return false;
+  return true;
 }
 function isWall(gx,gy){
   if(gx<0||gx>=MAZE_W||gy<0||gy>=maze.length)return false;
@@ -388,7 +389,7 @@ function update(){
         if(Math.abs(hdx)>Math.abs(hdy)){g.dx=hdx>0?1:-1;g.dy=0}else{g.dy=hdy>0?1:-1;g.dx=0}
         var enx=g.x+g.dx,eny=g.y+g.dy;
         if(enx<0)enx=MAZE_W-1;if(enx>=MAZE_W)enx=0;
-        if(canMove(enx,eny)&&maze[eny]&&maze[eny][enx]!==4){g.x=enx;g.y=eny}
+        if(canMove(enx,eny,true)){g.x=enx;g.y=eny}
         continue;
       }
       // Ghost AI — chase or scatter
@@ -400,8 +401,7 @@ function update(){
         if(dd[0]===-g.dx&&dd[1]===-g.dy)continue;
         var gnx=g.x+dd[0],gny=g.y+dd[1];
         if(gnx<0)gnx=MAZE_W-1;if(gnx>=MAZE_W)gnx=0;
-        if(!canMove(gnx,gny))continue;
-        if(gny>=0&&gny<maze.length&&maze[gny]&&maze[gny][gnx]===4)continue;
+        if(!canMove(gnx,gny,true))continue;
         var dist=(gnx-px)*(gnx-px)+(gny-py)*(gny-py);
         if(g.scared){
           // Run away
@@ -559,6 +559,7 @@ canvas.addEventListener('touchmove',function(e){e.preventDefault();
 },{passive:false});
 
 particles=[];textPops=[];gameRunning=false;
+buildMaze();calcSizes();
 updateCoinDisplays();
 loop();
 </script>
