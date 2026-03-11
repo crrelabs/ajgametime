@@ -75,6 +75,9 @@ button.play-btn:hover { transform: scale(1.05); }
 .shop-card .item-cost{font-size:0.7rem;color:#fbbf24}
 .shop-card .item-owned{font-size:0.7rem;color:#22c55e}
 #shop-close{margin-top:12px;padding:10px 30px;font-size:16px;font-weight:700;color:#fff;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:10px;cursor:pointer;margin-bottom:30px}
+#pauseBtn{position:fixed;bottom:16px;left:16px;z-index:20;width:44px;height:44px;border-radius:50%;border:2px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.08);color:#e2e8f0;font-size:1.2rem;cursor:pointer;display:flex;align-items:center;justify-content:center}
+#pauseOverlay{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:80;background:rgba(0,0,0,0.8)}
+#pauseOverlay h1{font-size:3rem;color:#fbbf24}
 </style>
 </head>
 <body>
@@ -139,6 +142,7 @@ button.play-btn:hover { transform: scale(1.05); }
   <button id="shop-close">Close</button>
 </div>
 
+<button id="pauseBtn" onclick="togglePause()">⏸️</button><div id="pauseOverlay" onclick="togglePause()"><h1>⏸️ Paused</h1></div>
 <script>
 // === SHOP DATA ===
 var BLADES = [
@@ -398,7 +402,9 @@ function spawnFruit() {
   });
 }
 
+var paused=false;function togglePause(){paused=!paused;document.getElementById('pauseBtn').textContent=paused?'▶️':'⏸️';document.getElementById('pauseOverlay').style.display=paused?'flex':'none'}
 function update() {
+  if(paused)return;
   // Always update particles (for death explosions)
   for (var pi = particles.length - 1; pi >= 0; pi--) {
     var p = particles[pi]; p.x += p.vx; p.y += p.vy; p.vy += 0.15; p.life--;

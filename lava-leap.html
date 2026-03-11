@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-2GR7STT4B9"></script>
+<button id="pauseBtn" onclick="togglePause()">⏸️</button><div id="pauseOverlay" onclick="togglePause()"><h1>⏸️ Paused</h1></div>
 <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date());gtag("config","G-2GR7STT4B9");</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
@@ -50,6 +51,9 @@ canvas{display:block}
 #death-submit{background:linear-gradient(135deg,#a855f7,#ec4899)}
 #death-retry{background:linear-gradient(135deg,#f97316,#ef4444)}
 #death-lb{background:linear-gradient(135deg,#f59e0b,#ef4444)}
+#pauseBtn{position:fixed;bottom:16px;left:16px;z-index:20;width:44px;height:44px;border-radius:50%;border:2px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.08);color:#e2e8f0;font-size:1.2rem;cursor:pointer;display:flex;align-items:center;justify-content:center}
+#pauseOverlay{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:80;background:rgba(0,0,0,0.8)}
+#pauseOverlay h1{font-size:3rem;color:#fbbf24}
 </style>
 </head>
 <body>
@@ -230,7 +234,9 @@ function updateHUD() {
   document.getElementById('height-hud').textContent = Math.floor(maxHeight / 10) + 'm';
 }
 
+var paused=false;function togglePause(){paused=!paused;document.getElementById('pauseBtn').textContent=paused?'▶️':'⏸️';document.getElementById('pauseOverlay').style.display=paused?'flex':'none'}
 function update() {
+  if(paused)return;
   if (!playing || P.dead) return;
   frame++;
 

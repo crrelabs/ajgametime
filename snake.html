@@ -27,6 +27,9 @@ canvas{display:block;touch-action:none}
 button.play-btn{margin-top:1rem;padding:0.8rem 2rem;font-size:1rem;font-weight:700;background:linear-gradient(135deg,#22c55e,#16a34a);color:white;border:none;border-radius:12px;cursor:pointer;transition:0.2s}
 button.play-btn:hover{transform:scale(1.05)}
 .menu-btn{padding:8px 20px;font-size:14px;font-weight:700;color:#fff;border:none;border-radius:8px;cursor:pointer;margin-top:8px}
+#pauseBtn{position:fixed;bottom:16px;right:108px;z-index:20;width:44px;height:44px;border-radius:50%;border:2px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.08);color:#e2e8f0;font-size:1.2rem;cursor:pointer;display:flex;align-items:center;justify-content:center}
+#pauseOverlay{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:80;background:rgba(0,0,0,0.8)}
+#pauseOverlay h1{font-size:3rem;color:#fbbf24}
 #musicBtn{position:fixed;bottom:16px;right:16px;z-index:20;width:44px;height:44px;border-radius:50%;border:2px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.08);color:#e2e8f0;font-size:1.2rem;cursor:pointer;display:flex;align-items:center;justify-content:center}
 #controls{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:15;display:none;gap:8px}
 .ctrl-btn{width:60px;height:60px;border-radius:14px;border:2px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.08);color:#fff;font-size:1.5rem;cursor:pointer;display:flex;align-items:center;justify-content:center}
@@ -96,6 +99,8 @@ button.play-btn:hover{transform:scale(1.05)}
 </div>
 
 <canvas id="game"></canvas>
+<button id="pauseBtn" onclick="togglePause()">⏸️</button>
+<div id="pauseOverlay" onclick="togglePause()"><h1>⏸️ Paused</h1></div>
 <button id="settingsBtn">⚙️</button>
 <div id="settingsOverlay">
 <h2>⚙️ Settings</h2>
@@ -562,7 +567,10 @@ function draw(){
   if(nukeFlash>0){ctx.globalAlpha=nukeFlash/30;ctx.fillStyle=nukeFlash>20?'#fff':nukeFlash>10?'#ffd700':'#ff4500';ctx.fillRect(0,0,W,H);ctx.globalAlpha=1}
 }
 
+var paused=false;
+function togglePause(){if(!gameRunning)return;paused=!paused;document.getElementById("pauseBtn").textContent=paused?"▶️":"⏸️";document.getElementById("pauseOverlay").style.display=paused?"flex":"none"}
 function update(){
+  if(paused)return;
   for(var pi=particles.length-1;pi>=0;pi--){var p=particles[pi];p.x+=p.vx;p.y+=p.vy;p.vy+=0.1;p.life--;if(p.life<=0)particles.splice(pi,1)}
   for(var ti=trailParticles.length-1;ti>=0;ti--){var tp=trailParticles[ti];tp.x+=tp.vx;tp.y+=tp.vy;tp.life--;if(tp.life<=0)trailParticles.splice(ti,1)}
   for(var tpi=textPops.length-1;tpi>=0;tpi--){textPops[tpi].y-=1.5;textPops[tpi].life--;if(textPops[tpi].life<=0)textPops.splice(tpi,1)}

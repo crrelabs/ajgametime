@@ -59,6 +59,9 @@ canvas{display:block}
 .shop-card .item-cost{color:#fbbf24;font-size:11px;font-weight:600}
 .shop-card .item-status{color:#22c55e;font-size:10px;font-weight:700}
 #shop-close{margin:14px 0;padding:10px 30px;font-size:16px;font-weight:700;color:#fff;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:10px;cursor:pointer;pointer-events:auto}
+#pauseBtn{position:fixed;bottom:16px;left:16px;z-index:20;width:44px;height:44px;border-radius:50%;border:2px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.08);color:#e2e8f0;font-size:1.2rem;cursor:pointer;display:flex;align-items:center;justify-content:center}
+#pauseOverlay{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:80;background:rgba(0,0,0,0.8)}
+#pauseOverlay h1{font-size:3rem;color:#fbbf24}
 </style>
 </head>
 <body>
@@ -102,6 +105,7 @@ canvas{display:block}
   <button class="death-btn" id="death-retry">💥 Play Again</button>
   <button class="death-btn" id="death-lb">🏆 Leaderboard</button>
 </div>
+<button id="pauseBtn" onclick="togglePause()">⏸️</button><div id="pauseOverlay" onclick="togglePause()"><h1>⏸️ Paused</h1></div>
 <script>
 var cv=document.getElementById('c'),cx=cv.getContext('2d');
 var W,H,ground;
@@ -257,7 +261,9 @@ cv.addEventListener('touchend',function(e){e.preventDefault();},{passive:false})
 cv.addEventListener('touchcancel',function(e){e.preventDefault();},{passive:false});
 cv.addEventListener('click',function(){releaseBall();});
 
+var paused=false;function togglePause(){paused=!paused;document.getElementById('pauseBtn').textContent=paused?'▶️':'⏸️';document.getElementById('pauseOverlay').style.display=paused?'flex':'none'}
 function update(){
+  if(paused)return;
   if(!playing)return;
   if(!released&&!waitingForReset){
     swingAngle+=swingSpeed*swingDir;

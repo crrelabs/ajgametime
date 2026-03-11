@@ -28,6 +28,9 @@ button.play-btn{margin-top:1rem;padding:0.8rem 2rem;font-size:1rem;font-weight:7
 button.play-btn:hover{transform:scale(1.05)}
 .menu-btn{padding:8px 20px;font-size:14px;font-weight:700;color:#fff;border:none;border-radius:8px;cursor:pointer;margin-top:8px}
 #settingsBtn{position:fixed;bottom:16px;right:62px;z-index:20;width:44px;height:44px;border-radius:50%;border:2px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.08);color:#e2e8f0;font-size:1.2rem;cursor:pointer;display:flex;align-items:center;justify-content:center}
+#pauseBtn{position:fixed;bottom:16px;right:108px;z-index:20;width:44px;height:44px;border-radius:50%;border:2px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.08);color:#e2e8f0;font-size:1.2rem;cursor:pointer;display:flex;align-items:center;justify-content:center}
+#pauseOverlay{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:80;background:rgba(0,0,0,0.8)}
+#pauseOverlay h1{font-size:3rem;color:#fbbf24}
 #musicBtn{position:fixed;bottom:16px;right:16px;z-index:20;width:44px;height:44px;border-radius:50%;border:2px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.08);color:#e2e8f0;font-size:1.2rem;cursor:pointer;display:flex;align-items:center;justify-content:center}
 #settingsOverlay{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:110;background:rgba(0,0,0,0.85)}
 #settingsPanel{background:rgba(20,20,40,0.98);border:2px solid rgba(255,255,255,0.15);border-radius:16px;padding:24px;width:min(320px,85vw)}
@@ -121,6 +124,8 @@ button.play-btn:hover{transform:scale(1.05)}
   <div id="shop-grid"></div>
   <button class="menu-btn" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);margin-top:16px" onclick="closeShop()">✕ Close</button>
 </div>
+<button id="pauseBtn" onclick="togglePause()">⏸️</button>
+<div id="pauseOverlay" onclick="togglePause()"><h1>⏸️ Paused</h1></div>
 <button id="settingsBtn" onclick="toggleSettings()">⚙️</button>
 <button id="musicBtn" onclick="toggleMusic()">🔊</button>
 <div id="settingsOverlay" onclick="if(event.target===this)toggleSettings()">
@@ -335,8 +340,11 @@ function isWall(gx,gy){
 
 function setDir(dx,dy){ndx=dx;ndy=dy}
 
+var paused=false;
+function togglePause(){if(!gameRunning)return;paused=!paused;document.getElementById('pauseBtn').textContent=paused?'▶️':'⏸️';document.getElementById('pauseOverlay').style.display=paused?'flex':'none'}
 function update(){
   frame++;
+  if(paused)return;
   for(var pi=particles.length-1;pi>=0;pi--){var p=particles[pi];p.x+=p.vx;p.y+=p.vy;p.life--;if(p.life<=0)particles.splice(pi,1)}
   for(var xi=textPops.length-1;xi>=0;xi--){textPops[xi].y-=0.8;textPops[xi].life--;if(textPops[xi].life<=0)textPops.splice(xi,1)}
   if(!gameRunning)return;

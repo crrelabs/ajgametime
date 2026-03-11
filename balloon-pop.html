@@ -40,6 +40,9 @@ canvas{display:block}
 #death-submit{background:linear-gradient(135deg,#ef4444,#f59e0b)}
 #death-retry{background:linear-gradient(135deg,#22c55e,#3b82f6)}
 #death-lb{background:linear-gradient(135deg,#f59e0b,#ef4444)}
+#pauseBtn{position:fixed;bottom:16px;left:16px;z-index:20;width:44px;height:44px;border-radius:50%;border:2px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.08);color:#e2e8f0;font-size:1.2rem;cursor:pointer;display:flex;align-items:center;justify-content:center}
+#pauseOverlay{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:80;background:rgba(0,0,0,0.8)}
+#pauseOverlay h1{font-size:3rem;color:#fbbf24}
 </style>
 </head>
 <body>
@@ -80,6 +83,7 @@ canvas{display:block}
   <button class="death-btn" id="death-lb">🏆 Leaderboard</button>
 </div>
 
+<button id="pauseBtn" onclick="togglePause()">⏸️</button><div id="pauseOverlay" onclick="togglePause()"><h1>⏸️ Paused</h1></div>
 <script>
 var C=document.getElementById('game'),X=C.getContext('2d');
 var W,H;function resize(){W=C.width=window.innerWidth;H=C.height=window.innerHeight;}resize();window.addEventListener('resize',resize);
@@ -230,7 +234,9 @@ function updateHUD(){
   document.getElementById('streak-hud').textContent=streak>2?'🔥 x'+streak+' streak!':'Popped: '+totalPopped;
 }
 
+var paused=false;function togglePause(){paused=!paused;document.getElementById('pauseBtn').textContent=paused?'▶️':'⏸️';document.getElementById('pauseOverlay').style.display=paused?'flex':'none'}
 function update(){
+  if(paused)return;
   if(!playing)return;
   frame++;
   
