@@ -489,6 +489,8 @@ function die(msg) {
 }
 
 function update() {
+var paused=false;
+function togglePause(){if(!gameRunning)return;paused=!paused;document.getElementById('pauseBtn').textContent=paused?'▶️':'⏸️';document.getElementById('pauseOverlay').style.display=paused?'flex':'none'}
   if(paused)return;
   if (!gameRunning) {
     // Still update particles when dead

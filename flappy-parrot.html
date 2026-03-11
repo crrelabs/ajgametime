@@ -575,6 +575,8 @@ function spawnPipe() {
 }
 
 function update() {
+var paused=false;
+function togglePause(){if(!gameRunning)return;paused=!paused;document.getElementById('pauseBtn').textContent=paused?'▶️':'⏸️';document.getElementById('pauseOverlay').style.display=paused?'flex':'none'}
   if(paused)return;
   // Always update particles (for death explosions)
   particles = particles.filter(function(p) { p.x += p.vx; p.y += p.vy; p.vy += 0.1; p.life--; return p.life > 0; });
