@@ -162,8 +162,9 @@ function stopMusic(){musicPlaying=false;if(musicNode)clearTimeout(musicNode)}
 
 // === LEADERBOARD ===
 var _LB_URL='https://adudgrfxwildzwpcvyil.supabase.co',_LB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFkdWRncmZ4d2lsZHp3cGN2eWlsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyOTkzODUsImV4cCI6MjA4Nzg3NTM4NX0.-JYXn5r9QUjxbpwckwDMSvCm8w1xRXOp5lP2TWNOC_E',_LB_GAME='pac_chomp';
-function submitScore(){var name=document.getElementById('death-name').value.trim()||'Anonymous';localStorage.setItem('ajgt_name',name);fetch(_LB_URL+'/rest/v1/ajgametime_leaderboard',{method:'POST',headers:{'Content-Type':'application/json','apikey':_LB_KEY,'Authorization':'Bearer '+_LB_KEY,'Prefer':'return=minimal'},body:JSON.stringify({player_name:name,score:score,game:_LB_GAME})}).then(function(){showLeaderboard()}).catch(function(){})}
-function showLeaderboard(){fetch(_LB_URL+'/rest/v1/ajgametime_leaderboard?game=eq.'+_LB_GAME+'&order=score.desc&limit=20',{headers:{'apikey':_LB_KEY,'Authorization':'Bearer '+_LB_KEY}}).then(function(r){return r.json()}).then(function(data){var list=document.getElementById('lb-list');list.innerHTML='';data.forEach(function(d,i){var row=document.createElement('div');row.className='lb-row';row.innerHTML='<span class="lb-rank">#'+(i+1)+'</span><span class="lb-name">'+d.player_name+'</span><span class="lb-score">'+d.score+'</span>';list.appendChild(row)});document.getElementById('lb-overlay').style.display='flex'}).catch(function(){})}
+var scoreSubmitted=false;
+function submitScore(){if(scoreSubmitted)return;scoreSubmitted=true;var name=document.getElementById('death-name').value.trim()||'Anonymous';localStorage.setItem('ajgt_name',name);var btn=document.querySelector('#death-screen button');fetch(_LB_URL+'/rest/v1/ajgametime_leaderboard',{method:'POST',headers:{'Content-Type':'application/json','apikey':_LB_KEY,'Authorization':'Bearer '+_LB_KEY,'Prefer':'return=minimal'},body:JSON.stringify({player_name:name,score:score,game:_LB_GAME})}).then(function(){showLeaderboard()}).catch(function(){scoreSubmitted=false})}
+function showLeaderboard(){fetch(_LB_URL+'/rest/v1/ajgametime_leaderboard?game=eq.'+_LB_GAME+'&order=score.desc&limit=10',{headers:{'apikey':_LB_KEY,'Authorization':'Bearer '+_LB_KEY}}).then(function(r){return r.json()}).then(function(data){var list=document.getElementById('lb-list');list.innerHTML='';data.forEach(function(d,i){var row=document.createElement('div');row.className='lb-row';row.innerHTML='<span class="lb-rank">#'+(i+1)+'</span><span class="lb-name">'+d.player_name+'</span><span class="lb-score">'+d.score+'</span>';list.appendChild(row)});document.getElementById('lb-overlay').style.display='flex'}).catch(function(){})}
 
 // === SHOP ===
 var CHARS=[
@@ -322,7 +323,7 @@ function updateHUD(){
   document.getElementById('coinsVal').textContent=totalCoins;
 }
 
-function startGame(){initAudio();startMusic();document.getElementById('startScreen').classList.add('hidden');document.getElementById('death-screen').style.display='none';canvas.style.pointerEvents='auto';score=0;sessionCoins=0;level=1;lives=3;frame=0;gameRunning=true;particles=[];textPops=[];initLevel();
+function startGame(){initAudio();startMusic();document.getElementById('startScreen').classList.add('hidden');document.getElementById('death-screen').style.display='none';canvas.style.pointerEvents='auto';score=0;sessionCoins=0;level=1;lives=3;frame=0;gameRunning=true;scoreSubmitted=false;particles=[];textPops=[];initLevel();
   if('ontouchstart' in window)document.getElementById('dpad').style.display='block'}
 function retry(){startGame()}
 
