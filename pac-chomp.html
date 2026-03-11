@@ -279,6 +279,7 @@ var px,py,pdx,pdy,ndx,ndy,mouthOpen;
 var ghosts,powerTimer,particles,textPops;
 var ghostCombo;
 var highScore=parseInt(localStorage.getItem('pc_high')||'0');
+var levelClearing=false;
 
 function buildMaze(){
   maze=[];
@@ -373,11 +374,12 @@ function update(){
     }
 
     // Check level complete
-    if(countDots()===0){
+    if(!levelClearing&&countDots()===0){
+      levelClearing=true;
       sfxLevel();level++;
       textPops.push({x:W/2,y:H/2,text:'🎉 Level '+level+'!',color:'#fbbf24',size:28,life:50});
-      totalCoins+=5;sessionCoins+=5;score+=100;saveShop();updateCoinDisplays();
-      setTimeout(function(){if(gameRunning)initLevel()},1000);
+      totalCoins+=5;sessionCoins+=5;score+=100;saveShop();updateCoinDisplays();updateHUD();
+      setTimeout(function(){if(gameRunning){levelClearing=false;initLevel()}},1000);
       return;
     }
   }
