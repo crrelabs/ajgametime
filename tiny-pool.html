@@ -478,10 +478,10 @@ function draw(){
   var table=getTable();
   // Table wood border
   ctx.fillStyle=table.wood;
-  ctx.beginPath();ctx.roundRect(TX-8,TY-8,TW+16,TH+16,12);ctx.fill();
+  ctx.fillRect(TX-8,TY-8,TW+16,TH+16);
   // Rail
   ctx.fillStyle=table.rail;
-  ctx.beginPath();ctx.roundRect(TX,TY,TW,TH,8);ctx.fill();
+  ctx.fillRect(TX,TY,TW,TH);
   // Felt
   ctx.fillStyle=table.felt;
   ctx.fillRect(TX+RAIL,TY+RAIL,TW-RAIL*2,TH-RAIL*2);
@@ -587,6 +587,8 @@ canvas.addEventListener('touchmove',function(e){e.preventDefault();onMove(e)},{p
 canvas.addEventListener('touchend',function(e){onUp(e)});
 
 particles=[];textPops=[];
+cueBall={x:-100,y:-100,vx:0,vy:0,r:BALL_R,num:0,color:'#fff',pocketed:true};
+balls=[];gameRunning=false;score=0;level=1;totalShots=0;sessionCoins=0;shots=0;aiming=false;shooting=false;
 updateCoinDisplays();
 loop();
 </script>
