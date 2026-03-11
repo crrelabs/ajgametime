@@ -286,6 +286,7 @@ footer a:hover { color: #94a3b8; }
 <script>
 // Update log data
 const UPDATES = [
+  { date: 'Mar 12', game: '⚔️ Sword Dash', items: ['NEW GAME! Dash through enemies', 'Chain kills for combo multipliers', 'Shop: swords, characters, trails, arenas, slashes'] },
   { date: 'Mar 12', game: '😀 Pac Chomp', items: ['NEW GAME! Classic maze action', '4 ghost AI types, power pellets, tunnels', 'Shop: characters, mazes, ghosts, pellets, effects'] },
   { date: 'Mar 12', game: '⏸️ All Games', items: ['Pause button added to ALL 35 games!'] },
   { date: 'Mar 12', game: '🎱 Tiny Pool', items: ['Fixed foul/ball-in-hand bug', 'Removed rail rule', '4 difficulty levels'] },
@@ -317,6 +318,12 @@ const UPDATES = [
 
 // Game data — all in one place for easy updates
 const GAMES = [
+  {
+    id: 'sword-dash', name: 'Sword Dash', href: 'sword-dash.html',
+    desc: 'Dash through enemies with your sword! Chain kills for massive combos. Don\'t get hit!',
+    category: 'Action', emoji: '⚔️',
+    added: '2026-03-12', color1: '#f43f5e', color2: '#e11d48'
+  },
   {
     id: 'pac-chomp', name: 'Pac Chomp', href: 'pac-chomp.html',
     desc: 'Eat all the dots, grab power pellets to chomp ghosts! Classic arcade maze action with 4 ghost AI types.',
