@@ -330,6 +330,7 @@ var npcThinking,npcTimer;
 var gameOver;
 var ballInHand; // true = player can place cue ball anywhere
 var placingBall; // true = currently dragging cue ball to place it
+var typesPreShot; // were types assigned before current shot
 
 function makeBall(x,y,num){
   return {x:x,y:y,vx:0,vy:0,r:BALL_R,num:num,color:num===0?'#fff':BALL_COLORS[num-1],solid:num>=1&&num<=7,stripe:num>=9&&num<=15,pocketed:false};
@@ -394,7 +395,7 @@ function shoot(power,dx,dy){
   cueBall.vy=-dy/len*p;
   sfxHit(power);
   shooting=true;
-  pocketedThisTurn=[];foulThisTurn=false;firstBallHit=-1;hitRail=false;
+  pocketedThisTurn=[];foulThisTurn=false;firstBallHit=-1;hitRail=false;typesPreShot=typesAssigned;
   document.getElementById('power-bar').style.display='none';
 }
 
@@ -473,7 +474,7 @@ function executeNpcShot(){
     for(var ni=0;ni<targets.length;ni++){var dx3=targets[ni].x-cueBall.x,dy3=targets[ni].y-cueBall.y;var d3=dx3*dx3+dy3*dy3;if(d3<nd){nd=d3;nearest=targets[ni]}}
     bestDx=nearest.x-cueBall.x;bestDy=nearest.y-cueBall.y;bestPower=0.5;
   }
-  pocketedThisTurn=[];foulThisTurn=false;firstBallHit=-1;hitRail=false;
+  pocketedThisTurn=[];foulThisTurn=false;firstBallHit=-1;hitRail=false;typesPreShot=typesAssigned;
   var ds2=DIFF_SETTINGS[npcDifficulty];
   // Intentional miss chance on easy/medium
   if(Math.random()<ds2.missChance){
@@ -523,25 +524,19 @@ function handleTurnEnd(){
     if(isOwn)pocketedOwn=true;else pocketedOpponent=true;
   }
 
-  // Rule: must hit own ball first (if types assigned)
-  if(typesAssigned&&!scratch&&firstBallHit>0){
+  // Rule: must hit own ball first (only if types were assigned BEFORE this shot)
+  if(typesPreShot&&!scratch&&firstBallHit>0&&!pocketed8){
     var shooterType=playerTurn?playerType:npcType;
     var hitOwn=(shooterType==='solids'&&firstBallHit>=1&&firstBallHit<=7)||(shooterType==='stripes'&&firstBallHit>=9&&firstBallHit<=15);
-    // Can hit 8-ball if all own balls pocketed
     var remaining=countRemaining(shooterType);
     if(!hitOwn&&!(remaining===0&&firstBallHit===8)){
       foul=true;foulReason='Wrong ball first!';
     }
   }
 
-  // Rule: must hit something
-  if(firstBallHit===-1&&!scratch){
+  // Rule: must hit something (only foul if cue ball didn't scratch)
+  if(firstBallHit===-1&&!scratch&&pocketedThisTurn.length===0){
     foul=true;foulReason='No ball hit!';
-  }
-
-  // Rule: a ball must hit a rail after contact (or a ball must be pocketed)
-  if(!hitRail&&pocketedThisTurn.length===0&&firstBallHit>0){
-    foul=true;foulReason='No rail after contact!';
   }
 
   // 8-ball pocketed
