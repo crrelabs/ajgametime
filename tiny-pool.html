@@ -143,8 +143,8 @@ function calcTable(){
   var ratio=2/1.1;
   if(maxW/maxH>ratio){TW=maxH*ratio;TH=maxH}else{TW=maxW;TH=maxW/ratio}
   TX=(W-TW)/2;TY=50+(H-50-TH)/2;
-  BALL_R=Math.max(TW*0.018,6);
-  POCKET_R=BALL_R*2.2;
+  BALL_R=Math.max(TW*0.025,10);
+  POCKET_R=BALL_R*2.4;
 }
 calcTable();
 window.addEventListener('resize',function(){resize();calcTable()});
@@ -497,6 +497,7 @@ function draw(){
   for(var bi=0;bi<balls.length;bi++){
     var b=balls[bi];if(b.pocketed)continue;
     ctx.beginPath();ctx.arc(b.x,b.y,b.r,0,Math.PI*2);ctx.fillStyle=b.color;ctx.fill();
+    ctx.strokeStyle='rgba(0,0,0,0.5)';ctx.lineWidth=1.5;ctx.stroke();
     // Stripe
     if(b.stripe){
       ctx.beginPath();ctx.arc(b.x,b.y,b.r*0.6,0,Math.PI*2);ctx.fillStyle='#fff';ctx.fill();
