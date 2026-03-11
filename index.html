@@ -287,6 +287,7 @@ footer a:hover { color: #94a3b8; }
 // Update log data
 const UPDATES = [
 
+  { date: 'Mar 12', game: '⛏️ Mining Tycoon', items: ['NEW GAME! Dig deep, find rare ores', 'Upgrade pickaxe, cart, helmet, lamp', '12 ore types: stone to diamond!'] },
   { date: 'Mar 12', game: '😀 Pac Chomp', items: ['NEW GAME! Classic maze action', '4 ghost AI types, power pellets, tunnels', 'Shop: characters, mazes, ghosts, pellets, effects'] },
   { date: 'Mar 12', game: '⏸️ All Games', items: ['Pause button added to ALL 35 games!'] },
   { date: 'Mar 12', game: '🎱 Tiny Pool', items: ['Fixed foul/ball-in-hand bug', 'Removed rail rule', '4 difficulty levels'] },
@@ -318,6 +319,12 @@ const UPDATES = [
 
 // Game data — all in one place for easy updates
 const GAMES = [
+  {
+    id: 'mining-tycoon', name: 'Mining Tycoon', href: 'mining-tycoon.html',
+    desc: 'Dig deep underground! Find rare ores, sell for cash, upgrade your pickaxe!',
+    category: 'Tycoon', emoji: '⛏️',
+    added: '2026-03-12', color1: '#f59e0b', color2: '#d97706'
+  },
   {
     id: 'pac-chomp', name: 'Pac Chomp', href: 'pac-chomp.html',
     desc: 'Eat all the dots, grab power pellets to chomp ghosts! Classic arcade maze action with 4 ghost AI types.',

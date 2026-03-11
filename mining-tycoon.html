@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Play Mining Tycoon - dig deeper, find rare ores, upgrade your pickaxe! Free browser game at AJ GameTime.">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://ajgametime.com/mining-tycoon.html">
+<meta property="og:title" content="Mining Tycoon — AJ GameTime">
+<title>Mining Tycoon — AJ GameTime</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{min-height:100vh;display:flex;flex-direction:column;align-items:center;font-family:-apple-system,sans-serif;background:#1a0e05;color:#e2e8f0;overflow:hidden;user-select:none;-webkit-user-select:none}
+#header{width:100%;padding:0.5rem 1rem;display:flex;justify-content:space-between;align-items:center;z-index:10;position:fixed;top:0;background:rgba(26,14,5,0.9)}
+#header a{color:#64748b;text-decoration:none;font-size:0.85rem}
+#hud{display:flex;gap:1.2rem;align-items:center}
+.stat{text-align:center}.stat-val{font-size:1.2rem;font-weight:800}.stat-label{font-size:0.55rem;text-transform:uppercase;letter-spacing:0.1em;color:#64748b}
+#depthVal{color:#22d3ee}#cashVal{color:#22c55e}#oreVal{color:#fbbf24}#coinsVal{color:#fbbf24}
+canvas{display:block;touch-action:none}
+#startScreen{position:fixed;inset:0;background:rgba(26,14,5,0.98);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:30}
+#startScreen.hidden{display:none}
+#startScreen h1{font-size:2.2rem;margin-bottom:0.5rem;color:#f59e0b;text-shadow:0 0 20px rgba(245,158,11,0.5)}
+#startScreen .emoji{font-size:5rem;margin-bottom:1rem}
+#startScreen p{color:#94a3b8;margin-bottom:0.5rem;font-size:0.9rem;text-align:center;max-width:340px}
+button.play-btn{margin-top:1rem;padding:0.8rem 2rem;font-size:1rem;font-weight:700;background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;border:none;border-radius:12px;cursor:pointer;transition:0.2s}
+.menu-btn{padding:8px 20px;font-size:14px;font-weight:700;color:#fff;border:none;border-radius:8px;cursor:pointer;margin-top:8px}
+#pauseBtn{position:fixed;bottom:16px;right:108px;z-index:20;width:44px;height:44px;border-radius:50%;border:2px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.08);color:#e2e8f0;font-size:1.2rem;cursor:pointer;display:flex;align-items:center;justify-content:center}
+#pauseOverlay{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:80;background:rgba(0,0,0,0.8)}
+#pauseOverlay h1{font-size:3rem;color:#f59e0b}
+#settingsBtn{position:fixed;bottom:16px;right:62px;z-index:20;width:44px;height:44px;border-radius:50%;border:2px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.08);color:#e2e8f0;font-size:1.2rem;cursor:pointer;display:flex;align-items:center;justify-content:center}
+#musicBtn{position:fixed;bottom:16px;right:16px;z-index:20;width:44px;height:44px;border-radius:50%;border:2px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.08);color:#e2e8f0;font-size:1.2rem;cursor:pointer;display:flex;align-items:center;justify-content:center}
+#settingsOverlay{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:110;background:rgba(0,0,0,0.85)}
+#settingsPanel{background:rgba(30,20,10,0.98);border:2px solid rgba(255,255,255,0.15);border-radius:16px;padding:24px;width:min(320px,85vw)}
+#settingsPanel h3{text-align:center;color:#f59e0b;margin-bottom:16px;font-size:18px}
+.vol-row{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.vol-row label{width:50px;font-size:13px;font-weight:700;color:#94a3b8}
+.vol-row input[type=range]{flex:1;accent-color:#f59e0b}
+.vol-row span{width:35px;text-align:right;font-size:13px;color:#e2e8f0}
+#lb-overlay{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;z-index:100;background:rgba(0,0,0,0.92)}
+#lb-overlay h2{font-size:28px;color:#f59e0b;margin-bottom:12px;font-weight:900}
+#lb-list{width:min(340px,90vw);max-height:50vh;overflow-y:auto}
+.lb-row{display:flex;justify-content:space-between;padding:8px 14px;border-bottom:1px solid rgba(255,255,255,0.08);color:#e2e8f0;font-size:14px;font-weight:600}
+.lb-row:nth-child(1) .lb-rank{color:#fbbf24}.lb-row:nth-child(2) .lb-rank{color:#94a3b8}.lb-row:nth-child(3) .lb-rank{color:#b45309}
+.lb-rank{width:30px;color:#64748b}.lb-name{flex:1;margin:0 8px}.lb-score{color:#22d3ee}
+#lb-close-btn{margin-top:16px;padding:10px 30px;font-size:16px;font-weight:700;color:#fff;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:10px;cursor:pointer}
+#death-screen{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;z-index:90;background:rgba(26,14,5,0.97)}
+#death-screen h1{font-size:2.2rem;margin-bottom:0.5rem;color:#e2e8f0}
+#death-score{font-size:3rem;font-weight:900;color:#f59e0b;margin-bottom:4px}
+#death-info{font-size:1.1rem;color:#22d3ee;font-weight:700;margin-bottom:4px}
+#death-coins{color:#fbbf24;font-size:1rem;font-weight:700;margin-bottom:12px}
+#death-screen input{padding:10px 16px;font-size:16px;border-radius:8px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.1);color:#fff;text-align:center;width:200px;margin-bottom:12px}
+#death-screen button{margin:4px;padding:10px 24px;font-size:14px;font-weight:700;border:none;border-radius:10px;cursor:pointer;color:#fff}
+#shop-screen{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;z-index:95;background:rgba(26,14,5,0.98);overflow-y:auto;padding:20px 10px}
+#shop-screen h2{font-size:24px;color:#f59e0b;margin-bottom:4px}
+#shop-coins{color:#fbbf24;font-size:16px;font-weight:700;margin-bottom:8px}
+#shop-tabs{display:flex;gap:8px;margin:10px 0;flex-wrap:wrap;justify-content:center}
+.shop-tab{padding:6px 14px;border-radius:20px;border:1.5px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.05);color:#94a3b8;font-size:12px;font-weight:700;cursor:pointer}
+.shop-tab.active{background:#f59e0b;color:#fff;border-color:#f59e0b}
+#shop-grid{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;max-width:400px;padding:0 16px}
+.skin-card{width:90px;padding:10px 6px;border-radius:12px;border:2px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.05);text-align:center;cursor:pointer;transition:0.2s}
+.skin-card:hover{border-color:#f59e0b}.skin-card.selected{border-color:#f59e0b;background:rgba(245,158,11,0.15)}
+.skin-card.locked{opacity:0.5}.skin-name{font-size:11px;font-weight:700;margin-top:4px;color:#e2e8f0}
+.skin-cost{font-size:11px;color:#fbbf24;margin-top:2px}.skin-owned{font-size:10px;color:#22c55e;margin-top:2px}
+#upgrade-panel{position:fixed;right:8px;top:50px;z-index:15;width:min(160px,40vw);display:none;flex-direction:column;gap:6px}
+.upg-btn{padding:8px 10px;border-radius:10px;border:2px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.06);cursor:pointer;text-align:left;font-size:11px;color:#e2e8f0;font-weight:600;transition:0.15s}
+.upg-btn:hover{border-color:#f59e0b}.upg-btn.cant{opacity:0.4;cursor:default}
+.upg-btn .upg-name{font-weight:800;font-size:12px;margin-bottom:2px}
+.upg-btn .upg-cost{color:#22c55e;font-size:11px}
+</style>
+</head>
+<body>
+<div id="header">
+  <a href="index.html">← AJ GameTime</a>
+  <div id="hud">
+    <div class="stat"><div class="stat-val" id="depthVal">0m</div><div class="stat-label">Depth</div></div>
+    <div class="stat"><div class="stat-val" id="cashVal">$0</div><div class="stat-label">Cash</div></div>
+    <div class="stat"><div class="stat-val" id="oreVal">0</div><div class="stat-label">Ores</div></div>
+    <div class="stat"><div class="stat-val" id="coinsVal">0</div><div class="stat-label">Coins</div></div>
+  </div>
+</div>
+<canvas id="canvas"></canvas>
+<div id="upgrade-panel"></div>
+<div id="startScreen">
+  <div class="emoji">⛏️</div>
+  <h1>Mining Tycoon</h1>
+  <p>Dig deep underground! Find rare ores, sell them for cash, upgrade your pickaxe, and unlock new mines!</p>
+  <p style="color:#f59e0b;font-weight:700;font-size:0.85rem">⬇️ Tap blocks to mine them! Sell ores for $$$</p>
+  <button class="play-btn" onclick="startGame()">⛏️ Mine!</button>
+  <button class="menu-btn" style="background:linear-gradient(135deg,#f59e0b,#d97706)" onclick="openShop()">🛍️ Shop</button>
+  <button class="menu-btn" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2)" onclick="showLeaderboard()">🏆 Leaderboard</button>
+</div>
+<div id="death-screen">
+  <h1>⛏️ Mine Complete!</h1>
+  <div id="death-score">0</div>
+  <div id="death-info">Depth: 0m • Ores: 0</div>
+  <div id="death-coins">+0 🪙</div>
+  <input type="text" id="death-name" placeholder="Your name" maxlength="20">
+  <div>
+    <button style="background:linear-gradient(135deg,#f59e0b,#d97706)" onclick="submitScore()">Submit Score</button>
+    <button style="background:linear-gradient(135deg,#3b82f6,#8b5cf6)" onclick="retry()">🔄 New Mine</button>
+    <button style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2)" onclick="showLeaderboard()">🏆 Board</button>
+    <button style="background:linear-gradient(135deg,#f59e0b,#d97706)" onclick="document.getElementById('death-screen').style.display='none';openShop()">🛍️ Shop</button>
+  </div>
+</div>
+<div id="lb-overlay">
+  <h2>🏆 Leaderboard</h2>
+  <div id="lb-list"></div>
+  <button id="lb-close-btn" onclick="document.getElementById('lb-overlay').style.display='none'">Close</button>
+</div>
+<div id="shop-screen">
+  <h2>🛍️ Mine Shop</h2>
+  <div id="shop-coins">🪙 0</div>
+  <div id="shop-tabs">
+    <button class="shop-tab active" onclick="shopTab('picks')">⛏️ Pickaxes</button>
+    <button class="shop-tab" onclick="shopTab('helmets')">⛑️ Helmets</button>
+    <button class="shop-tab" onclick="shopTab('mines')">🏔️ Mines</button>
+    <button class="shop-tab" onclick="shopTab('carts')">🛒 Carts</button>
+    <button class="shop-tab" onclick="shopTab('lamps')">💡 Lamps</button>
+  </div>
+  <div id="shop-grid"></div>
+  <button class="menu-btn" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);margin-top:16px" onclick="closeShop()">✕ Close</button>
+</div>
+<button id="pauseBtn" onclick="togglePause()">⏸️</button>
+<div id="pauseOverlay" onclick="togglePause()"><h1>⏸️ Paused</h1></div>
+<button id="settingsBtn" onclick="toggleSettings()">⚙️</button>
+<button id="musicBtn" onclick="toggleMusic()">🔊</button>
+<div id="settingsOverlay" onclick="if(event.target===this)toggleSettings()">
+  <div id="settingsPanel">
+    <h3>⚙️ Sound Settings</h3>
+    <div class="vol-row"><label>Music</label><input type="range" id="musicVol" min="0" max="100" value="50" oninput="setMusicVol(this.value)"><span id="musicVolVal">50</span></div>
+    <div class="vol-row"><label>SFX</label><input type="range" id="sfxVol" min="0" max="100" value="70" oninput="setSfxVol(this.value)"><span id="sfxVolVal">70</span></div>
+    <button class="menu-btn" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);width:100%;margin-top:8px" onclick="toggleSettings()">Close</button>
+  </div>
+</div>
+<script>
+var canvas=document.getElementById('canvas'),ctx=canvas.getContext('2d');
+var W,H;
+function resize(){W=canvas.width=window.innerWidth;H=canvas.height=window.innerHeight}
+window.addEventListener('resize',resize);resize();
+
+// Audio
+var audioCtx,musicGain,sfxGain,musicNode;
+function initAudio(){if(audioCtx)return;audioCtx=new(window.AudioContext||window.webkitAudioContext)();musicGain=audioCtx.createGain();sfxGain=audioCtx.createGain();musicGain.connect(audioCtx.destination);sfxGain.connect(audioCtx.destination);musicGain.gain.value=parseFloat(localStorage.getItem('mt_musicVol')||'0.5');sfxGain.gain.value=parseFloat(localStorage.getItem('mt_sfxVol')||'0.7');document.getElementById('musicVol').value=Math.round(musicGain.gain.value*100);document.getElementById('musicVolVal').textContent=Math.round(musicGain.gain.value*100);document.getElementById('sfxVol').value=Math.round(sfxGain.gain.value*100);document.getElementById('sfxVolVal').textContent=Math.round(sfxGain.gain.value*100)}
+function setMusicVol(v){if(!audioCtx)initAudio();musicGain.gain.value=v/100;localStorage.setItem('mt_musicVol',v/100);document.getElementById('musicVolVal').textContent=v}
+function setSfxVol(v){if(!audioCtx)initAudio();sfxGain.gain.value=v/100;localStorage.setItem('mt_sfxVol',v/100);document.getElementById('sfxVolVal').textContent=v}
+var musicOn=true;
+function toggleMusic(){musicOn=!musicOn;document.getElementById('musicBtn').textContent=musicOn?'🔊':'🔇';if(musicOn)startMusic();else stopMusic()}
+function toggleSettings(){var o=document.getElementById('settingsOverlay');o.style.display=o.style.display==='flex'?'none':'flex'}
+function pn(f,d,t,v){if(!audioCtx)return;try{var o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type=t||'sine';o.frequency.value=f;g.gain.value=v||0.08;o.connect(g);g.connect(sfxGain);o.start();g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+d);o.stop(audioCtx.currentTime+d)}catch(e){}}
+function sfxMine(){pn(200+Math.random()*100,0.06,'square',0.06);pn(100,0.08,'sine',0.04)}
+function sfxOre(){pn(523,0.08,'sine',0.1);setTimeout(function(){pn(659,0.06,'sine',0.08)},40)}
+function sfxRare(){pn(523,0.08,'sine',0.1);setTimeout(function(){pn(659,0.08,'sine',0.1)},50);setTimeout(function(){pn(784,0.1,'sine',0.12)},100)}
+function sfxSell(){pn(440,0.06,'triangle',0.08);setTimeout(function(){pn(550,0.06,'triangle',0.08)},40);setTimeout(function(){pn(660,0.08,'sine',0.1)},80)}
+function sfxUpgrade(){pn(330,0.1,'sine',0.1);setTimeout(function(){pn(440,0.1,'sine',0.1)},60);setTimeout(function(){pn(550,0.1,'sine',0.12)},120);setTimeout(function(){pn(660,0.12,'sine',0.14)},180)}
+var musicPlaying=false;
+function startMusic(){if(!audioCtx||!musicOn||musicPlaying)return;musicPlaying=true;var bc=0;function beat(){if(!musicPlaying||!musicOn)return;var t=audioCtx.currentTime;var notes=[110,131,147,165,147,131,110,98];var bn=notes[bc%notes.length];var o1=audioCtx.createOscillator(),g1=audioCtx.createGain();o1.type='triangle';o1.frequency.value=bn;g1.gain.value=0.025;o1.connect(g1);g1.connect(musicGain);o1.start(t);g1.gain.exponentialRampToValueAtTime(0.001,t+0.4);o1.stop(t+0.45);bc++;musicNode=setTimeout(beat,400)}beat()}
+function stopMusic(){musicPlaying=false;if(musicNode)clearTimeout(musicNode)}
+
+// Leaderboard
+var _LB_URL='https://adudgrfxwildzwpcvyil.supabase.co',_LB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFkdWRncmZ4d2lsZHp3cGN2eWlsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyOTkzODUsImV4cCI6MjA4Nzg3NTM4NX0.-JYXn5r9QUjxbpwckwDMSvCm8w1xRXOp5lP2TWNOC_E',_LB_GAME='mining_tycoon';
+var scoreSubmitted=false;
+function submitScore(){if(scoreSubmitted)return;scoreSubmitted=true;var name=document.getElementById('death-name').value.trim()||'Anonymous';localStorage.setItem('ajgt_name',name);fetch(_LB_URL+'/rest/v1/ajgametime_leaderboard',{method:'POST',headers:{'Content-Type':'application/json','apikey':_LB_KEY,'Authorization':'Bearer '+_LB_KEY,'Prefer':'return=minimal'},body:JSON.stringify({player_name:name,score:score,game:_LB_GAME})}).then(function(){showLeaderboard()}).catch(function(){scoreSubmitted=false})}
+function showLeaderboard(){fetch(_LB_URL+'/rest/v1/ajgametime_leaderboard?game=eq.'+_LB_GAME+'&order=score.desc&limit=10',{headers:{'apikey':_LB_KEY,'Authorization':'Bearer '+_LB_KEY}}).then(function(r){return r.json()}).then(function(data){var list=document.getElementById('lb-list');list.innerHTML='';data.forEach(function(d,i){var row=document.createElement('div');row.className='lb-row';row.innerHTML='<span class="lb-rank">#'+(i+1)+'</span><span class="lb-name">'+d.player_name+'</span><span class="lb-score">'+d.score+'</span>';list.appendChild(row)});document.getElementById('lb-overlay').style.display='flex'}).catch(function(){})}
+
+// Shop
+var PICKS=[
+  {id:'basic',name:'Starter',emoji:'⛏️',cost:0,power:1,speed:1},
+  {id:'iron',name:'Iron Pick',emoji:'🔨',cost:25,power:1.5,speed:1},
+  {id:'gold',name:'Gold Pick',emoji:'🪙',cost:40,power:2,speed:1.2},
+  {id:'diamond',name:'Diamond',emoji:'💎',cost:60,power:3,speed:1.3},
+  {id:'ruby',name:'Ruby',emoji:'🔴',cost:75,power:3.5,speed:1.5},
+  {id:'obsidian',name:'Obsidian',emoji:'⬛',cost:90,power:4,speed:1.4},
+  {id:'emerald',name:'Emerald',emoji:'💚',cost:100,power:5,speed:1.6},
+  {id:'legendary',name:'Legendary',emoji:'⚡',cost:150,power:7,speed:2},
+];
+var HELMETS=[
+  {id:'none',name:'None',emoji:'🧑',cost:0,luck:0},
+  {id:'hard',name:'Hard Hat',emoji:'⛑️',cost:20,luck:0.05},
+  {id:'miner',name:'Miner Cap',emoji:'🪖',cost:35,luck:0.1},
+  {id:'crystal',name:'Crystal',emoji:'🔮',cost:50,luck:0.15},
+  {id:'crown',name:'Crown',emoji:'👑',cost:80,luck:0.2},
+  {id:'alien',name:'Alien Helm',emoji:'👽',cost:100,luck:0.25},
+];
+var MINES=[
+  {id:'surface',name:'Surface',emoji:'🏔️',cost:0,depthMult:1,rareMult:1},
+  {id:'cave',name:'Cave',emoji:'🕳️',cost:30,depthMult:1.2,rareMult:1.2},
+  {id:'deep',name:'Deep Mine',emoji:'⬇️',cost:50,depthMult:1.5,rareMult:1.5},
+  {id:'crystal',name:'Crystal Cave',emoji:'💎',cost:75,depthMult:1.5,rareMult:2},
+  {id:'lava',name:'Lava Mine',emoji:'🌋',cost:100,depthMult:2,rareMult:2.5},
+  {id:'void',name:'Void Mine',emoji:'🕳️',cost:150,depthMult:2.5,rareMult:3},
+];
+var CARTS=[
+  {id:'basic',name:'Bucket',emoji:'🪣',cost:0,capacity:10},
+  {id:'cart',name:'Minecart',emoji:'🛒',cost:30,capacity:20},
+  {id:'wagon',name:'Wagon',emoji:'🚛',cost:50,capacity:35},
+  {id:'truck',name:'Truck',emoji:'🚚',cost:80,capacity:50},
+  {id:'train',name:'Train',emoji:'🚂',cost:120,capacity:80},
+];
+var LAMPS=[
+  {id:'candle',name:'Candle',emoji:'🕯️',cost:0,range:3},
+  {id:'lantern',name:'Lantern',emoji:'🏮',cost:25,range:4},
+  {id:'torch',name:'Torch',emoji:'🔦',cost:40,range:5},
+  {id:'flood',name:'Floodlight',emoji:'💡',cost:60,range:6},
+  {id:'sun',name:'Sun Lamp',emoji:'☀️',cost:90,range:8},
+];
+var totalCoins=parseInt(localStorage.getItem('mt_coins')||'0');
+var owned={picks:JSON.parse(localStorage.getItem('mt_picks')||'["basic"]'),helmets:JSON.parse(localStorage.getItem('mt_helmets')||'["none"]'),mines:JSON.parse(localStorage.getItem('mt_mines')||'["surface"]'),carts:JSON.parse(localStorage.getItem('mt_carts')||'["basic"]'),lamps:JSON.parse(localStorage.getItem('mt_lamps')||'["candle"]')};
+var active={pick:localStorage.getItem('mt_a_pick')||'basic',helmet:localStorage.getItem('mt_a_helmet')||'none',mine:localStorage.getItem('mt_a_mine')||'surface',cart:localStorage.getItem('mt_a_cart')||'basic',lamp:localStorage.getItem('mt_a_lamp')||'candle'};
+function saveShop(){localStorage.setItem('mt_coins',totalCoins);for(var k in owned)localStorage.setItem('mt_'+k,JSON.stringify(owned[k]));for(var k in active)localStorage.setItem('mt_a_'+k,active[k])}
+function updateCoinDisplays(){document.getElementById('coinsVal').textContent=totalCoins;document.getElementById('shop-coins').textContent='🪙 '+totalCoins}
+function getPick(){return PICKS.find(function(p){return p.id===active.pick})||PICKS[0]}
+function getHelmet(){return HELMETS.find(function(h){return h.id===active.helmet})||HELMETS[0]}
+function getMine(){return MINES.find(function(m){return m.id===active.mine})||MINES[0]}
+function getCart(){return CARTS.find(function(c){return c.id===active.cart})||CARTS[0]}
+function getLamp(){return LAMPS.find(function(l){return l.id===active.lamp})||LAMPS[0]}
+var currentShopTab='picks';
+function openShop(){document.getElementById('shop-screen').style.display='flex';shopTab('picks');updateCoinDisplays()}
+function closeShop(){document.getElementById('shop-screen').style.display='none'}
+function shopTab(tab){currentShopTab=tab;document.querySelectorAll('.shop-tab').forEach(function(t){t.classList.remove('active')});document.querySelectorAll('.shop-tab').forEach(function(t){if(t.textContent.toLowerCase().includes(tab.slice(0,3)))t.classList.add('active')});renderShop()}
+function renderShop(){
+  var grid=document.getElementById('shop-grid');grid.innerHTML='';
+  var items,ownArr,activeId,ownKey,activeKey;
+  if(currentShopTab==='picks'){items=PICKS;ownArr=owned.picks;activeId=active.pick;ownKey='picks';activeKey='pick'}
+  else if(currentShopTab==='helmets'){items=HELMETS;ownArr=owned.helmets;activeId=active.helmet;ownKey='helmets';activeKey='helmet'}
+  else if(currentShopTab==='mines'){items=MINES;ownArr=owned.mines;activeId=active.mine;ownKey='mines';activeKey='mine'}
+  else if(currentShopTab==='carts'){items=CARTS;ownArr=owned.carts;activeId=active.cart;ownKey='carts';activeKey='cart'}
+  else{items=LAMPS;ownArr=owned.lamps;activeId=active.lamp;ownKey='lamps';activeKey='lamp'}
+  items.forEach(function(item){
+    var own=ownArr.includes(item.id),sel=activeId===item.id,canBuy=totalCoins>=item.cost;
+    var card=document.createElement('div');card.className='skin-card'+(sel?' selected':'')+(!own&&!canBuy?' locked':'');
+    var em=document.createElement('div');em.style.fontSize='28px';em.textContent=item.emoji;card.appendChild(em);
+    var nm=document.createElement('div');nm.className='skin-name';nm.textContent=item.name;card.appendChild(nm);
+    if(sel){var t=document.createElement('div');t.className='skin-owned';t.textContent='✅ Active';card.appendChild(t)}
+    else if(own){var t=document.createElement('div');t.className='skin-owned';t.textContent='✓ Owned';card.appendChild(t)}
+    else{var t=document.createElement('div');t.className='skin-cost';t.textContent='🪙 '+item.cost;card.appendChild(t)}
+    card.addEventListener('click',function(){
+      if(own){active[activeKey]=item.id;saveShop();renderShop()}
+      else if(canBuy&&totalCoins>=item.cost){totalCoins-=item.cost;ownArr.push(item.id);active[activeKey]=item.id;owned[ownKey]=ownArr;saveShop();updateCoinDisplays();renderShop()}
+    });
+    grid.appendChild(card);
+  });
+}
+
+// ORE TYPES
+var ORES=[
+  {id:'stone',name:'Stone',emoji:'🪨',color:'#64748b',value:1,hardness:1,rarity:0},
+  {id:'coal',name:'Coal',emoji:'⬛',color:'#1e293b',value:3,hardness:1.5,rarity:0.3},
+  {id:'copper',name:'Copper',emoji:'🟤',color:'#b45309',value:5,hardness:2,rarity:0.5},
+  {id:'iron',name:'Iron',emoji:'⬜',color:'#94a3b8',value:8,hardness:2.5,rarity:0.7},
+  {id:'silver',name:'Silver',emoji:'🩶',color:'#cbd5e1',value:12,hardness:3,rarity:1.0},
+  {id:'gold',name:'Gold',emoji:'🟡',color:'#fbbf24',value:20,hardness:3.5,rarity:1.5},
+  {id:'ruby',name:'Ruby',emoji:'🔴',color:'#ef4444',value:35,hardness:4,rarity:2.0},
+  {id:'emerald',name:'Emerald',emoji:'🟢',color:'#22c55e',value:50,hardness:4.5,rarity:2.5},
+  {id:'sapphire',name:'Sapphire',emoji:'🔵',color:'#3b82f6',value:65,hardness:5,rarity:3.0},
+  {id:'diamond',name:'Diamond',emoji:'💎',color:'#67e8f9',value:100,hardness:6,rarity:4.0},
+  {id:'amethyst',name:'Amethyst',emoji:'🟣',color:'#a855f7',value:80,hardness:5,rarity:3.5},
+  {id:'obsidian',name:'Obsidian',emoji:'🖤',color:'#0f172a',value:40,hardness:7,rarity:2.0},
+];
+
+// Game state
+var score,sessionCoins,gameRunning,frame,paused;
+var TILE,COLS,ROWS,cameraY;
+var grid; // 2D array of blocks
+var depth,cash,inventory,inventoryMax;
+var particles,textPops;
+var pickPower,pickSpeed,luck,rareMult,depthMult,lampRange;
+var miningBlock,miningProgress; // currently mining
+var playerCol,playerRow; // player position in grid
+var totalOres;
+
+// Upgrades (in-game, bought with cash)
+var UPG=[
+  {id:'power',name:'⛏️ Pick Power',desc:'+20% mining',baseCost:50,mult:1.4,max:20,getStat:function(lv){return '+'+(lv*20)+'%'}},
+  {id:'speed',name:'⚡ Mine Speed',desc:'+15% speed',baseCost:40,mult:1.35,max:20,getStat:function(lv){return '+'+(lv*15)+'%'}},
+  {id:'luck',name:'🍀 Luck',desc:'+5% rare ores',baseCost:60,mult:1.5,max:15,getStat:function(lv){return '+'+(lv*5)+'%'}},
+  {id:'capacity',name:'🛒 Capacity',desc:'+5 inventory',baseCost:30,mult:1.3,max:25,getStat:function(lv){return '+'+(lv*5)}},
+  {id:'sell',name:'💰 Sell Price',desc:'+10% sell $',baseCost:80,mult:1.5,max:15,getStat:function(lv){return '+'+(lv*10)+'%'}},
+];
+var upgLevels;
+
+function getUpgCost(u,lv){return Math.floor(u.baseCost*Math.pow(u.mult,lv))}
+function buildUpgradePanel(){
+  var panel=document.getElementById('upgrade-panel');panel.innerHTML='';
+  // Sell button
+  var sellBtn=document.createElement('div');sellBtn.className='upg-btn';
+  var sellVal=calcSellValue();
+  sellBtn.innerHTML='<div class="upg-name">💰 Sell All Ores</div><div class="upg-cost">'+inventory.length+' ores → $'+sellVal+'</div>';
+  if(inventory.length===0)sellBtn.classList.add('cant');
+  sellBtn.addEventListener('click',function(){sellOres()});
+  panel.appendChild(sellBtn);
+  // Upgrades
+  UPG.forEach(function(u){
+    var lv=upgLevels[u.id]||0;
+    var cost=getUpgCost(u,lv);
+    var btn=document.createElement('div');btn.className='upg-btn';
+    if(lv>=u.max||cash<cost)btn.classList.add('cant');
+    btn.innerHTML='<div class="upg-name">'+u.name+(lv>0?' Lv'+lv:'')+'</div><div class="upg-cost">'+(lv>=u.max?'MAX':'$'+cost)+'</div>';
+    btn.addEventListener('click',function(){
+      if(lv>=u.max)return;
+      var c=getUpgCost(u,lv);
+      if(cash>=c){cash-=c;upgLevels[u.id]=(upgLevels[u.id]||0)+1;applyUpgrades();sfxUpgrade();buildUpgradePanel();updateHUD()}
+    });
+    panel.appendChild(btn);
+  });
+}
+function applyUpgrades(){
+  var pick=getPick(),helmet=getHelmet(),mine=getMine(),cart=getCart(),lamp=getLamp();
+  pickPower=pick.power*(1+(upgLevels.power||0)*0.2);
+  pickSpeed=pick.speed*(1+(upgLevels.speed||0)*0.15);
+  luck=helmet.luck+(upgLevels.luck||0)*0.05;
+  inventoryMax=cart.capacity+(upgLevels.capacity||0)*5;
+  rareMult=mine.rareMult;
+  depthMult=mine.depthMult;
+  lampRange=lamp.range;
+}
+function calcSellValue(){
+  var mult=1+(upgLevels.sell||0)*0.1;
+  var total=0;
+  for(var i=0;i<inventory.length;i++)total+=Math.floor(inventory[i].value*mult);
+  return total;
+}
+function sellOres(){
+  if(inventory.length===0)return;
+  var val=calcSellValue();
+  cash+=val;
+  score+=val;
+  sfxSell();
+  textPops.push({x:W/2,y:H/2,text:'+$'+val,color:'#22c55e',size:28,life:40});
+  inventory=[];
+  buildUpgradePanel();updateHUD();
+}
+
+function togglePause(){if(!gameRunning)return;paused=!paused;document.getElementById('pauseBtn').textContent=paused?'▶️':'⏸️';document.getElementById('pauseOverlay').style.display=paused?'flex':'none'}
+
+function genBlock(col,row){
+  var d=row*depthMult;
+  // Choose ore type based on depth + luck
+  var oreIdx=0;
+  for(var oi=ORES.length-1;oi>=0;oi--){
+    var ore=ORES[oi];
+    var threshold=ore.rarity*10/rareMult;
+    if(d>=threshold&&Math.random()<(0.15+luck)){oreIdx=oi;break}
+  }
+  // Rarer at deeper depths
+  if(d>5&&Math.random()<0.3+luck)oreIdx=Math.max(oreIdx,Math.min(Math.floor(d/8),ORES.length-1));
+  var ore=ORES[oreIdx];
+  return{col:col,row:row,ore:ore,hp:ore.hardness*(1+row*0.05),maxHp:ore.hardness*(1+row*0.05),mined:false};
+}
+
+function generateGrid(){
+  grid=[];
+  for(var r=0;r<200;r++){
+    grid[r]=[];
+    for(var c=0;c<COLS;c++){
+      grid[r][c]=genBlock(c,r);
+    }
+  }
+  // Start with top row exposed
+  grid[0][Math.floor(COLS/2)].mined=true;
+  playerCol=Math.floor(COLS/2);playerRow=0;
+}
+
+function startGame(){
+  initAudio();startMusic();
+  document.getElementById('startScreen').classList.add('hidden');
+  document.getElementById('death-screen').style.display='none';
+  canvas.style.pointerEvents='auto';
+  TILE=Math.floor(Math.min(W/8,50));COLS=Math.floor(W/TILE);
+  if(COLS<5)COLS=5;if(COLS>12)COLS=12;
+  TILE=Math.floor(W/COLS);
+  score=0;sessionCoins=0;depth=0;cash=0;frame=0;gameRunning=true;paused=false;scoreSubmitted=false;
+  inventory=[];particles=[];textPops=[];
+  upgLevels={power:0,speed:0,luck:0,capacity:0,sell:0};
+  miningBlock=null;miningProgress=0;totalOres=0;
+  cameraY=0;
+  applyUpgrades();generateGrid();
+  document.getElementById('upgrade-panel').style.display='flex';
+  buildUpgradePanel();updateHUD();
+}
+function retry(){startGame()}
+
+function updateHUD(){
+  document.getElementById('depthVal').textContent=Math.floor(depth*depthMult)+'m';
+  document.getElementById('cashVal').textContent='$'+cash;
+  document.getElementById('oreVal').textContent=inventory.length+'/'+inventoryMax;
+  document.getElementById('coinsVal').textContent=totalCoins;
+}
+
+function canMine(c,r){
+  if(c<0||c>=COLS||r<0||r>=grid.length)return false;
+  if(grid[r][c].mined)return false;
+  // Must be adjacent to a mined block
+  if(r>0&&grid[r-1]&&grid[r-1][c]&&grid[r-1][c].mined)return true;
+  if(r<grid.length-1&&grid[r+1]&&grid[r+1][c]&&grid[r+1][c].mined)return true;
+  if(c>0&&grid[r][c-1]&&grid[r][c-1].mined)return true;
+  if(c<COLS-1&&grid[r][c+1]&&grid[r][c+1].mined)return true;
+  return false;
+}
+
+function mineBlock(block){
+  block.mined=true;
+  sfxMine();
+  depth=Math.max(depth,block.row);
+  playerCol=block.col;playerRow=block.row;
+  // Collect ore (not stone)
+  if(block.ore.id!=='stone'){
+    if(inventory.length<inventoryMax){
+      inventory.push(block.ore);
+      totalOres++;
+      if(block.ore.rarity>=2)sfxRare();else sfxOre();
+      textPops.push({x:block.col*TILE+TILE/2,y:(block.row-cameraY)*TILE+TILE/2+50,text:block.ore.emoji+' '+block.ore.name+'!',color:block.ore.color,size:block.ore.rarity>=2?18:14,life:30});
+      // Coins for rare ores
+      if(block.ore.rarity>=1.5){var cn=Math.floor(block.ore.value/10);totalCoins+=cn;sessionCoins+=cn;saveShop()}
+    }else{
+      textPops.push({x:block.col*TILE+TILE/2,y:(block.row-cameraY)*TILE+TILE/2+50,text:'🛒 FULL! Sell ores!',color:'#ef4444',size:14,life:40});
+    }
+  }
+  // Generate more rows if needed
+  while(grid.length<block.row+50){
+    var nr=grid.length;grid[nr]=[];
+    for(var c=0;c<COLS;c++)grid[nr][c]=genBlock(c,nr);
+  }
+  // Score
+  score+=Math.floor(block.ore.value*0.5);
+  buildUpgradePanel();updateCoinDisplays();updateHUD();
+}
+
+function update(){
+  frame++;
+  if(paused)return;
+  for(var i=particles.length-1;i>=0;i--){var p=particles[i];p.x+=p.vx;p.y+=p.vy;p.vy+=0.05;p.life--;if(p.life<=0)particles.splice(i,1)}
+  for(var i=textPops.length-1;i>=0;i--){textPops[i].y-=0.8;textPops[i].life--;if(textPops[i].life<=0)textPops.splice(i,1)}
+  if(!gameRunning)return;
+
+  // Mining in progress
+  if(miningBlock){
+    miningProgress+=pickSpeed*0.02;
+    if(miningProgress>=1){
+      var ef=[];
+      for(var pi=0;pi<4;pi++){var ang=Math.random()*Math.PI*2,spd=1+Math.random()*2;ef.push({x:miningBlock.col*TILE+TILE/2,y:(miningBlock.row-cameraY)*TILE+TILE/2+50,vx:Math.cos(ang)*spd,vy:Math.sin(ang)*spd-1,life:15,color:miningBlock.ore.color,size:2+Math.random()*2})}
+      particles=particles.concat(ef);
+      mineBlock(miningBlock);
+      miningBlock=null;miningProgress=0;
+    }
+  }
+
+  // Smooth camera follow player
+  var targetCam=Math.max(0,playerRow-4);
+  cameraY+=(targetCam-cameraY)*0.1;
+}
+
+function draw(){
+  ctx.fillStyle='#1a0e05';ctx.fillRect(0,0,W,H);
+  if(!gameRunning&&!grid){
+    // Pre-game
+    return;
+  }
+  if(!grid)return;
+
+  var topRow=Math.floor(cameraY);
+  var visibleRows=Math.ceil(H/TILE)+2;
+  var oxOffset=Math.floor((W-COLS*TILE)/2);
+
+  // Sky at top
+  if(cameraY<3){
+    var skyH=Math.max(0,(2-cameraY)*TILE+50);
+    ctx.fillStyle='#0ea5e9';ctx.fillRect(0,0,W,Math.min(skyH,H));
+    // Grass line
+    ctx.fillStyle='#22c55e';ctx.fillRect(0,skyH-4,W,8);
+  }
+
+  // Draw blocks
+  for(var r=topRow;r<topRow+visibleRows&&r<grid.length;r++){
+    for(var c=0;c<COLS;c++){
+      var b=grid[r][c];
+      var bx=oxOffset+c*TILE,by=(r-cameraY)*TILE+50;
+      if(by<-TILE||by>H+TILE)continue;
+      if(b.mined){
+        // Dark background for mined
+        var pdist=Math.abs(playerCol-c)+Math.abs(playerRow-r);
+        var lightVal=Math.max(0.05,1-pdist/lampRange);
+        ctx.fillStyle='rgba(10,5,0,'+Math.max(0.3,1-lightVal)+')';ctx.fillRect(bx,by,TILE,TILE);
+      }else{
+        // Ore block
+        var pdist2=Math.abs(playerCol-c)+Math.abs(playerRow-r);
+        var vis=pdist2<=lampRange+1;
+        ctx.fillStyle=vis?b.ore.color:'#0f0a05';
+        ctx.fillRect(bx,by,TILE-1,TILE-1);
+        // Darker edges
+        if(vis){
+          ctx.fillStyle='rgba(0,0,0,0.2)';ctx.fillRect(bx,by+TILE-4,TILE-1,3);ctx.fillRect(bx+TILE-4,by,3,TILE-1);
+          // Emoji for non-stone
+          if(b.ore.id!=='stone'){ctx.font=Math.floor(TILE*0.5)+'px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(b.ore.emoji,bx+TILE/2,by+TILE/2)}
+          // Minable highlight
+          if(canMine(c,r)){ctx.strokeStyle='rgba(245,158,11,0.5)';ctx.lineWidth=2;ctx.strokeRect(bx+1,by+1,TILE-3,TILE-3)}
+        }
+        // Mining progress bar
+        if(miningBlock&&miningBlock.col===c&&miningBlock.row===r){
+          var pw=TILE*0.8,ph=5,ppx=bx+(TILE-pw)/2,ppy=by+TILE-10;
+          ctx.fillStyle='#1f2937';ctx.fillRect(ppx,ppy,pw,ph);
+          ctx.fillStyle='#f59e0b';ctx.fillRect(ppx,ppy,pw*miningProgress,ph);
+        }
+      }
+    }
+  }
+
+  // Player
+  var ppx2=oxOffset+playerCol*TILE+TILE/2,ppy2=(playerRow-cameraY)*TILE+50+TILE/2;
+  ctx.font=Math.floor(TILE*0.7)+'px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText(getHelmet().emoji==='🧑'?'🧑‍🔧':getHelmet().emoji,ppx2,ppy2);
+  // Pickaxe
+  ctx.font=Math.floor(TILE*0.4)+'px sans-serif';
+  ctx.fillText(getPick().emoji,ppx2+TILE*0.35,ppy2-TILE*0.1);
+
+  // Inventory bar at bottom
+  var barH=40,barY=H-barH;
+  ctx.fillStyle='rgba(15,10,5,0.9)';ctx.fillRect(0,barY,W,barH);
+  ctx.fillStyle='#94a3b8';ctx.font='bold 12px sans-serif';ctx.textAlign='left';
+  ctx.fillText('🛒 '+inventory.length+'/'+inventoryMax,10,barY+16);
+  // Show last few ores
+  var showMax=Math.min(inventory.length,Math.floor((W-80)/20));
+  for(var ii=0;ii<showMax;ii++){
+    var ore=inventory[inventory.length-1-ii];
+    ctx.font='14px sans-serif';ctx.fillText(ore.emoji,80+ii*20,barY+16);
+  }
+  ctx.fillStyle='#22c55e';ctx.font='bold 13px sans-serif';ctx.textAlign='right';
+  ctx.fillText('$'+cash,W-10,barY+16);
+  // Depth indicator
+  ctx.fillStyle='#22d3ee';ctx.font='bold 11px sans-serif';ctx.textAlign='left';
+  ctx.fillText('⬇️ '+Math.floor(depth*depthMult)+'m',10,barY+32);
+
+  // Particles
+  for(var pi=0;pi<particles.length;pi++){var p=particles[pi];ctx.globalAlpha=p.life/15;ctx.fillStyle=p.color;ctx.beginPath();ctx.arc(p.x,p.y,p.size||2,0,Math.PI*2);ctx.fill()}
+  ctx.globalAlpha=1;
+  for(var ti=0;ti<textPops.length;ti++){var tp=textPops[ti];ctx.globalAlpha=tp.life/30;ctx.fillStyle=tp.color;ctx.font='bold '+tp.size+'px sans-serif';ctx.textAlign='center';ctx.fillText(tp.text,tp.x,tp.y)}
+  ctx.globalAlpha=1;
+}
+
+function loop(){update();draw();requestAnimationFrame(loop)}
+
+// Click/tap to mine
+function handleTap(cx,cy){
+  if(!gameRunning||paused)return;
+  if(miningBlock)return; // already mining
+  var oxOffset=Math.floor((W-COLS*TILE)/2);
+  var col=Math.floor((cx-oxOffset)/TILE);
+  var row=Math.floor((cy-50)/TILE+cameraY);
+  if(col<0||col>=COLS||row<0||row>=grid.length)return;
+  var b=grid[row][col];
+  if(b.mined)return;
+  if(!canMine(col,row))return;
+  // Start mining
+  miningBlock=b;
+  miningProgress=0;
+  // How fast? pickPower vs hardness
+  var hitTime=b.maxHp/pickPower;
+  // We'll mine over hitTime seconds worth of frames
+  // pickSpeed is the multiplier on the progress rate
+  sfxMine();
+}
+
+canvas.addEventListener('click',function(e){handleTap(e.clientX,e.clientY)});
+canvas.addEventListener('touchstart',function(e){e.preventDefault();handleTap(e.touches[0].clientX,e.touches[0].clientY)},{passive:false});
+
+// Init
+score=0;sessionCoins=0;frame=0;gameRunning=false;paused=false;depth=0;cash=0;
+particles=[];textPops=[];grid=null;
+updateCoinDisplays();updateHUD();
+loop();
+</script>
+</body>
+</html>
