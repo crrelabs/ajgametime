@@ -308,8 +308,12 @@ var npcType;
 var typesAssigned;
 var pocketedThisTurn; // balls pocketed during current shot
 var foulThisTurn;
+var firstBallHit; // first object ball the cue ball touches
+var hitRail; // did any ball hit a rail after contact
 var npcThinking,npcTimer;
 var gameOver;
+var ballInHand; // true = player can place cue ball anywhere
+var placingBall; // true = currently dragging cue ball to place it
 
 function makeBall(x,y,num){
   return {x:x,y:y,vx:0,vy:0,r:BALL_R,num:num,color:num===0?'#fff':BALL_COLORS[num-1],solid:num>=1&&num<=7,stripe:num>=9&&num<=15,pocketed:false};
@@ -338,8 +342,9 @@ function initGame(){
   balls=rackBalls();
   aiming=false;shooting=false;
   playerTurn=true;playerType=null;npcType=null;typesAssigned=false;
-  pocketedThisTurn=[];foulThisTurn=false;
+  pocketedThisTurn=[];foulThisTurn=false;firstBallHit=-1;hitRail=false;
   npcThinking=false;npcTimer=0;gameOver=false;
+  ballInHand=false;placingBall=false;
   showTurnBanner('Your break!','#22c55e');
   updateHUD();
 }
@@ -366,14 +371,14 @@ function allMoving(){
 }
 
 function shoot(power,dx,dy){
-  if(!gameRunning||allMoving()||cueBall.pocketed||gameOver)return;
+  if(!gameRunning||allMoving()||cueBall.pocketed||gameOver||ballInHand)return;
   var len=Math.sqrt(dx*dx+dy*dy);if(len===0)return;
   var p=Math.min(power,1)*14;
   cueBall.vx=-dx/len*p;
   cueBall.vy=-dy/len*p;
   sfxHit(power);
   shooting=true;
-  pocketedThisTurn=[];foulThisTurn=false;
+  pocketedThisTurn=[];foulThisTurn=false;firstBallHit=-1;hitRail=false;
   document.getElementById('power-bar').style.display='none';
 }
 
@@ -435,7 +440,7 @@ function executeNpcShot(){
     // Random shot
     var ang=Math.random()*Math.PI*2;bestDx=Math.cos(ang)*100;bestDy=Math.sin(ang)*100;bestPower=0.5;
   }
-  pocketedThisTurn=[];foulThisTurn=false;
+  pocketedThisTurn=[];foulThisTurn=false;firstBallHit=-1;hitRail=false;
   var len=Math.sqrt(bestDx*bestDx+bestDy*bestDy);
   cueBall.vx=bestDx/len*bestPower*14;
   cueBall.vy=bestDy/len*bestPower*14;
@@ -456,14 +461,14 @@ function countRemaining(type){
 
 function handleTurnEnd(){
   if(gameOver)return;
-  // Check what was pocketed
   var pocketedOwn=false,pocketedOpponent=false,pocketed8=false,scratch=false;
+  var foul=false,foulReason='';
+
   for(var i=0;i<pocketedThisTurn.length;i++){
     var n=pocketedThisTurn[i];
-    if(n===0){scratch=true;continue}
+    if(n===0){scratch=true;foul=true;foulReason='Scratch!';continue}
     if(n===8){pocketed8=true;continue}
     if(!typesAssigned){
-      // First ball pocketed assigns types
       if(n>=1&&n<=7){
         if(playerTurn){playerType='solids';npcType='stripes'}else{npcType='solids';playerType='stripes'}
       }else{
@@ -477,44 +482,77 @@ function handleTurnEnd(){
     if(isOwn)pocketedOwn=true;else pocketedOpponent=true;
   }
 
+  // Rule: must hit own ball first (if types assigned)
+  if(typesAssigned&&!scratch&&firstBallHit>0){
+    var shooterType=playerTurn?playerType:npcType;
+    var hitOwn=(shooterType==='solids'&&firstBallHit>=1&&firstBallHit<=7)||(shooterType==='stripes'&&firstBallHit>=9&&firstBallHit<=15);
+    // Can hit 8-ball if all own balls pocketed
+    var remaining=countRemaining(shooterType);
+    if(!hitOwn&&!(remaining===0&&firstBallHit===8)){
+      foul=true;foulReason='Wrong ball first!';
+    }
+  }
+
+  // Rule: must hit something
+  if(firstBallHit===-1&&!scratch){
+    foul=true;foulReason='No ball hit!';
+  }
+
+  // Rule: a ball must hit a rail after contact (or a ball must be pocketed)
+  if(!hitRail&&pocketedThisTurn.length===0&&firstBallHit>0){
+    foul=true;foulReason='No rail after contact!';
+  }
+
   // 8-ball pocketed
   if(pocketed8){
-    var shooter=playerTurn?'player':'npc';
-    var shooterType=playerTurn?playerType:npcType;
-    var remaining=countRemaining(shooterType);
-    if(remaining===0&&!scratch){
-      // Win!
+    var shooterType2=playerTurn?playerType:npcType;
+    var remaining2=countRemaining(shooterType2);
+    if(remaining2===0&&!foul){
       endGame(playerTurn);
     }else{
-      // Lose — pocketed 8 too early or scratched
       endGame(!playerTurn);
     }
     return;
   }
 
-  // Scratch — cue ball pocketed
-  if(scratch){
-    cueBall.pocketed=false;
-    cueBall.x=TX+TW*0.25;cueBall.y=TY+TH/2;cueBall.vx=0;cueBall.vy=0;
-    showTurnBanner(playerTurn?'Scratch! NPC\'s turn':'NPC scratched! Your turn','#ef4444');
+  // Handle fouls — ball in hand for opponent
+  if(foul){
+    if(scratch){cueBall.pocketed=false}
+    cueBall.vx=0;cueBall.vy=0;
     playerTurn=!playerTurn;
+    showTurnBanner((foulReason||'Foul!')+' Ball in hand!','#ef4444');
+    sfxFoul();
+    textPops.push({x:W/2,y:H/2,text:'⚠️ '+(foulReason||'Foul!'),color:'#ef4444',size:24,life:50});
+    if(playerTurn){
+      // Player gets ball in hand
+      ballInHand=true;
+      cueBall.pocketed=false;
+      cueBall.x=TX+TW*0.25;cueBall.y=TY+TH/2;
+      textPops.push({x:W/2,y:H/2+30,text:'Tap to place cue ball',color:'#60a5fa',size:16,life:60});
+    }else{
+      // NPC gets ball in hand — place near best target
+      cueBall.pocketed=false;
+      cueBall.x=TX+TW*0.3;cueBall.y=TY+TH/2;
+      ballInHand=false;
+    }
   }else if(pocketedOwn&&!pocketedOpponent){
-    // Made own ball, go again
     showTurnBanner(playerTurn?'Nice! Go again!':'NPC goes again...', playerTurn?'#22c55e':'#ef4444');
   }else{
-    // Missed or pocketed opponent's ball — switch turns
     playerTurn=!playerTurn;
     showTurnBanner(playerTurn?'Your turn!':'NPC\'s turn...', playerTurn?'#22c55e':'#ef4444');
   }
 
-  if(playerTurn){
-    score+=pocketedOwn?10:0;
-    if(pocketedOwn){totalCoins++;sessionCoins++;saveShop();updateCoinDisplays()}
+  // Score for player pocketing own balls
+  if(pocketedOwn){
+    score+=10*pocketedThisTurn.filter(function(n){return n!==0&&n!==8}).length;
+    totalCoins+=pocketedThisTurn.filter(function(n){return n!==0&&n!==8}).length;
+    sessionCoins+=pocketedThisTurn.filter(function(n){return n!==0&&n!==8}).length;
+    saveShop();updateCoinDisplays();
   }
   updateHUD();
 
-  // If NPC's turn, start thinking
-  if(!playerTurn&&!gameOver){
+  // NPC turn
+  if(!playerTurn&&!gameOver&&!ballInHand){
     setTimeout(function(){npcShoot()},800);
   }
 }
@@ -566,10 +604,10 @@ function update(){
 
     // Walls
     var left=TX+RAIL+b.r,right=TX+TW-RAIL-b.r,top2=TY+RAIL+b.r,bot=TY+TH-RAIL-b.r;
-    if(b.x<left){b.x=left;b.vx=-b.vx*0.75;sfxBounce()}
-    if(b.x>right){b.x=right;b.vx=-b.vx*0.75;sfxBounce()}
-    if(b.y<top2){b.y=top2;b.vy=-b.vy*0.75;sfxBounce()}
-    if(b.y>bot){b.y=bot;b.vy=-b.vy*0.75;sfxBounce()}
+    if(b.x<left){b.x=left;b.vx=-b.vx*0.75;sfxBounce();if(shooting)hitRail=true}
+    if(b.x>right){b.x=right;b.vx=-b.vx*0.75;sfxBounce();if(shooting)hitRail=true}
+    if(b.y<top2){b.y=top2;b.vy=-b.vy*0.75;sfxBounce();if(shooting)hitRail=true}
+    if(b.y>bot){b.y=bot;b.vy=-b.vy*0.75;sfxBounce();if(shooting)hitRail=true}
 
     // Pockets
     var pockets=getPockets();
@@ -602,6 +640,11 @@ function update(){
       var dist=Math.sqrt(cdx*cdx+cdy*cdy);
       if(dist<a.r+b2.r&&dist>0){
         sfxCollide();
+        // Track first ball hit by cue ball
+        if(shooting&&firstBallHit===-1){
+          if(a===cueBall&&b2.num>0)firstBallHit=b2.num;
+          if(b2===cueBall&&a.num>0)firstBallHit=a.num;
+        }
         var nx=cdx/dist,ny=cdy/dist;
         var overlap=(a.r+b2.r)-dist;
         a.x-=nx*overlap/2;a.y-=ny*overlap/2;
@@ -693,6 +736,15 @@ function draw(){
     document.getElementById('power-fill').style.height=(power*100)+'%';
   }
 
+  // Ball in hand indicator
+  if(ballInHand&&gameRunning){
+    ctx.strokeStyle='rgba(96,165,250,0.6)';ctx.lineWidth=2;ctx.setLineDash([4,4]);
+    ctx.beginPath();ctx.arc(cueBall.x,cueBall.y,cueBall.r+6,0,Math.PI*2);ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle='#60a5fa';ctx.font='bold 14px sans-serif';ctx.textAlign='center';
+    ctx.fillText('👆 Tap to place cue ball',W/2,TY-10);
+  }
+
   // NPC thinking indicator
   if(npcThinking){
     ctx.fillStyle='rgba(239,68,68,0.8)';ctx.font='bold 16px sans-serif';ctx.textAlign='center';
@@ -722,7 +774,30 @@ function getPos(e){if(e.touches)return{x:e.touches[0].clientX,y:e.touches[0].cli
 function onDown(e){
   if(!gameRunning||allMoving()||!playerTurn||npcThinking||gameOver)return;
   if(cueBall.pocketed)return;
-  aiming=true;aimStart=getPos(e);aimCurrent=aimStart;
+  var pos=getPos(e);
+  // Ball in hand — place cue ball
+  if(ballInHand){
+    var nx=pos.x,ny=pos.y;
+    // Keep within table bounds
+    var left=TX+RAIL+cueBall.r+2,right=TX+TW-RAIL-cueBall.r-2;
+    var top3=TY+RAIL+cueBall.r+2,bot2=TY+TH-RAIL-cueBall.r-2;
+    nx=Math.max(left,Math.min(right,nx));
+    ny=Math.max(top3,Math.min(bot2,ny));
+    // Check not overlapping another ball
+    var overlap=false;
+    for(var bi=0;bi<balls.length;bi++){
+      if(balls[bi].pocketed)continue;
+      var dd=Math.sqrt((nx-balls[bi].x)*(nx-balls[bi].x)+(ny-balls[bi].y)*(ny-balls[bi].y));
+      if(dd<cueBall.r+balls[bi].r+2)overlap=true;
+    }
+    if(!overlap){
+      cueBall.x=nx;cueBall.y=ny;
+      ballInHand=false;placingBall=false;
+      showTurnBanner('Cue ball placed! Shoot!','#22c55e');
+    }
+    return;
+  }
+  aiming=true;aimStart=pos;aimCurrent=pos;
   document.getElementById('power-bar').style.display='block';
 }
 function onMove(e){if(!aiming)return;e.preventDefault();aimCurrent=getPos(e)}
@@ -743,7 +818,7 @@ canvas.addEventListener('touchend',function(e){onUp(e)});
 particles=[];textPops=[];
 cueBall={x:-100,y:-100,vx:0,vy:0,r:10,num:0,color:'#fff',pocketed:true};
 balls=[];gameRunning=false;gameOver=false;score=0;sessionCoins=0;frame=0;
-playerTurn=true;npcThinking=false;shooting=false;aiming=false;
+playerTurn=true;npcThinking=false;shooting=false;aiming=false;ballInHand=false;placingBall=false;firstBallHit=-1;hitRail=false;
 updateCoinDisplays();
 loop();
 </script>
