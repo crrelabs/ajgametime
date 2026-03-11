@@ -286,11 +286,11 @@ function buildMaze(){
 }
 
 function calcSizes(){
-  var maxW=W-20,maxH=H-60;
+  var maxW=W-10,maxH=H-50;
   var tw=maxW/MAZE_W,th=maxH/MAZE_TEMPLATE.length;
-  TILE=Math.floor(Math.min(tw,th));
+  TILE=Math.max(8,Math.floor(Math.min(tw,th)));
   OX=Math.floor((W-TILE*MAZE_W)/2);
-  OY=Math.floor(50+(H-50-TILE*MAZE_TEMPLATE.length)/2);
+  OY=Math.floor(44+(H-44-TILE*MAZE_TEMPLATE.length)/2);
 }
 
 function countDots(){var c=0;for(var r=0;r<maze.length;r++)for(var co=0;co<maze[r].length;co++)if(maze[r][co]===2||maze[r][co]===3)c++;return c}
@@ -503,12 +503,9 @@ function draw(){
       ctx.beginPath();ctx.arc(gx+gr*0.3,gy2-gr*0.1,gr*0.1,0,Math.PI*2);ctx.fill();
     }else{
       ctx.fillStyle=g.scared?(powerTimer<90&&frame%10<5?'#fff':'#2563eb'):gs.colors[g.color%gs.colors.length];
-      // Body
-      ctx.beginPath();ctx.arc(gx,gy2-gr*0.1,gr,Math.PI,0);
-      // Wavy bottom
-      var wx=gx-gr;
-      for(var wi=0;wi<4;wi++){var ww=gr*0.5;ctx.quadraticCurveTo(wx+ww*0.5,gy2+gr*0.3+Math.sin(frame*0.2+wi)*gr*0.15,wx+ww,gy2+gr*0.1);wx+=ww}
-      ctx.fill();
+      // Body — simple arc + rect (no quadraticCurveTo for Chromebook compat)
+      ctx.beginPath();ctx.arc(gx,gy2-gr*0.15,gr,Math.PI,0);ctx.fill();
+      ctx.fillRect(gx-gr,gy2-gr*0.15,gr*2,gr*0.65);
       // Eyes
       ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(gx-gr*0.3,gy2-gr*0.2,gr*0.22,0,Math.PI*2);ctx.fill();
       ctx.beginPath();ctx.arc(gx+gr*0.3,gy2-gr*0.2,gr*0.22,0,Math.PI*2);ctx.fill();
@@ -558,8 +555,8 @@ canvas.addEventListener('touchmove',function(e){e.preventDefault();
   touchStartX=e.touches[0].clientX;touchStartY=e.touches[0].clientY;
 },{passive:false});
 
-particles=[];textPops=[];gameRunning=false;
-score=0;level=1;lives=3;frame=0;sessionCoins=0;
+particles=[];textPops=[];gameRunning=false;frame=0;
+score=0;level=1;lives=3;sessionCoins=0;
 buildMaze();calcSizes();
 px=10;py=15;pdx=0;pdy=0;ndx=0;ndy=0;mouthOpen=0;powerTimer=0;ghostCombo=0;
 ghosts=[
