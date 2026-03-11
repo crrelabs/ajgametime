@@ -579,16 +579,23 @@ function update(){
   // Move allies (converted humans)
   for(var ai=allies.length-1;ai>=0;ai--){
     var a=allies[ai];
+    // Attack nearby zombies FIRST (before moving)
+    a.atk=(a.atk||0)+1;
+    var foundTarget=false;
+    if(a.atk>=20){
+      for(var azi=0;azi<zombies.length;azi++){var az=zombies[azi];var ad2=Math.sqrt((az.x-a.x)**2+(az.y-a.y)**2);
+        if(ad2<TILE*2.5&&!az.isBoss){
+          az.hp-=a.damage;a.atk=0;foundTarget=true;
+          particles.push({x:a.x,y:a.y-5,vx:0,vy:-0.5,life:12,color:'#fbbf24',size:0,text:'👊'});
+          break;
+        }
+      }
+    }
     // Walk backwards on path (toward start)
     if(a.pathIdx>0){
       var pt=path[a.pathIdx-1],atx=pt.x*TILE+TILE/2,aty=pt.y*TILE+MAP_OFFSET_Y+TILE/2;
       var adx=atx-a.x,ady=aty-a.y,adist=Math.sqrt(adx*adx+ady*ady);
       if(adist<2){a.pathIdx--;a.x=atx;a.y=aty}else{a.x+=(adx/adist)*1.5;a.y+=(ady/adist)*1.5}
-      // Attack nearby zombies
-      a.atk=(a.atk||0)+1;
-      if(a.atk>=30){a.atk=0;
-        for(var azi=0;azi<zombies.length;azi++){var az=zombies[azi];var ad2=Math.sqrt((az.x-a.x)**2+(az.y-a.y)**2);
-          if(ad2<TILE*1.5&&!az.isBoss){az.hp-=a.damage;break}}}
     }else{allies.splice(ai,1)}// reached start, disappear
   }
   // Move zombies
