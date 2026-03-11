@@ -179,7 +179,7 @@ var BLOCK_COLORS=['#ef4444','#f97316','#eab308','#22c55e','#3b82f6','#8b5cf6','#
 
 function initSizes(){
   BALL_R=Math.min(W,H)*0.035;
-  var bbCount=upgradeCount('big_ball');for(var bbi=0;bbi<bbCount;bbi++)BALL_R*=1.15;
+  var bbCount=upgradeCount('big_ball');BALL_R*=Math.min(1+bbCount*0.12,2.5);
   CHAIN_LEN=H*0.3;
   CRANE_X=W*0.15;
   CRANE_Y=H*0.08;
@@ -303,7 +303,7 @@ function update(){
     }
     
     // Block collisions
-    var dmgMult=1+upgradeCount('heavy_ball')*0.2;
+    var dmgMult=Math.min(1+upgradeCount('heavy_ball')*0.15,4);
     for(var i=0;i<blocks.length;i++){
       var b=blocks[i];
       if(!b.alive)continue;
