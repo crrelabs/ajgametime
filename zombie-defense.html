@@ -347,7 +347,7 @@ function updateUnlockHint(){
   if(!freeplayUnlocked){hint.textContent='🔓 Reach wave 10 to unlock Free Play';return}
   hint.textContent='Best: Wave '+(bestWaves[difficulty]||0);
 }
-buildDiffPicker();buildMapPicker();updateUnlockHint();
+buildDiffPicker();updateUnlockHint();
 
 // === TOWER DEFS (prices 2x, new towers) ===
 var TOWER_DEFS={
@@ -501,6 +501,8 @@ var MAPS={
   maze:{name:'🏰 Fortress',desc:'Tight corridors',color:'#f59e0b'},
   desert:{name:'🏜️ Desert',desc:'Wide open, short path',color:'#f97316'}
 };
+buildMapPicker();
+
 function generateMapPath(mapId){
   path=[];pathSet=new Set();
   var cx=Math.floor(COLS/2),cy;
