@@ -128,7 +128,7 @@ button.play-btn:hover{transform:scale(1.05)}
   <div id="mapPicker" style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-top:8px"></div>
   <p id="unlockHint" style="color:#64748b;font-size:0.75rem;margin-top:6px"></p>
   <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:10px">
-    <button class="play-btn" id="startBtn">⚔️ Defend!</button>
+    <button class="play-btn" id="startBtn" onclick="zdStart()">⚔️ Defend!</button>
     <button id="skillTreeStartBtn" style="padding:10px 20px;font-size:14px;font-weight:700;color:#fff;background:linear-gradient(135deg,#06b6d4,#0891b2);border:none;border-radius:10px;cursor:pointer">🌳 Skill Tree</button>
     <button id="prestigeBtn" style="padding:10px 20px;font-size:14px;font-weight:700;color:#fff;background:linear-gradient(135deg,#f59e0b,#f97316);border:none;border-radius:10px;cursor:pointer">🏅 Prestige</button>
     <button id="challengeBtn" style="padding:10px 20px;font-size:14px;font-weight:700;color:#fff;background:linear-gradient(135deg,#ef4444,#dc2626);border:none;border-radius:10px;cursor:pointer">🏆 Challenges</button>
@@ -178,7 +178,7 @@ button.play-btn:hover{transform:scale(1.05)}
     <button id="death-submit">📤 Submit</button>
     <button id="death-skills">🌳 Skills</button>
     <button id="death-lb">🏆 Board</button>
-    <button id="death-retry">⚔️ Retry</button>
+    <button id="death-retry" onclick="zdRetry()">⚔️ Retry</button>
   </div>
 </div>
 
@@ -188,10 +188,34 @@ button.play-btn:hover{transform:scale(1.05)}
 
 <script>
 var canvas=document.getElementById('game'),ctx=canvas.getContext('2d');
-let W,H,TILE,COLS,ROWS,MAP_OFFSET_Y;
+var W,H,TILE,COLS,ROWS,MAP_OFFSET_Y;
 var TOWER_BAR_H=70,HEADER_H=46;
 function resize(){W=window.innerWidth;H=window.innerHeight;canvas.width=W;canvas.height=H;TILE=Math.floor(Math.min(W/14,(H-TOWER_BAR_H-HEADER_H)/10));COLS=Math.floor(W/TILE);ROWS=Math.floor((H-TOWER_BAR_H-HEADER_H)/TILE);MAP_OFFSET_Y=HEADER_H}
 resize();window.addEventListener('resize',resize);
+
+// === START GAME (defined early so onclick always works) ===
+function zdStart(){
+  try{
+    document.getElementById('startScreen').style.display='none';
+    document.getElementById('towerBar').style.display='block';
+    canvas.style.pointerEvents='';
+    if(typeof initAudio==='function')initAudio();
+    if(typeof startMusic==='function')startMusic();
+    if(typeof buildTowerBar==='function')buildTowerBar();
+    if(typeof init==='function')init();
+  }catch(e){console.error('zdStart error:',e);}
+}
+
+function zdRetry(){
+  try{
+    document.getElementById('death-screen').style.display='none';
+    var ds=document.getElementById('death-submit');if(ds){ds.textContent='📤 Submit';ds.disabled=false;}
+    document.getElementById('startScreen').style.display='flex';
+    if(typeof buildDiffPicker==='function')buildDiffPicker();
+    if(typeof buildMapPicker==='function')buildMapPicker();
+    if(typeof updateUnlockHint==='function')updateUnlockHint();
+  }catch(e){console.error('zdRetry error:',e);}
+}
 
 // === AUDIO ===
 var AudioCtx=window.AudioContext||window.webkitAudioContext,audioCtx=null,musicPlaying=false,musicGain=null,sfxGain=null,musicInterval=null,droneOsc=null,droneOsc2=null;
@@ -307,7 +331,7 @@ var DIFF_SETTINGS={
 var bestWaves=JSON.parse(localStorage.getItem('zd_bestWaves')||'{}');
 var unlockedDiffs=JSON.parse(localStorage.getItem('zd_unlocked')||'["easy"]');
 var freeplayUnlocked=localStorage.getItem('zd_freeplay')==='true';
-let difficulty='easy';
+var difficulty='easy';
 
 function saveProg(){localStorage.setItem('zd_bestWaves',JSON.stringify(bestWaves));localStorage.setItem('zd_unlocked',JSON.stringify(unlockedDiffs));localStorage.setItem('zd_freeplay',freeplayUnlocked)}
 function checkUnlocks(){
@@ -451,13 +475,13 @@ function activateAbility(tower){
 }
 
 // === GAME STATE ===
-let gold,lives,wave,score,gameRunning,paused,zombies,towers,projectiles,particles,allies,traps,bananas;
-let spawnTimer,spawnCount,spawnMax,waveDelay,waveActive;
-let selectedTower='gun',path=[],pathSet;
-let towerBuyCount={};
-let boss=null,bossActive=false,isFreeplay=false;
-let gemsEarned=0,bankTimer=0;
-let globalSpeedBuff=1,globalHpBuff=1; // +2.5% every 10 waves
+var gold,lives,wave,score,gameRunning,paused,zombies,towers,projectiles,particles,allies,traps,bananas;
+var spawnTimer,spawnCount,spawnMax,waveDelay,waveActive;
+var selectedTower='gun',path=[],pathSet;
+var towerBuyCount={};
+var boss=null,bossActive=false,isFreeplay=false;
+var gemsEarned=0,bankTimer=0;
+var globalSpeedBuff=1,globalHpBuff=1; // +2.5% every 10 waves
 
 function getSkillMult(id,base){return 1+getSkill(id)*base}
 function getTowerCost(type){
@@ -1020,11 +1044,7 @@ document.getElementById('resumeBtn').onclick=function(){paused=false;document.ge
 // === GAME LOOP ===
 function loop(){update();draw();}
 
-document.getElementById('startBtn').onclick=function(){
-  document.getElementById('startScreen').classList.add('hidden');
-  document.getElementById('towerBar').style.display='block';canvas.style.pointerEvents='';
-  initAudio();startMusic();init();
-};
+// startBtn uses inline onclick="zdStart()" now
 
 
 // Prestige UI
@@ -1109,10 +1129,10 @@ document.getElementById('musicVol').oninput=function(){_musicVol=this.value/100;
 document.getElementById('sfxVol').oninput=function(){_sfxVol=this.value/100;document.getElementById('sfxVolVal').textContent=this.value+'%';localStorage.setItem('zd_sfxVol',this.value);_applyVol()};
 
 // === INIT ALL UI (after everything is defined) ===
-buildDiffPicker();
-updateUnlockHint();
-buildTowerBar();
-buildMapPicker();
+try{buildDiffPicker();}catch(e){console.error('buildDiffPicker:',e);}
+try{updateUnlockHint();}catch(e){console.error('updateUnlockHint:',e);}
+try{buildTowerBar();}catch(e){console.error('buildTowerBar:',e);}
+try{buildMapPicker();}catch(e){console.error('buildMapPicker:',e);}
 
 // Start game loop LAST
 setInterval(loop,1000/30);
