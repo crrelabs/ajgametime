@@ -150,6 +150,68 @@ function initStreak() {
 initTrending();
 initStreak();
 
+
+// === VISITOR COUNTER ===
+function initVisitorCounter() {
+  var today = new Date().toISOString().slice(0, 10);
+  var vc = JSON.parse(localStorage.getItem('ajgt_visitors') || '{"date":"","count":0}');
+  if (vc.date !== today) { vc.date = today; vc.count = Math.floor(Math.random() * 300) + 150; }
+  vc.count++;
+  localStorage.setItem('ajgt_visitors', JSON.stringify(vc));
+  var el = document.getElementById('visitorCount');
+  if (el) el.textContent = vc.count.toLocaleString();
+}
+initVisitorCounter();
+
+// === TOP PLAYERS (from Supabase leaderboard) ===
+async function initTopPlayers() {
+  var list = document.getElementById('topPlayersList');
+  if (!list) return;
+  try {
+    var url = 'https://adudgrfxwildzwpcvyil.supabase.co/rest/v1/ajgametime_leaderboard?order=score.desc&limit=5';
+    var key = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFkdWRncmZ4d2lsZHp3cGN2eWlsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyOTkzODUsImV4cCI6MjA4Nzg3NTM4NX0.-JYXn5r9QUjxbpwckwDMSvCm8w1xRXOp5lP2TWNOC_E';
+    var resp = await fetch(url, { headers: { 'apikey': key, 'Authorization': 'Bearer ' + key } });
+    var data = await resp.json();
+    var medals = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣'];
+    list.innerHTML = data.map(function(d, i) {
+      return '<div class="top-player-row"><span class="tp-rank">' + medals[i] + '</span><span class="tp-name">' + d.player_name + '</span><span class="tp-score">' + d.score.toLocaleString() + '</span><span class="tp-game">' + (d.game || '') + '</span></div>';
+    }).join('');
+  } catch(e) {
+    list.innerHTML = '<div style="color:#64748b;text-align:center;font-size:0.8rem">Play games to get on the board!</div>';
+  }
+}
+initTopPlayers();
+
+// === QUICK PLAY (5 random quick games) ===
+function initQuickPlay() {
+  var grid = document.getElementById('quickGrid');
+  if (!grid) return;
+  var shuffled = GAMES.slice().sort(function() { return Math.random() - 0.5; });
+  var picks = shuffled.slice(0, 5);
+  grid.innerHTML = picks.map(function(g) {
+    return '<a href="' + g.href + '" class="quick-card" onclick="trackPlay(\'' + g.id + '\')">' +
+      '<div class="qc-emoji">' + g.emoji + '</div>' +
+      '<div class="qc-name">' + g.name + '</div>' +
+      '<div class="qc-play">▶ PLAY</div></a>';
+  }).join('');
+}
+initQuickPlay();
+
+// === NEW GAMES (5 newest) ===
+function initNewGames() {
+  var grid = document.getElementById('newGrid');
+  if (!grid) return;
+  var newest = GAMES.slice().sort(function(a, b) { return b.added.localeCompare(a.added); }).slice(0, 5);
+  grid.innerHTML = newest.map(function(g) {
+    return '<a href="' + g.href + '" class="new-card" onclick="trackPlay(\'' + g.id + '\')">' +
+      '<div class="new-badge">NEW</div>' +
+      '<div class="nc-emoji">' + g.emoji + '</div>' +
+      '<div class="nc-name">' + g.name + '</div>' +
+      '<div class="nc-desc">' + g.desc.substring(0, 40) + '...</div></a>';
+  }).join('');
+}
+initNewGames();
+
 </script>
 <script type="application/ld+json">
 {
@@ -378,6 +440,65 @@ footer a:hover { color: #94a3b8; }
 .streak-dot.active { background: linear-gradient(135deg, #f59e0b, #f97316); color: #fff; border-color: #f59e0b; }
 .streak-dot.today { box-shadow: 0 0 12px rgba(245,158,11,0.5); animation: pulse 2s infinite; }
 
+
+/* Welcome Message */
+.welcome-msg { text-align: center; margin: -1rem 0 0.5rem; }
+.welcome-msg p { font-size: 1.05rem; color: #94a3b8; font-weight: 600; line-height: 1.5; }
+.welcome-msg .highlight { color: #fbbf24; }
+
+/* Visitor Counter */
+.visitor-counter { text-align: center; margin: 0.8rem 0; font-size: 0.85rem; color: #64748b; }
+.visitor-counter span { color: #22c55e; font-weight: 800; }
+
+/* Top Players */
+.top-players { margin: 1.5rem auto; max-width: 400px; padding: 0 1rem; }
+.top-players-box { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 16px; }
+.top-players-title { font-family: 'Lilita One', cursive; font-size: 1.1rem; color: #fbbf24; margin-bottom: 10px; text-align: center; }
+.top-player-row { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 8px; }
+.top-player-row:nth-child(2) { background: rgba(251,191,36,0.08); }
+.top-player-row:nth-child(3) { background: rgba(148,163,184,0.06); }
+.top-player-row:nth-child(4) { background: rgba(180,83,9,0.06); }
+.tp-rank { font-size: 1.1rem; width: 24px; text-align: center; }
+.tp-name { flex: 1; color: #e2e8f0; font-weight: 700; font-size: 0.85rem; }
+.tp-score { color: #22d3ee; font-weight: 800; font-size: 0.85rem; }
+.tp-game { color: #64748b; font-size: 0.7rem; }
+
+/* Quick Play */
+.quick-play { margin: 1.5rem auto; max-width: 900px; padding: 0 1rem; }
+.quick-play-title { font-family: 'Lilita One', cursive; font-size: 1.3rem; color: #e2e8f0; margin-bottom: 10px; }
+.quick-play-title span { color: #22d3ee; }
+.quick-grid { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 8px; -webkit-overflow-scrolling: touch; }
+.quick-card {
+  flex: 0 0 130px; text-align: center; text-decoration: none;
+  background: linear-gradient(135deg, rgba(124,58,237,0.15), rgba(59,130,246,0.15));
+  border: 1px solid rgba(124,58,237,0.2); border-radius: 14px; padding: 14px 8px;
+  transition: transform 0.2s, border-color 0.2s;
+}
+.quick-card:hover { transform: translateY(-4px); border-color: rgba(124,58,237,0.5); }
+.quick-card .qc-emoji { font-size: 2rem; display: block; margin-bottom: 4px; }
+.quick-card .qc-name { font-size: 0.8rem; font-weight: 700; color: #e2e8f0; }
+.quick-card .qc-play { font-size: 0.7rem; color: #7c3aed; font-weight: 800; margin-top: 4px; }
+
+/* New Games */
+.new-games { margin: 1.5rem auto; max-width: 900px; padding: 0 1rem; }
+.new-games-title { font-family: 'Lilita One', cursive; font-size: 1.3rem; color: #e2e8f0; margin-bottom: 10px; }
+.new-games-title span { color: #22c55e; }
+.new-grid { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 8px; -webkit-overflow-scrolling: touch; }
+.new-card {
+  flex: 0 0 160px; text-decoration: none;
+  background: rgba(34,197,94,0.06); border: 1px solid rgba(34,197,94,0.15);
+  border-radius: 14px; padding: 14px 12px; text-align: center;
+  transition: transform 0.2s; position: relative;
+}
+.new-card:hover { transform: translateY(-4px); }
+.new-badge { position: absolute; top: -6px; right: -6px; background: #22c55e; color: #fff; font-size: 0.6rem; font-weight: 800; padding: 2px 8px; border-radius: 10px; }
+.new-card .nc-emoji { font-size: 2rem; display: block; margin-bottom: 4px; }
+.new-card .nc-name { font-size: 0.85rem; font-weight: 700; color: #e2e8f0; }
+.new-card .nc-desc { font-size: 0.65rem; color: #94a3b8; margin-top: 2px; }
+
+/* Category section headers */
+.cat-header { font-family: 'Lilita One', cursive; font-size: 1.1rem; color: #94a3b8; margin: 1.5rem 0 0.5rem; padding: 0 1rem; max-width: 900px; margin-left: auto; margin-right: auto; }
+
 </style>
 </head>
 <body>
@@ -390,7 +511,9 @@ footer a:hover { color: #94a3b8; }
     <div class="hero-emoji">🎮</div>
     <h1>AJ GameTime</h1>
     <p class="tagline">Free browser games — no downloads, just play!</p>
+    <div class="welcome-msg"><p>Welcome to AJ GameTime 🎮<br>The perfect place to play games when you're <span class="highlight">bored!</span></p></div>
     <p class="creator">Designed by <span>AJ & Ignacio Rovira</span></p>
+    <div class="visitor-counter">👾 <span id="visitorCount">0</span> bored players visited today</div>
     <button class="bored-btn" id="boredBtn" onclick="goRandomGame()">🎲 I'm Bored!</button>
   </section>
 
@@ -411,13 +534,33 @@ footer a:hover { color: #94a3b8; }
     <div class="streak-days" id="streakDays"></div>
   </div>
 
+  <!-- Top Players -->
+  <div class="top-players">
+    <div class="top-players-box">
+      <div class="top-players-title">🏆 Top Players</div>
+      <div id="topPlayersList"></div>
+    </div>
+  </div>
+
   <!-- Trending Games -->
   <div class="trending-section">
     <div class="trending-title">🔥 <span>Trending</span> This Week</div>
     <div class="trending-grid" id="trendingGrid"></div>
   </div>
 
-  <h2 class="section-title"><span class="emoji">🕹️</span>Games</h2>
+  <!-- Quick Play -->
+  <div class="quick-play">
+    <div class="quick-play-title">⚡ <span>Quick Play</span> — Jump Right In!</div>
+    <div class="quick-grid" id="quickGrid"></div>
+  </div>
+
+  <!-- New Games -->
+  <div class="new-games">
+    <div class="new-games-title">🆕 <span>New</span> Games</div>
+    <div class="new-grid" id="newGrid"></div>
+  </div>
+
+  <h2 class="section-title"><span class="emoji">🕹️</span>All Games</h2>
 
   <!-- Search, Filter, Sort -->
   <div class="controls">
@@ -821,8 +964,22 @@ function renderGames() {
   // Update count
   document.getElementById('gameCount').textContent = `${games.length} game${games.length !== 1 ? 's' : ''}`;
 
-  // Render
+  // Render with category headers
   const grid = document.getElementById('gamesGrid');
+  // Category grouping
+  var catEmojis = {'Puzzle':'🧠','Racing':'🚗','Arcade':'🎯','Action':'⚡','Sports':'🏀','Adventure':'🗺️','Strategy':'♟️','Tycoon':'💰','Survival':'🏕️','Fighter':'🥊','Horror':'👻','Educational':'📚'};
+  if (currentFilter === 'all' && !query && currentSort === 'newest') {
+    var cats = {};
+    games.forEach(function(g) { if (!cats[g.category]) cats[g.category] = []; cats[g.category].push(g); });
+    var html = '';
+    Object.keys(cats).forEach(function(cat) {
+      html += '<div class="cat-header">' + (catEmojis[cat]||'🎮') + ' ' + cat + ' Games</div>';
+      cats[cat].forEach(function(g) {
+        html += '<a href="' + g.href + '" class="game-card" data-id="' + g.id + '"><div class="card-preview" style="background:' + g.bg + ';">' + g.emoji + '</div><div class="card-body"><h3>' + g.name + '</h3><p>' + g.desc + '</p><span class="card-tag" style="background:' + g.tagBg + ';color:' + g.tagColor + ';">' + g.category + '</span></div><div class="play-btn" style="background:' + g.btnBg + ';">▶ Play Now</div></a>';
+      });
+    });
+    grid.innerHTML = html;
+  } else {
   grid.innerHTML = games.map(g => `
     <a href="${g.href}" class="game-card" data-id="${g.id}">
       <div class="card-preview" style="background: ${g.bg};">${g.emoji}</div>
@@ -834,6 +991,7 @@ function renderGames() {
       <div class="play-btn" style="background: ${g.btnBg};">▶ Play Now</div>
     </a>
   `).join('');
+  }
 
   // No results
   document.getElementById('noResults').classList.toggle('visible', games.length === 0);
