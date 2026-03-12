@@ -41,6 +41,115 @@
     "url": "https://crrelabs.com"
   }
 }
+
+// === I'M BORED - Random Game ===
+function goRandomGame() {
+  var btn = document.getElementById('boredBtn');
+  btn.textContent = '🎰 Picking...';
+  btn.style.pointerEvents = 'none';
+  // Quick shuffle animation
+  var count = 0;
+  var interval = setInterval(function() {
+    var rg = GAMES[Math.floor(Math.random() * GAMES.length)];
+    btn.textContent = rg.emoji + ' ' + rg.name + '?';
+    count++;
+    if (count > 8) {
+      clearInterval(interval);
+      var pick = GAMES[Math.floor(Math.random() * GAMES.length)];
+      btn.textContent = '🎯 ' + pick.name + '!';
+      setTimeout(function() { window.location.href = pick.href; }, 600);
+    }
+  }, 150);
+}
+
+// === TRENDING GAMES ===
+function initTrending() {
+  // Track plays in localStorage
+  var plays = JSON.parse(localStorage.getItem('ajgt_plays') || '{}');
+  // Pick top 5 most played, or random popular ones for new users
+  var sorted = GAMES.slice().map(function(g) {
+    return { game: g, plays: plays[g.id] || 0 };
+  });
+  // If no play data, use recent games as trending
+  var hasData = sorted.some(function(s) { return s.plays > 0; });
+  if (hasData) {
+    sorted.sort(function(a, b) { return b.plays - a.plays; });
+  } else {
+    // Show newest as trending for new visitors
+    sorted.sort(function(a, b) { return b.game.added.localeCompare(a.game.added); });
+  }
+  var top5 = sorted.slice(0, 5);
+  var grid = document.getElementById('trendingGrid');
+  grid.innerHTML = top5.map(function(item, i) {
+    var g = item.game;
+    var playText = item.plays > 0 ? item.plays + ' plays' : 'New!';
+    return '<a href="' + g.href + '" class="trending-card" onclick="trackPlay(\'' + g.id + '\')">' +
+      '<div class="trending-rank">#' + (i + 1) + '</div>' +
+      '<div class="trending-emoji">' + g.emoji + '</div>' +
+      '<div class="trending-name">' + g.name + '</div>' +
+      '<div class="trending-plays">' + playText + '</div>' +
+      '</a>';
+  }).join('');
+}
+
+function trackPlay(gameId) {
+  var plays = JSON.parse(localStorage.getItem('ajgt_plays') || '{}');
+  plays[gameId] = (plays[gameId] || 0) + 1;
+  localStorage.setItem('ajgt_plays', JSON.stringify(plays));
+}
+
+// Track clicks on all game cards
+document.addEventListener('click', function(e) {
+  var card = e.target.closest('.game-card');
+  if (card) trackPlay(card.dataset.id);
+});
+
+// === DAILY STREAK ===
+function initStreak() {
+  var today = new Date().toISOString().slice(0, 10);
+  var streakData = JSON.parse(localStorage.getItem('ajgt_streak') || '{"count":0,"last":"","days":[]}');
+  var lastDate = streakData.last;
+  var yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+
+  if (lastDate === today) {
+    // Already visited today
+  } else if (lastDate === yesterday) {
+    // Streak continues!
+    streakData.count++;
+    streakData.last = today;
+    streakData.days.push(today);
+    if (streakData.days.length > 7) streakData.days = streakData.days.slice(-7);
+  } else {
+    // Streak broken or first visit
+    streakData.count = 1;
+    streakData.last = today;
+    streakData.days = [today];
+  }
+  localStorage.setItem('ajgt_streak', JSON.stringify(streakData));
+
+  document.getElementById('streakCount').textContent = streakData.count;
+  var daysContainer = document.getElementById('streakDays');
+  var dayNames = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+  var todayIdx = new Date().getDay();
+  // Show last 7 days
+  daysContainer.innerHTML = '';
+  for (var i = 6; i >= 0; i--) {
+    var d = new Date(Date.now() - i * 86400000);
+    var dateStr = d.toISOString().slice(0, 10);
+    var isActive = streakData.days.indexOf(dateStr) >= 0;
+    var isToday = i === 0;
+    var dayName = dayNames[d.getDay() === 0 ? 6 : d.getDay() - 1];
+    var dot = document.createElement('div');
+    dot.className = 'streak-dot' + (isActive ? ' active' : '') + (isToday ? ' today' : '');
+    dot.textContent = isActive ? '🔥' : dayName;
+    daysContainer.appendChild(dot);
+  }
+}
+
+// Init features
+initTrending();
+initStreak();
+
 </script>
 <script type="application/ld+json">
 {
@@ -219,6 +328,56 @@ footer a:hover { color: #94a3b8; }
 .particles { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
 .particle { position: absolute; width: 4px; height: 4px; border-radius: 50%; opacity: 0.3; animation: float linear infinite; }
 @keyframes float { 0% { transform: translateY(100vh) rotate(0deg); opacity: 0; } 10% { opacity: 0.3; } 90% { opacity: 0.3; } 100% { transform: translateY(-10vh) rotate(720deg); opacity: 0; } }
+
+/* I'm Bored Button */
+.bored-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  margin-top: 1.2rem; padding: 14px 32px;
+  font-family: 'Lilita One', cursive; font-size: 1.3rem; color: #fff;
+  background: linear-gradient(135deg, #ec4899, #f97316, #fbbf24);
+  background-size: 200% 200%;
+  animation: boredShimmer 3s ease-in-out infinite;
+  border: none; border-radius: 16px; cursor: pointer;
+  box-shadow: 0 4px 20px rgba(236,72,153,0.4);
+  transition: transform 0.2s, box-shadow 0.2s;
+  text-decoration: none;
+}
+.bored-btn:hover { transform: scale(1.08); box-shadow: 0 6px 30px rgba(236,72,153,0.6); }
+.bored-btn:active { transform: scale(0.95); }
+@keyframes boredShimmer { 0%,100%{background-position:0% 50%} 50%{background-position:100% 50%} }
+
+/* Trending Section */
+.trending-section { margin: 2rem auto; max-width: 900px; padding: 0 1rem; }
+.trending-title { font-family: 'Lilita One', cursive; font-size: 1.4rem; color: #e2e8f0; margin-bottom: 12px; }
+.trending-title span { color: #ef4444; }
+.trending-grid { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 8px; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; }
+.trending-card {
+  flex: 0 0 160px; scroll-snap-align: start;
+  background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 14px; padding: 16px 12px; text-align: center;
+  text-decoration: none; transition: transform 0.2s, border-color 0.2s;
+  position: relative; overflow: hidden;
+}
+.trending-card:hover { transform: translateY(-4px); border-color: rgba(255,255,255,0.2); }
+.trending-rank { position: absolute; top: 6px; left: 8px; font-size: 0.7rem; font-weight: 800; color: #fbbf24; }
+.trending-emoji { font-size: 2.2rem; display: block; margin-bottom: 6px; }
+.trending-name { font-size: 0.85rem; font-weight: 700; color: #e2e8f0; }
+.trending-plays { font-size: 0.7rem; color: #64748b; margin-top: 4px; }
+
+/* Daily Streak */
+.streak-bar {
+  margin: 1.5rem auto; max-width: 500px; padding: 12px 20px;
+  background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 14px; text-align: center;
+}
+.streak-text { font-size: 0.9rem; color: #e2e8f0; font-weight: 700; }
+.streak-text span { color: #f59e0b; }
+.streak-days { display: flex; justify-content: center; gap: 6px; margin-top: 8px; }
+.streak-dot { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  font-size: 0.75rem; font-weight: 800; border: 2px solid rgba(255,255,255,0.1); color: #64748b; }
+.streak-dot.active { background: linear-gradient(135deg, #f59e0b, #f97316); color: #fff; border-color: #f59e0b; }
+.streak-dot.today { box-shadow: 0 0 12px rgba(245,158,11,0.5); animation: pulse 2s infinite; }
+
 </style>
 </head>
 <body>
@@ -232,6 +391,7 @@ footer a:hover { color: #94a3b8; }
     <h1>AJ GameTime</h1>
     <p class="tagline">Free browser games — no downloads, just play!</p>
     <p class="creator">Designed by <span>AJ & Ignacio Rovira</span></p>
+    <button class="bored-btn" id="boredBtn" onclick="goRandomGame()">🎲 I'm Bored!</button>
   </section>
 
   <!-- Update Log -->
@@ -243,6 +403,18 @@ footer a:hover { color: #94a3b8; }
       </div>
       <div id="updateEntries" style="display:flex;flex-direction:column;gap:10px;font-size:0.78rem;line-height:1.4"></div>
     </div>
+  </div>
+
+  <!-- Daily Streak -->
+  <div class="streak-bar" id="streakBar">
+    <div class="streak-text">🔥 Daily Streak: <span id="streakCount">0</span> days</div>
+    <div class="streak-days" id="streakDays"></div>
+  </div>
+
+  <!-- Trending Games -->
+  <div class="trending-section">
+    <div class="trending-title">🔥 <span>Trending</span> This Week</div>
+    <div class="trending-grid" id="trendingGrid"></div>
   </div>
 
   <h2 class="section-title"><span class="emoji">🕹️</span>Games</h2>
