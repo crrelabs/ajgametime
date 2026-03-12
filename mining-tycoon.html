@@ -536,7 +536,8 @@ function draw(){
   ctx.globalAlpha=1;
 }
 
-function loop(){update();draw();requestAnimationFrame(loop)}
+function loop(){update();draw();}
+setInterval(loop,1000/30);
 
 // Click/tap to mine
 function handleTap(cx,cy){
@@ -566,7 +567,6 @@ canvas.addEventListener('touchstart',function(e){e.preventDefault();handleTap(e.
 score=0;sessionCoins=0;frame=0;gameRunning=false;paused=false;depth=0;cash=0;
 particles=[];textPops=[];grid=null;
 updateCoinDisplays();updateHUD();
-loop();
 </script>
 </body>
 </html>
