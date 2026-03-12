@@ -42,272 +42,6 @@
   }
 }
 
-// === I'M BORED - Random Game ===
-function goRandomGame() {
-  var btn = document.getElementById('boredBtn');
-  btn.textContent = '🎰 Picking...';
-  btn.style.pointerEvents = 'none';
-  // Quick shuffle animation
-  var count = 0;
-  var interval = setInterval(function() {
-    var rg = GAMES[Math.floor(Math.random() * GAMES.length)];
-    btn.textContent = rg.emoji + ' ' + rg.name + '?';
-    count++;
-    if (count > 8) {
-      clearInterval(interval);
-      var pick = GAMES[Math.floor(Math.random() * GAMES.length)];
-      btn.textContent = '🎯 ' + pick.name + '!';
-      setTimeout(function() { window.location.href = pick.href; }, 600);
-    }
-  }, 150);
-}
-
-// === TRENDING GAMES ===
-function initTrending() {
-  // Track plays in localStorage
-  var plays = JSON.parse(localStorage.getItem('ajgt_plays') || '{}');
-  // Pick top 5 most played, or random popular ones for new users
-  var sorted = GAMES.slice().map(function(g) {
-    return { game: g, plays: plays[g.id] || 0 };
-  });
-  // If no play data, use recent games as trending
-  var hasData = sorted.some(function(s) { return s.plays > 0; });
-  if (hasData) {
-    sorted.sort(function(a, b) { return b.plays - a.plays; });
-  } else {
-    // Show newest as trending for new visitors
-    sorted.sort(function(a, b) { return b.game.added.localeCompare(a.game.added); });
-  }
-  var top5 = sorted.slice(0, 5);
-  var grid = document.getElementById('trendingGrid');
-  grid.innerHTML = top5.map(function(item, i) {
-    var g = item.game;
-    var playText = item.plays > 0 ? item.plays + ' plays' : 'New!';
-    return '<a href="' + g.href + '" class="trending-card" onclick="trackPlay(\'' + g.id + '\')">' +
-      '<div class="trending-rank">#' + (i + 1) + '</div>' +
-      '<div class="trending-emoji">' + g.emoji + '</div>' +
-      '<div class="trending-name">' + g.name + '</div>' +
-      '<div class="trending-plays">' + playText + '</div>' +
-      '</a>';
-  }).join('');
-}
-
-function trackPlay(gameId) {
-  var plays = JSON.parse(localStorage.getItem('ajgt_plays') || '{}');
-  plays[gameId] = (plays[gameId] || 0) + 1;
-  localStorage.setItem('ajgt_plays', JSON.stringify(plays));
-}
-
-// Track clicks on all game cards
-document.addEventListener('click', function(e) {
-  var card = e.target.closest('.game-card');
-  if (card) trackPlay(card.dataset.id);
-});
-
-// === DAILY STREAK ===
-function initStreak() {
-  var today = new Date().toISOString().slice(0, 10);
-  var streakData = JSON.parse(localStorage.getItem('ajgt_streak') || '{"count":0,"last":"","days":[]}');
-  var lastDate = streakData.last;
-  var yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
-
-  if (lastDate === today) {
-    // Already visited today
-  } else if (lastDate === yesterday) {
-    // Streak continues!
-    streakData.count++;
-    streakData.last = today;
-    streakData.days.push(today);
-    if (streakData.days.length > 7) streakData.days = streakData.days.slice(-7);
-  } else {
-    // Streak broken or first visit
-    streakData.count = 1;
-    streakData.last = today;
-    streakData.days = [today];
-  }
-  localStorage.setItem('ajgt_streak', JSON.stringify(streakData));
-
-  document.getElementById('streakCount').textContent = streakData.count;
-  var daysContainer = document.getElementById('streakDays');
-  var dayNames = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
-  var todayIdx = new Date().getDay();
-  // Show last 7 days
-  daysContainer.innerHTML = '';
-  for (var i = 6; i >= 0; i--) {
-    var d = new Date(Date.now() - i * 86400000);
-    var dateStr = d.toISOString().slice(0, 10);
-    var isActive = streakData.days.indexOf(dateStr) >= 0;
-    var isToday = i === 0;
-    var dayName = dayNames[d.getDay() === 0 ? 6 : d.getDay() - 1];
-    var dot = document.createElement('div');
-    dot.className = 'streak-dot' + (isActive ? ' active' : '') + (isToday ? ' today' : '');
-    dot.textContent = isActive ? '🔥' : dayName;
-    daysContainer.appendChild(dot);
-  }
-}
-
-// Init features
-initTrending();
-initStreak();
-
-
-// === VISITOR COUNTER ===
-function initVisitorCounter() {
-  var today = new Date().toISOString().slice(0, 10);
-  var vc = JSON.parse(localStorage.getItem('ajgt_visitors') || '{"date":"","count":0}');
-  if (vc.date !== today) { vc.date = today; vc.count = Math.floor(Math.random() * 300) + 150; }
-  vc.count++;
-  localStorage.setItem('ajgt_visitors', JSON.stringify(vc));
-  var el = document.getElementById('visitorCount');
-  if (el) el.textContent = vc.count.toLocaleString();
-}
-initVisitorCounter();
-
-// === TOP PLAYERS (from Supabase leaderboard) ===
-async function initTopPlayers() {
-  var list = document.getElementById('topPlayersList');
-  if (!list) return;
-  try {
-    var url = 'https://adudgrfxwildzwpcvyil.supabase.co/rest/v1/ajgametime_leaderboard?order=score.desc&limit=5';
-    var key = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFkdWRncmZ4d2lsZHp3cGN2eWlsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyOTkzODUsImV4cCI6MjA4Nzg3NTM4NX0.-JYXn5r9QUjxbpwckwDMSvCm8w1xRXOp5lP2TWNOC_E';
-    var resp = await fetch(url, { headers: { 'apikey': key, 'Authorization': 'Bearer ' + key } });
-    var data = await resp.json();
-    var medals = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣'];
-    list.innerHTML = data.map(function(d, i) {
-      return '<div class="top-player-row"><span class="tp-rank">' + medals[i] + '</span><span class="tp-name">' + d.player_name + '</span><span class="tp-score">' + d.score.toLocaleString() + '</span><span class="tp-game">' + (d.game || '') + '</span></div>';
-    }).join('');
-  } catch(e) {
-    list.innerHTML = '<div style="color:#64748b;text-align:center;font-size:0.8rem">Play games to get on the board!</div>';
-  }
-}
-initTopPlayers();
-
-// === QUICK PLAY (5 random quick games) ===
-function initQuickPlay() {
-  var grid = document.getElementById('quickGrid');
-  if (!grid) return;
-  var shuffled = GAMES.slice().sort(function() { return Math.random() - 0.5; });
-  var picks = shuffled.slice(0, 5);
-  grid.innerHTML = picks.map(function(g) {
-    return '<a href="' + g.href + '" class="quick-card" onclick="trackPlay(\'' + g.id + '\')">' +
-      '<div class="qc-emoji">' + g.emoji + '</div>' +
-      '<div class="qc-name">' + g.name + '</div>' +
-      '<div class="qc-play">▶ PLAY</div></a>';
-  }).join('');
-}
-initQuickPlay();
-
-// === NEW GAMES (5 newest) ===
-function initNewGames() {
-  var grid = document.getElementById('newGrid');
-  if (!grid) return;
-  var newest = GAMES.slice().sort(function(a, b) { return b.added.localeCompare(a.added); }).slice(0, 5);
-  grid.innerHTML = newest.map(function(g) {
-    return '<a href="' + g.href + '" class="new-card" onclick="trackPlay(\'' + g.id + '\')">' +
-      '<div class="new-badge">NEW</div>' +
-      '<div class="nc-emoji">' + g.emoji + '</div>' +
-      '<div class="nc-name">' + g.name + '</div>' +
-      '<div class="nc-desc">' + g.desc.substring(0, 40) + '...</div></a>';
-  }).join('');
-}
-initNewGames();
-
-
-// === WEEKLY CHALLENGE ===
-function initWeeklyChallenge() {
-  // Rotate challenge weekly based on date
-  var weekNum = Math.floor(Date.now() / (7 * 86400000));
-  var challengeGames = GAMES.filter(function(g) { return g.category !== 'Puzzle'; });
-  var game = challengeGames[weekNum % challengeGames.length];
-  var targetScore = [3000, 5000, 7500, 4000, 6000, 8000, 10000][weekNum % 7];
-  
-  document.getElementById('wcTitle').textContent = 'Beat this score!';
-  document.getElementById('wcScore').textContent = '🏆 ' + targetScore.toLocaleString();
-  document.getElementById('wcGame').textContent = game.emoji + ' ' + game.name;
-  document.getElementById('wcPlay').href = game.href;
-  document.getElementById('wcPlay').onclick = function() { trackPlay(game.id); };
-  
-  // Timer until next challenge
-  var now = new Date();
-  var nextMonday = new Date(now);
-  nextMonday.setDate(now.getDate() + (8 - now.getDay()) % 7);
-  nextMonday.setHours(0, 0, 0, 0);
-  if (nextMonday <= now) nextMonday.setDate(nextMonday.getDate() + 7);
-  var diff = nextMonday - now;
-  var days = Math.floor(diff / 86400000);
-  var hours = Math.floor((diff % 86400000) / 3600000);
-  document.getElementById('wcTimer').textContent = '⏰ Resets in ' + days + 'd ' + hours + 'h';
-}
-initWeeklyChallenge();
-
-// === SHARE SYSTEM ===
-// Expose globally so games can call it
-window.ajgtShare = function(gameName, score) {
-  document.getElementById('shareScore').textContent = score.toLocaleString();
-  document.getElementById('shareOverlay').style.display = 'flex';
-  window._shareGame = gameName;
-  window._shareScore = score;
-};
-
-function copyShareLink() {
-  var text = '🏆 I scored ' + (window._shareScore || 0) + ' in ' + (window._shareGame || 'a game') + ' on AJ GameTime! Can you beat me? 🎮 https://ajgametime.com';
-  navigator.clipboard.writeText(text).then(function() {
-    event.target.textContent = '✅ Copied!';
-    setTimeout(function() { event.target.textContent = '📋 Copy Link'; }, 2000);
-  });
-}
-
-function shareTwitter() {
-  var text = '🏆 I scored ' + (window._shareScore || 0) + ' in ' + (window._shareGame || 'a game') + ' on AJ GameTime! Can you beat me? 🎮';
-  window.open('https://twitter.com/intent/tweet?text=' + encodeURIComponent(text) + '&url=' + encodeURIComponent('https://ajgametime.com'), '_blank');
-}
-
-function shareWhatsApp() {
-  var text = '🏆 I scored ' + (window._shareScore || 0) + ' in ' + (window._shareGame || 'a game') + ' on AJ GameTime! Can you beat me? 🎮 https://ajgametime.com';
-  window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank');
-}
-
-function closeShare() {
-  document.getElementById('shareOverlay').style.display = 'none';
-}
-
-// === BOREDOM CHALLENGE ===
-function initBoredomChallenge() {
-  var today = new Date().toISOString().slice(0, 10);
-  var bc = JSON.parse(localStorage.getItem('ajgt_boredom') || '{"date":"","games":[],"done":[]}');
-  
-  // New challenge each day
-  if (bc.date !== today) {
-    var shuffled = GAMES.slice().sort(function() { return Math.random() - 0.5; });
-    bc = { date: today, games: shuffled.slice(0, 3).map(function(g) { return g.id; }), done: [] };
-    localStorage.setItem('ajgt_boredom', JSON.stringify(bc));
-  }
-  
-  var grid = document.getElementById('bcGames');
-  grid.innerHTML = bc.games.map(function(gid) {
-    var g = GAMES.find(function(x) { return x.id === gid; });
-    if (!g) return '';
-    var isDone = bc.done.indexOf(gid) >= 0;
-    return '<a href="' + g.href + '" class="bc-game" onclick="completeBoredom(\'' + gid + '\')" style="' + (isDone ? 'border-color:#22c55e;background:rgba(34,197,94,0.1)' : '') + '">' +
-      '<div class="bc-emoji">' + (isDone ? '✅' : g.emoji) + '</div>' +
-      '<div class="bc-name">' + g.name + '</div></a>';
-  }).join('');
-  
-  var progress = bc.done.length;
-  document.getElementById('bcFill').style.width = (progress / 3 * 100) + '%';
-  document.getElementById('bcStatus').textContent = progress >= 3 ? '🎉 Challenge Complete!' : progress + '/3 completed';
-}
-
-function completeBoredom(gid) {
-  var bc = JSON.parse(localStorage.getItem('ajgt_boredom') || '{"date":"","games":[],"done":[]}');
-  if (bc.done.indexOf(gid) < 0) {
-    bc.done.push(gid);
-    localStorage.setItem('ajgt_boredom', JSON.stringify(bc));
-  }
-  trackPlay(gid);
-}
-
-initBoredomChallenge();
 
 </script>
 <script type="application/ld+json">
@@ -1227,6 +961,203 @@ for (let i = 0; i < 20; i++) {
 }
 
 init();
+
+// === I'M BORED - Random Game ===
+function goRandomGame() {
+  var btn = document.getElementById('boredBtn');
+  btn.textContent = '🎰 Picking...';
+  btn.style.pointerEvents = 'none';
+  var count = 0;
+  var interval = setInterval(function() {
+    var rg = GAMES[Math.floor(Math.random() * GAMES.length)];
+    btn.textContent = rg.emoji + ' ' + rg.name + '?';
+    count++;
+    if (count > 8) {
+      clearInterval(interval);
+      var pick = GAMES[Math.floor(Math.random() * GAMES.length)];
+      btn.textContent = '🎯 ' + pick.name + '!';
+      setTimeout(function() { window.location.href = pick.href; }, 600);
+    }
+  }, 150);
+}
+
+// === TRENDING GAMES ===
+function initTrending() {
+  var plays = JSON.parse(localStorage.getItem('ajgt_plays') || '{}');
+  var sorted = GAMES.slice().map(function(g) { return { game: g, plays: plays[g.id] || 0 }; });
+  var hasData = sorted.some(function(s) { return s.plays > 0; });
+  if (hasData) sorted.sort(function(a, b) { return b.plays - a.plays; });
+  else sorted.sort(function(a, b) { return b.game.added.localeCompare(a.game.added); });
+  var top5 = sorted.slice(0, 5);
+  var grid = document.getElementById('trendingGrid');
+  if(!grid)return;
+  grid.innerHTML = top5.map(function(item, i) {
+    var g = item.game;
+    var playText = item.plays > 0 ? item.plays + ' plays' : 'New!';
+    return '<a href="' + g.href + '" class="trending-card" onclick="trackPlay(\'' + g.id + '\')">' +
+      '<div class="trending-rank">#' + (i + 1) + '</div>' +
+      '<div class="trending-emoji">' + g.emoji + '</div>' +
+      '<div class="trending-name">' + g.name + '</div>' +
+      '<div class="trending-plays">' + playText + '</div></a>';
+  }).join('');
+}
+function trackPlay(gameId) {
+  var plays = JSON.parse(localStorage.getItem('ajgt_plays') || '{}');
+  plays[gameId] = (plays[gameId] || 0) + 1;
+  localStorage.setItem('ajgt_plays', JSON.stringify(plays));
+}
+document.addEventListener('click', function(e) {
+  var card = e.target.closest('.game-card');
+  if (card) trackPlay(card.dataset.id);
+});
+
+// === DAILY STREAK ===
+function initStreak() {
+  var today = new Date().toISOString().slice(0, 10);
+  var streakData = JSON.parse(localStorage.getItem('ajgt_streak') || '{"count":0,"last":"","days":[]}');
+  var lastDate = streakData.last;
+  var yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+  if (lastDate === today) {}
+  else if (lastDate === yesterday) { streakData.count++; streakData.last = today; streakData.days.push(today); if (streakData.days.length > 7) streakData.days = streakData.days.slice(-7); }
+  else { streakData.count = 1; streakData.last = today; streakData.days = [today]; }
+  localStorage.setItem('ajgt_streak', JSON.stringify(streakData));
+  var el=document.getElementById('streakCount'); if(el)el.textContent = streakData.count;
+  var daysContainer = document.getElementById('streakDays'); if(!daysContainer)return;
+  var dayNames = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+  daysContainer.innerHTML = '';
+  for (var i = 6; i >= 0; i--) {
+    var d = new Date(Date.now() - i * 86400000);
+    var dateStr = d.toISOString().slice(0, 10);
+    var isActive = streakData.days.indexOf(dateStr) >= 0;
+    var isToday = i === 0;
+    var dayName = dayNames[d.getDay() === 0 ? 6 : d.getDay() - 1];
+    var dot = document.createElement('div');
+    dot.className = 'streak-dot' + (isActive ? ' active' : '') + (isToday ? ' today' : '');
+    dot.textContent = isActive ? '🔥' : dayName;
+    daysContainer.appendChild(dot);
+  }
+}
+
+// === VISITOR COUNTER ===
+function initVisitorCounter() {
+  var today = new Date().toISOString().slice(0, 10);
+  var vc = JSON.parse(localStorage.getItem('ajgt_visitors') || '{"date":"","count":0}');
+  if (vc.date !== today) { vc.date = today; vc.count = Math.floor(Math.random() * 300) + 150; }
+  vc.count++;
+  localStorage.setItem('ajgt_visitors', JSON.stringify(vc));
+  var el = document.getElementById('visitorCount');
+  if (el) el.textContent = vc.count.toLocaleString();
+}
+
+// === TOP PLAYERS ===
+async function initTopPlayers() {
+  var list = document.getElementById('topPlayersList'); if (!list) return;
+  try {
+    var url = 'https://adudgrfxwildzwpcvyil.supabase.co/rest/v1/ajgametime_leaderboard?order=score.desc&limit=5';
+    var key = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFkdWRncmZ4d2lsZHp3cGN2eWlsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyOTkzODUsImV4cCI6MjA4Nzg3NTM4NX0.-JYXn5r9QUjxbpwckwDMSvCm8w1xRXOp5lP2TWNOC_E';
+    var resp = await fetch(url, { headers: { 'apikey': key, 'Authorization': 'Bearer ' + key } });
+    var data = await resp.json();
+    var medals = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣'];
+    list.innerHTML = data.map(function(d, i) {
+      return '<div class="top-player-row"><span class="tp-rank">' + medals[i] + '</span><span class="tp-name">' + d.player_name + '</span><span class="tp-score">' + d.score.toLocaleString() + '</span><span class="tp-game">' + (d.game || '') + '</span></div>';
+    }).join('');
+  } catch(e) { list.innerHTML = '<div style="color:#64748b;text-align:center;font-size:0.8rem">Play games to get on the board!</div>'; }
+}
+
+// === QUICK PLAY ===
+function initQuickPlay() {
+  var grid = document.getElementById('quickGrid'); if (!grid) return;
+  var shuffled = GAMES.slice().sort(function() { return Math.random() - 0.5; });
+  grid.innerHTML = shuffled.slice(0, 5).map(function(g) {
+    return '<a href="' + g.href + '" class="quick-card" onclick="trackPlay(\'' + g.id + '\')">' +
+      '<div class="qc-emoji">' + g.emoji + '</div><div class="qc-name">' + g.name + '</div><div class="qc-play">▶ PLAY</div></a>';
+  }).join('');
+}
+
+// === NEW GAMES ===
+function initNewGames() {
+  var grid = document.getElementById('newGrid'); if (!grid) return;
+  var newest = GAMES.slice().sort(function(a, b) { return b.added.localeCompare(a.added); }).slice(0, 5);
+  grid.innerHTML = newest.map(function(g) {
+    return '<a href="' + g.href + '" class="new-card" onclick="trackPlay(\'' + g.id + '\')">' +
+      '<div class="new-badge">NEW</div><div class="nc-emoji">' + g.emoji + '</div><div class="nc-name">' + g.name + '</div><div class="nc-desc">' + g.desc.substring(0, 40) + '...</div></a>';
+  }).join('');
+}
+
+// === WEEKLY CHALLENGE ===
+function initWeeklyChallenge() {
+  var weekNum = Math.floor(Date.now() / (7 * 86400000));
+  var challengeGames = GAMES.filter(function(g) { return g.category !== 'Puzzle'; });
+  var game = challengeGames[weekNum % challengeGames.length];
+  var targetScore = [3000, 5000, 7500, 4000, 6000, 8000, 10000][weekNum % 7];
+  var el;
+  el=document.getElementById('wcTitle'); if(el)el.textContent = 'Beat this score!';
+  el=document.getElementById('wcScore'); if(el)el.textContent = '🏆 ' + targetScore.toLocaleString();
+  el=document.getElementById('wcGame'); if(el)el.textContent = game.emoji + ' ' + game.name;
+  el=document.getElementById('wcPlay'); if(el){el.href = game.href; el.onclick = function() { trackPlay(game.id); };}
+  var now = new Date();
+  var nextMonday = new Date(now); nextMonday.setDate(now.getDate() + (8 - now.getDay()) % 7); nextMonday.setHours(0, 0, 0, 0);
+  if (nextMonday <= now) nextMonday.setDate(nextMonday.getDate() + 7);
+  var diff = nextMonday - now;
+  el=document.getElementById('wcTimer'); if(el)el.textContent = '⏰ Resets in ' + Math.floor(diff / 86400000) + 'd ' + Math.floor((diff % 86400000) / 3600000) + 'h';
+}
+
+// === SHARE SYSTEM ===
+window.ajgtShare = function(gameName, score) {
+  document.getElementById('shareScore').textContent = score.toLocaleString();
+  document.getElementById('shareOverlay').style.display = 'flex';
+  window._shareGame = gameName; window._shareScore = score;
+};
+function copyShareLink() {
+  var text = '🏆 I scored ' + (window._shareScore || 0) + ' in ' + (window._shareGame || 'a game') + ' on AJ GameTime! Can you beat me? 🎮 https://ajgametime.com';
+  navigator.clipboard.writeText(text).then(function() { event.target.textContent = '✅ Copied!'; setTimeout(function() { event.target.textContent = '📋 Copy Link'; }, 2000); });
+}
+function shareTwitter() {
+  var text = '🏆 I scored ' + (window._shareScore || 0) + ' in ' + (window._shareGame || 'a game') + ' on AJ GameTime! Can you beat me? 🎮';
+  window.open('https://twitter.com/intent/tweet?text=' + encodeURIComponent(text) + '&url=' + encodeURIComponent('https://ajgametime.com'), '_blank');
+}
+function shareWhatsApp() {
+  var text = '🏆 I scored ' + (window._shareScore || 0) + ' in ' + (window._shareGame || 'a game') + ' on AJ GameTime! Can you beat me? 🎮 https://ajgametime.com';
+  window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank');
+}
+function closeShare() { document.getElementById('shareOverlay').style.display = 'none'; }
+
+// === BOREDOM CHALLENGE ===
+function initBoredomChallenge() {
+  var today = new Date().toISOString().slice(0, 10);
+  var bc = JSON.parse(localStorage.getItem('ajgt_boredom') || '{"date":"","games":[],"done":[]}');
+  if (bc.date !== today) {
+    var shuffled = GAMES.slice().sort(function() { return Math.random() - 0.5; });
+    bc = { date: today, games: shuffled.slice(0, 3).map(function(g) { return g.id; }), done: [] };
+    localStorage.setItem('ajgt_boredom', JSON.stringify(bc));
+  }
+  var grid = document.getElementById('bcGames'); if(!grid)return;
+  grid.innerHTML = bc.games.map(function(gid) {
+    var g = GAMES.find(function(x) { return x.id === gid; }); if (!g) return '';
+    var isDone = bc.done.indexOf(gid) >= 0;
+    return '<a href="' + g.href + '" class="bc-game" onclick="completeBoredom(\'' + gid + '\')" style="' + (isDone ? 'border-color:#22c55e;background:rgba(34,197,94,0.1)' : '') + '">' +
+      '<div class="bc-emoji">' + (isDone ? '✅' : g.emoji) + '</div><div class="bc-name">' + g.name + '</div></a>';
+  }).join('');
+  var progress = bc.done.length;
+  var fill=document.getElementById('bcFill'); if(fill)fill.style.width = (progress / 3 * 100) + '%';
+  var status=document.getElementById('bcStatus'); if(status)status.textContent = progress >= 3 ? '🎉 Challenge Complete!' : progress + '/3 completed';
+}
+function completeBoredom(gid) {
+  var bc = JSON.parse(localStorage.getItem('ajgt_boredom') || '{"date":"","games":[],"done":[]}');
+  if (bc.done.indexOf(gid) < 0) { bc.done.push(gid); localStorage.setItem('ajgt_boredom', JSON.stringify(bc)); }
+  trackPlay(gid);
+}
+
+// Init all features
+initVisitorCounter();
+initTrending();
+initStreak();
+initTopPlayers();
+initQuickPlay();
+initNewGames();
+initWeeklyChallenge();
+initBoredomChallenge();
+
 </script>
 <div class="share-overlay" id="shareOverlay">
   <div class="share-box">
