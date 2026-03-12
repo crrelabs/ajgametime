@@ -347,7 +347,7 @@ function updateUnlockHint(){
   if(!freeplayUnlocked){hint.textContent='🔓 Reach wave 10 to unlock Free Play';return}
   hint.textContent='Best: Wave '+(bestWaves[difficulty]||0);
 }
-buildDiffPicker();updateUnlockHint();
+// Moved init calls to bottom of script
 
 // === TOWER DEFS (prices 2x, new towers) ===
 var TOWER_DEFS={
@@ -488,8 +488,7 @@ function buildTowerBar(){
     });
   });
 }
-buildTowerBar();
-
+// Moved buildTowerBar() to bottom
 
 // === MAPS ===
 var currentMap='random';
@@ -501,7 +500,7 @@ var MAPS={
   maze:{name:'🏰 Fortress',desc:'Tight corridors',color:'#f59e0b'},
   desert:{name:'🏜️ Desert',desc:'Wide open, short path',color:'#f97316'}
 };
-buildMapPicker();
+// Moved buildMapPicker() to bottom
 
 function generateMapPath(mapId){
   path=[];pathSet=new Set();
@@ -1109,7 +1108,13 @@ document.getElementById('settingsClose').onclick=function(){document.getElementB
 document.getElementById('musicVol').oninput=function(){_musicVol=this.value/100;document.getElementById('musicVolVal').textContent=this.value+'%';localStorage.setItem('zd_musicVol',this.value);_applyVol()};
 document.getElementById('sfxVol').oninput=function(){_sfxVol=this.value/100;document.getElementById('sfxVolVal').textContent=this.value+'%';localStorage.setItem('zd_sfxVol',this.value);_applyVol()};
 
-// Start game loop LAST (after all event handlers are set up)
+// === INIT ALL UI (after everything is defined) ===
+buildDiffPicker();
+updateUnlockHint();
+buildTowerBar();
+buildMapPicker();
+
+// Start game loop LAST
 setInterval(loop,1000/30);
 </script>
 
