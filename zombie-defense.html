@@ -1016,12 +1016,13 @@ document.getElementById('pauseBtn').onclick=function(){
 document.getElementById('resumeBtn').onclick=function(){paused=false;document.getElementById('pauseOverlay').style.display='none';document.getElementById('pauseBtn').textContent='⏸️'};
 
 // === GAME LOOP ===
-function loop(){update();draw();requestAnimationFrame(loop)}
+function loop(){update();draw();}
+setInterval(loop,1000/30);
 
 document.getElementById('startBtn').onclick=function(){
   document.getElementById('startScreen').classList.add('hidden');
   document.getElementById('towerBar').style.display='block';canvas.style.pointerEvents='';
-  initAudio();startMusic();init();loop();
+  initAudio();startMusic();init();
 };
 
 
