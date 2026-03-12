@@ -99,6 +99,35 @@ canvas{display:block}
 const C=document.getElementById('game'),X=C.getContext('2d');
 let W,H;function resize(){W=C.width=window.innerWidth;H=C.height=window.innerHeight;}resize();window.addEventListener('resize',resize);
 
+
+// === COINS & SHOP ===
+var sbCoins=parseInt(localStorage.getItem('sb2_coins')||'0');
+var ownedShips=JSON.parse(localStorage.getItem('sb2_ships')||'["default"]');
+var equippedShip=localStorage.getItem('sb2_ship')||'default';
+var ownedWeapons=JSON.parse(localStorage.getItem('sb2_weapons')||'["laser"]');
+var equippedWeapon=localStorage.getItem('sb2_weapon')||'laser';
+var sessionCoins=0;
+
+var SB2_SHIPS=[
+  {id:'default',name:'Scout',cost:0,emoji:'🚀',color:'#22d3ee',speedMult:1},
+  {id:'fighter',name:'Fighter',cost:50,emoji:'✈️',color:'#3b82f6',speedMult:1.1},
+  {id:'stealth',name:'Stealth',cost:100,emoji:'🛩️',color:'#6b21a8',speedMult:1.3},
+  {id:'tank',name:'Tank',cost:150,emoji:'🛡️',color:'#22c55e',speedMult:0.8,extraLife:true},
+  {id:'phoenix',name:'Phoenix',cost:200,emoji:'🐦‍🔥',color:'#f97316',speedMult:1.2},
+  {id:'ufo',name:'UFO',cost:300,emoji:'🛸',color:'#a855f7',speedMult:1.15},
+];
+var SB2_WEAPONS=[
+  {id:'laser',name:'Laser',cost:0,emoji:'🔫',dmgMult:1,desc:'Standard laser'},
+  {id:'double',name:'Double Shot',cost:60,emoji:'⚡',dmgMult:1,desc:'2 bullets at once'},
+  {id:'spread',name:'Spread',cost:100,emoji:'🌟',dmgMult:0.8,desc:'3-way spread'},
+  {id:'missile',name:'Missiles',cost:150,emoji:'🚀',dmgMult:2,desc:'Slow but powerful'},
+  {id:'plasma',name:'Plasma',cost:200,emoji:'🔮',dmgMult:1.5,desc:'Pierces enemies'},
+  {id:'railgun',name:'Railgun',cost:350,emoji:'⚡',dmgMult:3,desc:'Instant beam'},
+];
+function sb2Save(){localStorage.setItem('sb2_coins',sbCoins);localStorage.setItem('sb2_ships',JSON.stringify(ownedShips));localStorage.setItem('sb2_ship',equippedShip);localStorage.setItem('sb2_weapons',JSON.stringify(ownedWeapons));localStorage.setItem('sb2_weapon',equippedWeapon);}
+function getShip(){for(var i=0;i<SB2_SHIPS.length;i++){if(SB2_SHIPS[i].id===equippedShip)return SB2_SHIPS[i];}return SB2_SHIPS[0];}
+function getWeapon(){for(var i=0;i<SB2_WEAPONS.length;i++){if(SB2_WEAPONS[i].id===equippedWeapon)return SB2_WEAPONS[i];}return SB2_WEAPONS[0];}
+
 let playing=false,score=0,lives=3,wave=1,frame=0;
 let particles=[],stars=[];
 
@@ -120,6 +149,7 @@ const ALIEN_TYPES=[
   {emoji:'💀',pts:50,hp:3,w:30,h:26,color:'#ef4444'},
 ];
 
+var bossAlive=false;
 function spawnWave(){
   aliens=[];
   const rows=Math.min(5,2+Math.floor(wave/2));
@@ -140,6 +170,8 @@ function spawnWave(){
       });
     }
   }
+  // Boss every 5 waves
+  if(wave%5===0){aliens.push({x:W/2,y:50,baseX:W/2,baseY:50,w:50,h:40,hp:10+wave*3,maxHp:10+wave*3,emoji:"👹",pts:wave*50,color:"#fbbf24",bobTimer:0,isBoss:true});bossAlive=true;}
   alienDir=1;
   alienSpeed=0.5+wave*0.15;
   alienBullets=[];
@@ -172,8 +204,13 @@ document.querySelectorAll('.btn').forEach(btn=>{
 
 function shoot(){
   if(ship.cooldown>0)return;
-  ship.cooldown=12;
-  playerBullets.push({x:ship.x,y:ship.y-ship.h/2,speed:8});
+  var wp=getWeapon();
+  if(wp.id==='double'){ship.cooldown=12;playerBullets.push({x:ship.x-6,y:ship.y-ship.h/2,speed:8,dmg:wp.dmgMult});playerBullets.push({x:ship.x+6,y:ship.y-ship.h/2,speed:8,dmg:wp.dmgMult});}
+  else if(wp.id==='spread'){ship.cooldown=14;for(var a=-1;a<=1;a++)playerBullets.push({x:ship.x+a*8,y:ship.y-ship.h/2,speed:8,vx:a*1.5,dmg:wp.dmgMult});}
+  else if(wp.id==='missile'){ship.cooldown=30;playerBullets.push({x:ship.x,y:ship.y-ship.h/2,speed:5,dmg:wp.dmgMult,big:true});}
+  else if(wp.id==='plasma'){ship.cooldown=16;playerBullets.push({x:ship.x,y:ship.y-ship.h/2,speed:10,dmg:wp.dmgMult,pierce:true});}
+  else if(wp.id==='railgun'){ship.cooldown=40;playerBullets.push({x:ship.x,y:ship.y-ship.h/2,speed:30,dmg:wp.dmgMult});}
+  else{ship.cooldown=12;playerBullets.push({x:ship.x,y:ship.y-ship.h/2,speed:8,dmg:wp.dmgMult});}
   addP(ship.x,ship.y-ship.h/2,'#22d3ee',4);
 }
 
@@ -195,8 +232,8 @@ function update(){
   frame++;
 
   // Ship movement
-  if(actions.left)ship.x-=ship.speed;
-  if(actions.right)ship.x+=ship.speed;
+  var spdM=getShip().speedMult||1;if(actions.left)ship.x-=ship.speed*spdM;
+  if(actions.right)ship.x+=ship.speed*spdM;
   ship.x=Math.max(ship.w/2+5,Math.min(W-ship.w/2-5,ship.x));
   if(ship.cooldown>0)ship.cooldown--;
   if(ship.invincible>0)ship.invincible--;
@@ -205,17 +242,17 @@ function update(){
   // Player bullets
   for(let i=playerBullets.length-1;i>=0;i--){
     const b=playerBullets[i];
-    b.y-=b.speed;
+    b.y-=b.speed;if(b.vx)b.x+=b.vx;
     if(b.y<-10){playerBullets.splice(i,1);continue;}
     // Hit aliens
     for(let j=aliens.length-1;j>=0;j--){
       const a=aliens[j];
       if(Math.abs(b.x-a.x)<a.w/2+3&&Math.abs(b.y-a.y)<a.h/2+3){
-        a.hp--;
+        a.hp-=(b.dmg||1);
         playerBullets.splice(i,1);
         addP(a.x,a.y,a.color,6);
         if(a.hp<=0){
-          score+=a.pts;
+          score+=a.pts;var coinE=Math.ceil(a.pts/5);sbCoins+=coinE;sessionCoins+=coinE;
           addP(a.x,a.y,'#fbbf24',10);
           // Drop power-up chance
           if(Math.random()<0.12){
@@ -426,6 +463,7 @@ function draw(){
 }
 
 function gameOver(){
+  sb2Save();
   playing=false;
   document.getElementById('death-score').textContent='Score: '+score+' · Wave '+wave;
   document.getElementById('death-name').value=localStorage.getItem('ajgt_name')||'';
@@ -433,7 +471,7 @@ function gameOver(){
 }
 
 function resetGame(){
-  score=0;lives=3;wave=1;frame=0;
+  score=0;sessionCoins=0;lives=getShip().extraLife?4:3;wave=1;frame=0;
   ship.x=W/2;ship.y=H-110;ship.speed=5;ship.cooldown=0;ship.invincible=0;
   playerBullets=[];alienBullets=[];particles=[];powerups=[];
   spawnWave();updateHUD();
@@ -445,6 +483,34 @@ document.getElementById('play-btn').addEventListener('click',()=>{
 });
 
 function loop(){update();draw();requestAnimationFrame(loop);}loop();
+
+
+function renderSB2Shop(){
+  document.getElementById('sb2-shop-coins').textContent='🪙 '+sbCoins;
+  var sg=document.getElementById('sb2-ship-grid');sg.innerHTML='';
+  SB2_SHIPS.forEach(function(s){
+    var owned=ownedShips.indexOf(s.id)>=0;var eq=equippedShip===s.id;
+    var card=document.createElement('div');
+    card.style.cssText='background:rgba(255,255,255,0.06);border:2px solid '+(eq?'#22c55e':owned?'rgba(34,197,94,0.4)':'rgba(255,255,255,0.1)')+';border-radius:12px;padding:10px;width:90px;text-align:center;cursor:pointer;pointer-events:auto';
+    if(eq)card.style.background='rgba(34,197,94,0.1)';
+    card.innerHTML='<div style="font-size:28px">'+s.emoji+'</div><div style="color:#e2e8f0;font-size:11px;font-weight:700">'+s.name+'</div><div style="color:#94a3b8;font-size:9px">'+Math.round(s.speedMult*100)+'% spd</div>'+(eq?'<div style="color:#22c55e;font-size:10px;font-weight:700">✅</div>':owned?'<div style="color:#22c55e;font-size:10px">Owned</div>':'<div style="color:#fbbf24;font-size:11px">🪙 '+s.cost+'</div>');
+    card.onclick=function(){if(eq)return;if(owned){equippedShip=s.id;sb2Save();renderSB2Shop();return;}if(sbCoins>=s.cost){sbCoins-=s.cost;ownedShips.push(s.id);equippedShip=s.id;sb2Save();renderSB2Shop();}};
+    sg.appendChild(card);
+  });
+  var wg=document.getElementById('sb2-wep-grid');wg.innerHTML='';
+  SB2_WEAPONS.forEach(function(w){
+    var owned=ownedWeapons.indexOf(w.id)>=0;var eq=equippedWeapon===w.id;
+    var card=document.createElement('div');
+    card.style.cssText='background:rgba(255,255,255,0.06);border:2px solid '+(eq?'#22c55e':owned?'rgba(34,197,94,0.4)':'rgba(255,255,255,0.1)')+';border-radius:12px;padding:10px;width:90px;text-align:center;cursor:pointer;pointer-events:auto';
+    if(eq)card.style.background='rgba(34,197,94,0.1)';
+    card.innerHTML='<div style="font-size:28px">'+w.emoji+'</div><div style="color:#e2e8f0;font-size:11px;font-weight:700">'+w.name+'</div><div style="color:#94a3b8;font-size:9px">'+w.desc+'</div>'+(eq?'<div style="color:#22c55e;font-size:10px;font-weight:700">✅</div>':owned?'<div style="color:#22c55e;font-size:10px">Owned</div>':'<div style="color:#fbbf24;font-size:11px">🪙 '+w.cost+'</div>');
+    card.onclick=function(){if(eq)return;if(owned){equippedWeapon=w.id;sb2Save();renderSB2Shop();return;}if(sbCoins>=w.cost){sbCoins-=w.cost;ownedWeapons.push(w.id);equippedWeapon=w.id;sb2Save();renderSB2Shop();}};
+    wg.appendChild(card);
+  });
+}
+document.getElementById('sb2-shop-btn').addEventListener('click',function(){renderSB2Shop();document.getElementById('sb2-shop').style.display='flex';});
+document.getElementById('sb2-shop-close').addEventListener('click',function(){document.getElementById('sb2-shop').style.display='none';});
+if(document.getElementById('death-shop-btn'))document.getElementById('death-shop-btn').addEventListener('click',function(){document.getElementById('death-screen').style.display='none';renderSB2Shop();document.getElementById('sb2-shop').style.display='flex';});
 
 // === LEADERBOARD ===
 const _LB_URL='https://adudgrfxwildzwpcvyil.supabase.co';
@@ -459,5 +525,15 @@ document.getElementById('death-retry').addEventListener('click',function(){docum
 document.getElementById('death-lb').addEventListener('click',function(){_lbShow();});
 document.getElementById('death-name').addEventListener('keydown',function(e){if(e.key==='Enter')document.getElementById('death-submit').click();});
 </script>
+
+<div id="sb2-shop" style="position:fixed;inset:0;display:none;flex-direction:column;align-items:center;z-index:150;background:rgba(0,0,0,0.95);overflow-y:auto;padding:20px">
+<h2 style="font-family:Lilita One,cursive;font-size:28px;color:#8b5cf6;margin-bottom:4px">🛒 Shop</h2>
+<div id="sb2-shop-coins" style="color:#fbbf24;font-weight:800;font-size:16px;margin-bottom:12px">🪙 0</div>
+<div style="color:#94a3b8;font-weight:700;font-size:13px;margin:8px 0 6px">🚀 Ships</div>
+<div id="sb2-ship-grid" style="display:flex;flex-wrap:wrap;justify-content:center;gap:8px;max-width:400px;margin-bottom:8px"></div>
+<div style="color:#94a3b8;font-weight:700;font-size:13px;margin:8px 0 6px">🔫 Weapons</div>
+<div id="sb2-wep-grid" style="display:flex;flex-wrap:wrap;justify-content:center;gap:8px;max-width:400px;margin-bottom:8px"></div>
+<button id="sb2-shop-close" style="margin:14px 0;padding:10px 30px;font-size:16px;font-weight:700;color:#fff;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:10px;cursor:pointer">Close</button>
+</div>
 </body>
 </html>
