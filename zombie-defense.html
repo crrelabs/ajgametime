@@ -344,9 +344,12 @@ const TOWER_DEFS={
   mage:   {cost:350,range:3,damage:0,rate:120,emoji:'🧙',color:'#a855f7',projColor:'#a855f7',projSpeed:4,splash:0,convert:true},
   trap:   {cost:150,range:0,damage:0,rate:0,emoji:'🪤',color:'#78716c',projColor:'',projSpeed:0,splash:0,trapTower:true},
   banana: {cost:400,range:0,damage:0,rate:0,emoji:'🍌',color:'#fbbf24',projColor:'',projSpeed:0,splash:0,bananaTree:true,size:2},
+  poison: {cost:275,range:3,damage:0.3,rate:15,emoji:'🧪',color:'#84cc16',projColor:'#84cc16',projSpeed:6,splash:1.0,dot:5,poisonCloud:true},
+  sniper: {cost:400,range:6,damage:8,rate:80,emoji:'🎯',color:'#f472b6',projColor:'#f472b6',projSpeed:20,splash:0,critChance:0.25},
+  tesla:  {cost:500,range:3.5,damage:1.5,rate:30,emoji:'⚡',color:'#c084fc',projColor:'#c084fc',projSpeed:15,splash:0,chain:3},
 };
 
-const TOWER_ORDER=['gun','cannon','frost','laser','fire','bank','mage','trap','banana'];
+const TOWER_ORDER=['gun','cannon','frost','laser','fire','poison','sniper','tesla','bank','mage','trap','banana'];
 
 const ZOMBIE_TYPES=[
   {emoji:'🧟',hp:4,speed:0.8,gold:5,points:10},
@@ -355,6 +358,9 @@ const ZOMBIE_TYPES=[
   {emoji:'💀',hp:10,speed:0.6,gold:12,points:20},
   {emoji:'👹',hp:18,speed:0.5,gold:25,points:40},
   {emoji:'🦇',hp:3,speed:2.0,gold:6,points:8},
+  {emoji:'💚',hp:8,speed:0.7,gold:15,points:25,healer:true},
+  {emoji:'🛡️',hp:6,speed:0.9,gold:10,points:18,shield:true,shieldHp:8},
+  {emoji:'🪱',hp:12,speed:0.6,gold:20,points:30,splitter:true},
 ];
 
 const BOSS_TYPES=[
@@ -369,6 +375,19 @@ const BOSS_TYPES=[
   {emoji:'☠️',name:'Necromancer',hpBase:1500,speed:0.32,gold:900,points:7000},
   {emoji:'👑',name:'Zombie King',hpBase:2000,speed:0.3,gold:1200,points:10000},
 ];
+
+
+// === TOWER ABILITIES ===
+var TOWER_ABILITIES={
+  gun:{name:'Rapid Fire',emoji:'💨',cooldown:900,duration:180,desc:'3x fire rate for 3s'},
+  cannon:{name:'Mega Bomb',emoji:'💥',cooldown:1200,duration:1,desc:'Huge explosion'},
+  frost:{name:'Blizzard',emoji:'🌨️',cooldown:1000,duration:300,desc:'Slow ALL zombies 5s'},
+  laser:{name:'Overcharge',emoji:'⚡',cooldown:1100,duration:240,desc:'4x damage for 4s'},
+  fire:{name:'Inferno',emoji:'🔥',cooldown:1000,duration:180,desc:'Fire ring damages all nearby'},
+  poison:{name:'Plague',emoji:'☠️',cooldown:1200,duration:1,desc:'Poison all zombies on screen'},
+  sniper:{name:'Headshot',emoji:'🎯',cooldown:800,duration:1,desc:'Instant kill strongest zombie'},
+  tesla:{name:'EMP Burst',emoji:'💫',cooldown:1000,duration:1,desc:'Stun all zombies 3s'}
+};
 
 // === GAME STATE ===
 let gold,lives,wave,score,gameRunning,paused,zombies,towers,projectiles,particles,allies,traps,bananas;
@@ -473,10 +492,39 @@ function nextWave(){
   updateHUD();
 }
 
+
+function activateAbility(tower){
+  if(!tower||tower.abilityCool>0||!TOWER_ABILITIES[tower.type])return;
+  var ab=TOWER_ABILITIES[tower.type];
+  tower.abilityCool=ab.cooldown;
+  tower.abilityActive=ab.duration;
+  sfxKill(); // reuse sound
+  var tcx=tower.col*TILE+TILE/2,tcy=tower.row*TILE+MAP_OFFSET_Y+TILE/2;
+  particles.push({x:tcx,y:tcy,vx:0,vy:-1.5,life:40,color:'#fbbf24',size:0,text:ab.emoji+' '+ab.name+'!'});
+  // Instant abilities
+  if(tower.type==='cannon'){// mega bomb
+    for(var bi=zombies.length-1;bi>=0;bi--){var bz=zombies[bi];var bdx=bz.x-tcx,bdy=bz.y-tcy;if(Math.sqrt(bdx*bdx+bdy*bdy)<TILE*4){bz.hp-=15*(1+tower.upgEffect*0.3);for(var pp=0;pp<4;pp++)particles.push({x:bz.x,y:bz.y,vx:(Math.random()-0.5)*6,vy:(Math.random()-0.5)*6,life:25,color:'#ef4444',size:4})}}
+  }
+  if(tower.type==='frost'){// blizzard
+    for(var fi=0;fi<zombies.length;fi++){zombies[fi].slowTimer=Math.max(zombies[fi].slowTimer,300)}
+  }
+  if(tower.type==='poison'){// plague
+    for(var pi=0;pi<zombies.length;pi++){zombies[pi].dotTimer=300;zombies[pi].dotDmg=3*(1+tower.upgEffect*0.3)}
+  }
+  if(tower.type==='sniper'){// headshot - kill strongest non-boss
+    var strongest=null,maxH=0;for(var si=0;si<zombies.length;si++){if(!zombies[si].isBoss&&zombies[si].hp>maxH){maxH=zombies[si].hp;strongest=zombies[si]}}
+    if(strongest){strongest.hp=0;particles.push({x:strongest.x,y:strongest.y,vx:0,vy:-1,life:40,color:'#f472b6',size:0,text:'💀 HEADSHOT!'})}
+  }
+  if(tower.type==='tesla'){// EMP stun all
+    for(var ti=0;ti<zombies.length;ti++){zombies[ti].stunTimer=Math.max(zombies[ti].stunTimer,180)}
+    particles.push({x:tcx,y:tcy,vx:0,vy:0,life:30,color:'#c084fc',size:TILE*5,ring:true});
+  }
+}
+
 function spawnZombie(){
   var diff=Math.min(wave/10,1),ti,r=Math.random(),ds=DIFF_SETTINGS[difficulty];
   if(wave<3)ti=0;else if(r<0.4)ti=0;else if(r<0.65)ti=1;else if(r<0.8)ti=2;
-  else if(r<0.9&&wave>5)ti=3;else if(r<0.95&&wave>8)ti=4;else if(wave>4)ti=5;else ti=Math.floor(Math.random()*3);
+  else if(r<0.85&&wave>5)ti=3;else if(r<0.9&&wave>8)ti=4;else if(r<0.93&&wave>4)ti=5;else if(r<0.96&&wave>6)ti=6;else if(r<0.98&&wave>10)ti=7;else if(wave>12)ti=8;else ti=Math.floor(Math.random()*3);
   var type=ZOMBIE_TYPES[ti];
   var hpS=(1+(wave-1)*0.3)*ds.hpScale*globalHpBuff;var spdM=(0.9+diff*0.3)*ds.speedScale*globalSpeedBuff;
   zombies.push({pathIdx:0,x:path[0].x*TILE+TILE/2,y:path[0].y*TILE+MAP_OFFSET_Y+TILE/2,
@@ -604,6 +652,9 @@ function update(){
     var z=zombies[i];
     if(z.stunTimer>0){z.stunTimer--;continue}// stunned = frozen
     if(z.dotTimer>0){z.hp-=z.dotDmg/60;z.dotTimer--}
+    // Healer zombie: heal nearby zombies
+    if(z.healer&&!z.healCool){z.healCool=90;for(var hi=0;hi<zombies.length;hi++){var hz=zombies[hi];if(hz===z||hz.isBoss)continue;var hdx=hz.x-z.x,hdy=hz.y-z.y;if(Math.sqrt(hdx*hdx+hdy*hdy)<TILE*2.5){hz.hp=Math.min(hz.maxHp,hz.hp+hz.maxHp*0.05);particles.push({x:hz.x,y:hz.y,vx:0,vy:-0.5,life:20,color:'#22c55e',size:0,text:'💚'})}}}
+    if(z.healCool>0)z.healCool--;
     if(z.slowTimer>0){z.speed=z.baseSpeed*0.4;z.slowTimer--}else z.speed=z.baseSpeed;
     if(z.pathIdx<path.length-1){
       var t=path[z.pathIdx+1],tx=t.x*TILE+TILE/2,ty=t.y*TILE+MAP_OFFSET_Y+TILE/2;
@@ -613,15 +664,33 @@ function update(){
     if(z.pathIdx>=path.length-1){var dmg=z.isBoss?5:1;lives-=dmg;sfxLoseLife();zombies.splice(i,1);hudDirty=true;
       if(z.isBoss){boss=null;bossActive=false;document.getElementById('bossBar').style.display='none'}
       if(lives<=0){gameOverFn();return}continue}
+    // Shield absorbs damage first
+    if(z.shieldHp>0){z.shieldHp-=0;} // shield processed in projectile hit
     if(z.hp<=0){
       gold+=z.gold;score+=z.points;
       if(z.isBoss){sfxBossDie();boss=null;bossActive=false;document.getElementById('bossBar').style.display='none';
         for(var pp=0;pp<20;pp++)particles.push({x:z.x,y:z.y,vx:(Math.random()-0.5)*8,vy:(Math.random()-0.5)*8,life:40,color:['#fbbf24','#ef4444','#a855f7'][pp%3],size:4+Math.random()*5})}
-      else{sfxKill();for(var pp=0;pp<6;pp++)particles.push({x:z.x,y:z.y,vx:(Math.random()-0.5)*4,vy:(Math.random()-0.5)*4,life:30,color:'#22c55e',size:3+Math.random()*3})}
+      else{
+        // Splitter: spawn 2 mini zombies on death
+        if(z.splitter&&!z.isMini){for(var sp=0;sp<2;sp++){zombies.push({pathIdx:z.pathIdx,x:z.x+(sp===0?-8:8),y:z.y,hp:z.maxHp*0.3,maxHp:z.maxHp*0.3,speed:z.baseSpeed*1.4,baseSpeed:z.baseSpeed*1.4,gold:Math.round(z.gold*0.3),points:Math.round(z.points*0.3),emoji:'🪱',slowTimer:0,dotTimer:0,dotDmg:0,stunTimer:0,isBoss:false,isMini:true})}}
+        sfxKill();for(var pp=0;pp<6;pp++)particles.push({x:z.x,y:z.y,vx:(Math.random()-0.5)*4,vy:(Math.random()-0.5)*4,life:30,color:'#22c55e',size:3+Math.random()*3})}
       zombies.splice(i,1);hudDirty=true;continue}
     if(z.isBoss&&boss)document.getElementById('bossHpInner').style.width=Math.max(0,z.hp/z.maxHp*100)+'%';
   }
   if(hudDirty)updateHUD();
+
+  // Tower ability cooldowns
+  for(var ai=0;ai<towers.length;ai++){var at=towers[ai];if(at.abilityCool>0)at.abilityCool--;if(at.abilityActive>0){at.abilityActive--;
+    // Active ability effects
+    if(at.type==='gun')at.cooldown=0; // rapid fire
+    if(at.type==='fire'){// inferno ring
+      var atcx=at.col*TILE+TILE/2,atcy=at.row*TILE+MAP_OFFSET_Y+TILE/2;
+      for(var fi=0;fi<zombies.length;fi++){var fz=zombies[fi];var fdx=fz.x-atcx,fdy=fz.y-atcy;if(Math.sqrt(fdx*fdx+fdy*fdy)<TILE*3)fz.hp-=0.5}
+      if(at.abilityActive%10===0)particles.push({x:atcx,y:atcy,vx:0,vy:0,life:15,color:'#f97316',size:TILE*3,ring:true})
+    }
+    if(at.type==='laser')at.cooldown=Math.max(at.cooldown,0); // overcharge handled in damage
+  }
+
   // Tower shooting
   for(var ti2=0;ti2<towers.length;ti2++){
     var t=towers[ti2];if(t.type==='bank'||t.type==='trap'||t.type==='banana')continue;
@@ -728,6 +797,8 @@ function draw(){
     if(z.slowTimer>0){ctx.fillStyle='rgba(56,189,248,0.3)';ctx.beginPath();ctx.arc(z.x,z.y,TILE*(z.isBoss?0.7:0.4),0,Math.PI*2);ctx.fill()}
     if(z.dotTimer>0){ctx.fillStyle='rgba(249,115,22,0.3)';ctx.beginPath();ctx.arc(z.x,z.y,TILE*(z.isBoss?0.6:0.35),0,Math.PI*2);ctx.fill()}
     if(z.isBoss){ctx.shadowColor='#ef4444';ctx.shadowBlur=20}
+    if(z.shieldHp>0){ctx.strokeStyle='rgba(59,130,246,0.6)';ctx.lineWidth=2;ctx.beginPath();ctx.arc(z.x,z.y,TILE*0.5,0,Math.PI*2);ctx.stroke()}
+    if(z.healer){ctx.fillStyle='rgba(34,197,94,0.15)';ctx.beginPath();ctx.arc(z.x,z.y,TILE*1.2,0,Math.PI*2);ctx.fill()}
     ctx.fillText(z.emoji,z.x,z.y+fs*0.3);ctx.shadowBlur=0;
     if(!z.isBoss){var bW=TILE*0.7,bH=4,bX=z.x-bW/2,bY=z.y-TILE*0.45;ctx.fillStyle='#1f2937';ctx.fillRect(bX,bY,bW,bH);var hp=Math.max(0,z.hp/z.maxHp);ctx.fillStyle=hp>0.5?'#22c55e':hp>0.25?'#fbbf24':'#ef4444';ctx.fillRect(bX,bY,bW*hp,bH)}
   }
@@ -833,7 +904,7 @@ function handleCanvasClick(mx,my){
   }else{if(towerAt(col,row))return}
   var cost=getTowerCost(selectedTower);if(gold<cost)return;
   gold-=cost;towerBuyCount[selectedTower]=(towerBuyCount[selectedTower]||0)+1;sfxPlace();
-  var newT={col:col,row:row,type:selectedTower,cooldown:0,upgSpeed:0,upgEffect:0,upgMulti:0,selected:false,
+  var newT={col:col,row:row,type:selectedTower,cooldown:0,upgSpeed:0,upgEffect:0,upgMulti:0,selected:false,abilityCool:0,abilityActive:0,
     size:def.size||1,trapTower:!!def.trapTower,bananaTree:!!def.bananaTree,trapTimer:0,bTimer:0};
   towers.push(newT);updateHUD();
 }
