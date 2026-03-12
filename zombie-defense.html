@@ -855,6 +855,7 @@ function update(){
 // === DRAW ===
 function draw(){
   ctx.clearRect(0,0,W,H);ctx.fillStyle='#1a1a2e';ctx.fillRect(0,0,W,H);
+  if(!gameRunning||!pathSet)return;
   // Grid
   for(var r=0;r<ROWS;r++)for(var c=0;c<COLS;c++){
     ctx.fillStyle=isOnPath(c,r)?((c+r)%2===0?'#3d2f1f':'#352a1a'):((c+r)%2===0?'#1a2e1a':'#162816');
@@ -1017,7 +1018,6 @@ document.getElementById('resumeBtn').onclick=function(){paused=false;document.ge
 
 // === GAME LOOP ===
 function loop(){update();draw();}
-setInterval(loop,1000/30);
 
 document.getElementById('startBtn').onclick=function(){
   document.getElementById('startScreen').classList.add('hidden');
@@ -1106,6 +1106,9 @@ document.getElementById('settingsBtn').onclick=function(){document.getElementByI
 document.getElementById('settingsClose').onclick=function(){document.getElementById('settingsOverlay').style.display='none'};
 document.getElementById('musicVol').oninput=function(){_musicVol=this.value/100;document.getElementById('musicVolVal').textContent=this.value+'%';localStorage.setItem('zd_musicVol',this.value);_applyVol()};
 document.getElementById('sfxVol').oninput=function(){_sfxVol=this.value/100;document.getElementById('sfxVolVal').textContent=this.value+'%';localStorage.setItem('zd_sfxVol',this.value);_applyVol()};
+
+// Start game loop LAST (after all event handlers are set up)
+setInterval(loop,1000/30);
 </script>
 
 <div id="prestigeOverlay" style="position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;z-index:100;background:rgba(0,0,0,0.95);overflow-y:auto;padding:20px">
