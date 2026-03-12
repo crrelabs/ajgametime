@@ -80,6 +80,18 @@ var W,H;
 function resize(){W=cv.width=window.innerWidth;H=cv.height=window.innerHeight;}
 resize();window.addEventListener('resize',resize);
 
+
+// === SHOP (BB) ===
+var bbCoins=parseInt(localStorage.getItem("bb_coins")||"0");
+var bbOwned=JSON.parse(localStorage.getItem("bb_owned")||'["default"]');
+var bbSkin=localStorage.getItem("bb_skin")||"default";
+var bbSession=0;
+var BB_SKINS=[{"id":"default","name":"Classic","cost":0,"emoji":"⚪"},{"id":"fire","name":"Fire Ball","cost":50,"emoji":"🔥"},{"id":"ice","name":"Ice Ball","cost":75,"emoji":"🧊"},{"id":"electric","name":"Electric","cost":100,"emoji":"⚡"},{"id":"rainbow","name":"Rainbow","cost":150,"emoji":"🌈"},{"id":"galaxy","name":"Galaxy","cost":200,"emoji":"🌌"},{"id":"gold","name":"Gold Ball","cost":300,"emoji":"🏆"}];
+var bbPOwnedP=JSON.parse(localStorage.getItem("bb_owned_p")||'["default_p"]');
+var bbPSkin=localStorage.getItem("bb_pskin")||"default_p";
+var BB_PADDLE_SKINS=[{"id":"default_p","name":"Classic","cost":0,"emoji":"▬"},{"id":"neon_p","name":"Neon","cost":50,"emoji":"💜"},{"id":"fire_p","name":"Fire Paddle","cost":100,"emoji":"🔥"},{"id":"ice_p","name":"Ice Paddle","cost":100,"emoji":"❄️"},{"id":"gold_p","name":"Gold","cost":200,"emoji":"⭐"}];
+function bbSave(){localStorage.setItem("bb_coins",bbCoins);localStorage.setItem("bb_owned",JSON.stringify(bbOwned));localStorage.setItem("bb_skin",bbSkin);localStorage.setItem("bb_owned_p",JSON.stringify(bbPOwnedP));localStorage.setItem("bb_pskin",bbPSkin);}
+function bbGetSkin(){for(var i=0;i<BB_SKINS.length;i++){if(BB_SKINS[i].id===bbSkin)return BB_SKINS[i];}return BB_SKINS[0];}
 var playing=false,score=0,lives=3,level=1,combo=0,totalBricks=0;
 var launched=false;
 var particles=[];
@@ -312,7 +324,7 @@ function update(){
     if(pu.y>H+20)return false;
     // Catch with paddle
     if(pu.y+10>=padY()&&pu.y<=padY()+PAD_H&&pu.x>=pad.x&&pu.x<=pad.x+pw){
-      if(pu.type==='wide'){activePower.wide=600;showMsg('↔️ Wide Paddle!');score+=25;}
+      if(pu.type==='wide'){activePower.wide=600;showMsg('↔️ Wide Paddle!');score+=25;var _ce=Math.ceil(25/5);bbCoins+=_ce;bbSession+=_ce;}
       if(pu.type==='fire'){activePower.fire=300;showMsg('🔥 Fire Ball!');score+=25;}
       if(pu.type==='life'){lives=Math.min(lives+1,5);showMsg('❤️ +1 Life!');score+=50;}
       if(pu.type==='multi'){
@@ -455,7 +467,7 @@ function draw(){
   }
 }
 
-function gameOver(){
+function gameOver(){bbSave();
   playing=false;
   document.getElementById('death-score').textContent='Score: '+score;
   document.getElementById('death-stats').textContent='Level '+level+' · Bricks: '+totalBricks;
@@ -464,7 +476,7 @@ function gameOver(){
 }
 
 function startGame(){
-  score=0;lives=3;level=1;combo=0;totalBricks=0;
+  score=0;bbSession=0;lives=3;level=1;combo=0;totalBricks=0;
   activePower={wide:0,fire:0};
   extraBalls=[];powerups=[];particles=[];
   pad.x=W/2-PAD_W/2;
@@ -494,6 +506,26 @@ document.getElementById('death-submit').addEventListener('click',async function(
 document.getElementById('death-retry').addEventListener('click',function(){document.getElementById('death-screen').style.display='none';document.getElementById('death-submit').textContent='📤 Submit Score';document.getElementById('death-submit').disabled=false;startGame();});
 document.getElementById('death-lb').addEventListener('click',function(){_lbShow();});
 document.getElementById('death-name').addEventListener('keydown',function(e){if(e.key==='Enter')document.getElementById('death-submit').click();});
+
+// Shop render for bb
+function renderBBShop(){
+  document.getElementById("bb-shop-coins").textContent="🪙 "+bbCoins;
+  var sg=document.getElementById("bb-skin-grid");sg.innerHTML="";
+  BB_SKINS.forEach(function(s){
+    var owned=bbOwned.indexOf(s.id)>=0;var eq=bbSkin===s.id;
+    var card=document.createElement("div");
+    card.style.cssText="background:rgba(255,255,255,0.06);border:2px solid "+(eq?"#22c55e":owned?"rgba(34,197,94,0.4)":"rgba(255,255,255,0.1)")+";border-radius:12px;padding:10px;width:80px;text-align:center;cursor:pointer;pointer-events:auto";
+    if(eq)card.style.background="rgba(34,197,94,0.1)";
+    card.innerHTML='<div style="font-size:28px">'+s.emoji+'</div><div style="color:#e2e8f0;font-size:11px;font-weight:700">'+s.name+'</div>'+(eq?'<div style="color:#22c55e;font-size:10px;font-weight:700">✅</div>':owned?'<div style="color:#22c55e;font-size:10px">Owned</div>':'<div style="color:#fbbf24;font-size:11px">🪙 '+s.cost+'</div>');
+    card.onclick=function(){if(eq)return;if(owned){bbSkin=s.id;bbSave();renderBBShop();return;}if(bbCoins>=s.cost){bbCoins-=s.cost;bbOwned.push(s.id);bbSkin=s.id;bbSave();renderBBShop();}};
+    sg.appendChild(card);
+  });
+}
+document.getElementById("bb-shop-btn").addEventListener("click",function(){renderBBShop();document.getElementById("bb-shop").style.display="flex";});
+document.getElementById("bb-shop-close").addEventListener("click",function(){document.getElementById("bb-shop").style.display="none";});
+if(document.getElementById("bb-death-shop"))document.getElementById("bb-death-shop").addEventListener("click",function(){document.getElementById("death-screen").style.display="none";renderBBShop();document.getElementById("bb-shop").style.display="flex";});
+
 </script>
+<div id="bb-shop" style="position:fixed;inset:0;display:none;flex-direction:column;align-items:center;z-index:150;background:rgba(0,0,0,0.95);overflow-y:auto;padding:20px"><h2 style="font-family:Lilita One,cursive;font-size:28px;color:#8b5cf6;margin-bottom:4px">🛒 Shop</h2><div id="bb-shop-coins" style="color:#fbbf24;font-weight:800;font-size:16px;margin-bottom:12px">🪙 0</div><div style="color:#94a3b8;font-weight:700;font-size:13px;margin:8px 0 6px">🎨 Skins</div><div id="bb-skin-grid" style="display:flex;flex-wrap:wrap;justify-content:center;gap:8px;max-width:400px;margin-bottom:8px"></div><div style="color:#94a3b8;font-weight:700;font-size:13px;margin:8px 0 6px">🏓 Paddle Skins</div><div id="bb-paddle-grid" style="display:flex;flex-wrap:wrap;justify-content:center;gap:8px;max-width:400px;margin-bottom:8px"></div><button id="bb-shop-close" style="margin:14px 0;padding:10px 30px;font-size:16px;font-weight:700;color:#fff;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:10px;cursor:pointer">Close</button></div>
 </body>
 </html>

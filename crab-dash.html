@@ -1,7 +1,26 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-2GR7STT4B9"></script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-2GR7STT4B9">
+// Shop render for cd
+function renderCDShop(){
+  document.getElementById("cd-shop-coins").textContent="🪙 "+cdCoins;
+  var sg=document.getElementById("cd-skin-grid");sg.innerHTML="";
+  CD_SKINS.forEach(function(s){
+    var owned=cdOwned.indexOf(s.id)>=0;var eq=cdSkin===s.id;
+    var card=document.createElement("div");
+    card.style.cssText="background:rgba(255,255,255,0.06);border:2px solid "+(eq?"#22c55e":owned?"rgba(34,197,94,0.4)":"rgba(255,255,255,0.1)")+";border-radius:12px;padding:10px;width:80px;text-align:center;cursor:pointer;pointer-events:auto";
+    if(eq)card.style.background="rgba(34,197,94,0.1)";
+    card.innerHTML='<div style="font-size:28px">'+s.emoji+'</div><div style="color:#e2e8f0;font-size:11px;font-weight:700">'+s.name+'</div>'+(eq?'<div style="color:#22c55e;font-size:10px;font-weight:700">✅</div>':owned?'<div style="color:#22c55e;font-size:10px">Owned</div>':'<div style="color:#fbbf24;font-size:11px">🪙 '+s.cost+'</div>');
+    card.onclick=function(){if(eq)return;if(owned){cdSkin=s.id;cdSave();renderCDShop();return;}if(cdCoins>=s.cost){cdCoins-=s.cost;cdOwned.push(s.id);cdSkin=s.id;cdSave();renderCDShop();}};
+    sg.appendChild(card);
+  });
+}
+document.getElementById("cd-shop-btn").addEventListener("click",function(){renderCDShop();document.getElementById("cd-shop").style.display="flex";});
+document.getElementById("cd-shop-close").addEventListener("click",function(){document.getElementById("cd-shop").style.display="none";});
+if(document.getElementById("cd-death-shop"))document.getElementById("cd-death-shop").addEventListener("click",function(){document.getElementById("death-screen").style.display="none";renderCDShop();document.getElementById("cd-shop").style.display="flex";});
+
+</script>
 <button id="pauseBtn" onclick="togglePause()">⏸️</button><div id="pauseOverlay" onclick="togglePause()"><h1>⏸️ Paused</h1></div>
 <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date());gtag("config","G-2GR7STT4B9");</script>
 <meta charset="UTF-8">
@@ -114,6 +133,15 @@ let W, H;
 function resize() { W = C.width = window.innerWidth; H = C.height = window.innerHeight; }
 resize(); window.addEventListener('resize', resize);
 
+
+// === SHOP (CD) ===
+var cdCoins=parseInt(localStorage.getItem("cd_coins")||"0");
+var cdOwned=JSON.parse(localStorage.getItem("cd_owned")||'["crab"]');
+var cdSkin=localStorage.getItem("cd_skin")||"crab";
+var cdSession=0;
+var CD_SKINS=[{"id":"crab","name":"Red Crab","cost":0,"emoji":"🦀"},{"id":"blue_crab","name":"Blue Crab","cost":50,"emoji":"🦞"},{"id":"shrimp","name":"Shrimp","cost":75,"emoji":"🦐"},{"id":"octopus","name":"Octopus","cost":100,"emoji":"🐙"},{"id":"turtle","name":"Turtle","cost":150,"emoji":"🐢"},{"id":"fish","name":"Fish","cost":200,"emoji":"🐠"},{"id":"shark","name":"Shark","cost":300,"emoji":"🦈"},{"id":"whale","name":"Whale","cost":400,"emoji":"🐋"}];
+function cdSave(){localStorage.setItem("cd_coins",cdCoins);localStorage.setItem("cd_owned",JSON.stringify(cdOwned));localStorage.setItem("cd_skin",cdSkin);}
+function cdGetSkin(){for(var i=0;i<CD_SKINS.length;i++){if(CD_SKINS[i].id===cdSkin)return CD_SKINS[i];}return CD_SKINS[0];}
 let playing = false, score = 0, lives = 3, frame = 0, distance = 0;
 let scrollSpeed = 2, baseScroll = 2;
 let tideY = 0, tideActive = false, tideTimer = 0, tideCooldown = 600, tideSpeed = 0;
@@ -162,7 +190,7 @@ function tryDash() {
 }
 
 function resetGame() {
-  score = 0; lives = 3; frame = 0; distance = 0;
+  score = 0;cdSession=0; lives = 3; frame = 0; distance = 0;
   scrollSpeed = baseScroll;
   crab.x = W * 0.2; crab.y = H * 0.5;
   obstacles = []; collectibles = []; particles = [];
@@ -609,6 +637,7 @@ document.getElementById('lb-close-btn').addEventListener('click',function(){docu
 
 document.getElementById('name-input').addEventListener('keydown',function(e){if(e.key==='Enter')document.getElementById('name-submit').click();});
 // === DEATH SCREEN HANDLERS ===
+cdSave();
 function _showDeathScreen(sc){
   _lbPendingScore=sc;
   document.getElementById('death-score').textContent='Score: '+sc;
@@ -630,5 +659,6 @@ document.getElementById('death-retry').addEventListener('click',function(){
 document.getElementById('death-lb').addEventListener('click',function(){_lbShow();});
 document.getElementById('death-name').addEventListener('keydown',function(e){if(e.key==='Enter')document.getElementById('death-submit').click();});
 </script>
+<div id="cd-shop" style="position:fixed;inset:0;display:none;flex-direction:column;align-items:center;z-index:150;background:rgba(0,0,0,0.95);overflow-y:auto;padding:20px"><h2 style="font-family:Lilita One,cursive;font-size:28px;color:#8b5cf6;margin-bottom:4px">🛒 Shop</h2><div id="cd-shop-coins" style="color:#fbbf24;font-weight:800;font-size:16px;margin-bottom:12px">🪙 0</div><div style="color:#94a3b8;font-weight:700;font-size:13px;margin:8px 0 6px">🎨 Skins</div><div id="cd-skin-grid" style="display:flex;flex-wrap:wrap;justify-content:center;gap:8px;max-width:400px;margin-bottom:8px"></div><button id="cd-shop-close" style="margin:14px 0;padding:10px 30px;font-size:16px;font-weight:700;color:#fff;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:10px;cursor:pointer">Close</button></div>
 </body>
 </html>
