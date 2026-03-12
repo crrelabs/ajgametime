@@ -1,0 +1,1132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Play Zombie Defense - place turrets to stop waves of zombies! Free browser tower defense game.">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://ajgametime.com/zombie-defense.html">
+<meta property="og:title" content="Zombie Defense — AJ GameTime">
+<meta property="og:description" content="Place turrets to stop waves of zombies! How long can you survive?">
+<title>Zombie Defense — AJ GameTime</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{min-height:100vh;display:flex;flex-direction:column;align-items:center;font-family:-apple-system,sans-serif;background:#0a0a12;color:#e2e8f0;overflow:hidden;user-select:none}
+#header{width:100%;padding:0.4rem 0.8rem;display:flex;justify-content:space-between;align-items:center;z-index:10;position:fixed;top:0;background:rgba(10,10,18,0.9)}
+#header a{color:#64748b;text-decoration:none;font-size:0.8rem}
+#header a:hover{color:#e2e8f0}
+#hud{display:flex;gap:0.7rem;align-items:center}
+.stat{text-align:center}.stat-val{font-size:1rem;font-weight:800}.stat-label{font-size:0.5rem;text-transform:uppercase;letter-spacing:0.08em;color:#64748b}
+#waveVal{color:#ef4444}#livesVal{color:#22c55e}#goldVal{color:#fbbf24}#scoreVal{color:#a78bfa}#gemsVal{color:#22d3ee}
+canvas{display:block}
+#startScreen{position:fixed;inset:0;background:rgba(10,10,18,0.97);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:30;overflow-y:auto;padding:20px}
+#startScreen.hidden{display:none}
+#startScreen h1{font-size:2.2rem;margin-bottom:0.5rem}
+#startScreen .emoji{font-size:5rem;margin-bottom:1rem}
+#startScreen p{color:#94a3b8;margin-bottom:0.5rem;font-size:0.9rem;text-align:center;max-width:380px}
+button.play-btn{margin-top:0.8rem;padding:0.7rem 1.8rem;font-size:1rem;font-weight:700;background:linear-gradient(135deg,#ef4444,#b91c1c);color:white;border:none;border-radius:12px;cursor:pointer;transition:0.2s}
+button.play-btn:hover{transform:scale(1.05)}
+.diff-btn{padding:8px 14px;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer;transition:0.2s;position:relative}
+.diff-btn.locked-diff{opacity:0.3!important;cursor:not-allowed}
+.diff-btn .lock-icon{position:absolute;top:-8px;right:-8px;font-size:14px}
+#waveBanner{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:25;font-size:2rem;font-weight:900;color:#ef4444;text-shadow:0 0 20px rgba(239,68,68,0.5);display:none;pointer-events:none}
+#towerBar{position:fixed;bottom:0;left:0;right:0;z-index:15;display:none;background:rgba(10,10,18,0.95);border-top:1px solid rgba(255,255,255,0.1);padding:6px 4px}
+#towerBar .towers{display:flex;gap:5px;justify-content:center;flex-wrap:wrap}
+.tower-btn{padding:5px 8px;border-radius:8px;border:2px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.05);color:#e2e8f0;font-size:0.75rem;font-weight:700;cursor:pointer;text-align:center;min-width:58px;transition:0.15s}
+.tower-btn:hover{border-color:#fbbf24}
+.tower-btn.selected{border-color:#fbbf24;background:rgba(251,191,36,0.15)}
+.tower-btn .emoji{font-size:1.1rem;display:block}
+.tower-btn .cost{font-size:0.6rem;color:#fbbf24}
+.tower-btn.locked{opacity:0.4;pointer-events:none}
+#bossBar{position:fixed;top:48px;left:50%;transform:translateX(-50%);z-index:20;width:min(400px,80vw);display:none;text-align:center}
+#bossName{font-size:13px;font-weight:900;color:#ef4444;margin-bottom:3px}
+#bossHpOuter{width:100%;height:16px;border-radius:10px;background:rgba(255,255,255,0.1);border:2px solid rgba(239,68,68,0.4);overflow:hidden}
+#bossHpInner{height:100%;width:100%;background:linear-gradient(90deg,#ef4444,#fbbf24);border-radius:8px;transition:width 0.1s}
+.float-btn{position:fixed;z-index:20;width:40px;height:40px;border-radius:50%;border:2px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.08);color:#e2e8f0;font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center}
+#musicBtn{bottom:130px;right:12px}
+#settingsBtn{bottom:130px;right:60px}
+#pauseBtn{bottom:88px;right:12px}
+#skillTreeBtn{bottom:88px;right:60px}
+#pauseOverlay{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;z-index:95;background:rgba(10,10,18,0.85)}
+#pauseOverlay h1{font-size:3rem;margin-bottom:1rem}
+#pauseOverlay button{padding:12px 30px;font-size:1.1rem;font-weight:700;border:none;border-radius:12px;cursor:pointer;color:#fff;background:linear-gradient(135deg,#22c55e,#16a34a)}
+#upgradePanel{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:96;display:none;background:rgba(15,15,30,0.97);border:2px solid rgba(255,255,255,0.15);border-radius:16px;padding:16px;width:min(340px,90vw);max-height:70vh;overflow-y:auto}
+#upgradePanel h3{text-align:center;color:#fbbf24;margin-bottom:10px;font-size:16px}
+.upg-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:8px;border-radius:8px;background:rgba(255,255,255,0.05);cursor:pointer;transition:0.15s}
+.upg-row:hover{background:rgba(255,255,255,0.1)}
+.upg-row.maxed{opacity:0.5;cursor:default}
+.upg-icon{font-size:1.3rem;width:32px;text-align:center}
+.upg-info{flex:1}
+.upg-name{font-size:12px;font-weight:700;color:#e2e8f0}
+.upg-desc{font-size:10px;color:#94a3b8}
+.upg-lvl{font-size:10px;color:#fbbf24}
+.upg-cost{font-size:12px;font-weight:700;color:#22d3ee;white-space:nowrap}
+.upg-close{display:block;margin:10px auto 0;padding:8px 24px;font-size:14px;font-weight:700;color:#fff;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:8px;cursor:pointer}
+#skillOverlay{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;z-index:100;background:rgba(0,0,0,0.92);overflow-y:auto;padding:20px}
+#skillOverlay h2{font-size:22px;color:#22d3ee;margin-bottom:6px;font-weight:900}
+#skillGems{font-size:14px;color:#22d3ee;margin-bottom:12px;font-weight:700}
+.skill-section{width:min(360px,90vw);margin-bottom:16px}
+.skill-section h4{color:#fbbf24;font-size:14px;margin-bottom:6px;padding-left:4px}
+.skill-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;padding:8px;border-radius:8px;background:rgba(255,255,255,0.05);cursor:pointer;transition:0.15s}
+.skill-row:hover{background:rgba(255,255,255,0.1)}
+.skill-row.maxed{opacity:0.5}
+.skill-icon{font-size:1.2rem;width:28px;text-align:center}
+.skill-info{flex:1}
+.skill-name{font-size:11px;font-weight:700;color:#e2e8f0}
+.skill-desc{font-size:9px;color:#94a3b8}
+.skill-lvl{font-size:9px;color:#22d3ee}
+.skill-cost{font-size:11px;font-weight:700;color:#22d3ee;white-space:nowrap}
+#skillClose{margin-top:8px;padding:10px 30px;font-size:16px;font-weight:700;color:#fff;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:10px;cursor:pointer}
+#settingsOverlay{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;z-index:110;background:rgba(0,0,0,0.92)}
+#settingsOverlay h2{font-size:24px;color:#fbbf24;margin-bottom:16px;font-weight:900}
+.vol-row{display:flex;align-items:center;gap:12px;margin-bottom:14px;width:min(300px,80vw)}
+.vol-label{font-size:14px;font-weight:700;width:70px;color:#e2e8f0}
+.vol-slider{flex:1;-webkit-appearance:none;height:8px;border-radius:4px;background:rgba(255,255,255,0.15);outline:none}
+.vol-slider::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:#fbbf24;cursor:pointer}
+.vol-val{font-size:13px;font-weight:700;color:#fbbf24;width:35px;text-align:right}
+#lb-overlay{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;z-index:100;background:rgba(0,0,0,0.92)}
+#lb-overlay h2{font-size:28px;color:#f59e0b;margin-bottom:12px;font-weight:900}
+#lb-list{width:min(340px,90vw);max-height:50vh;overflow-y:auto}
+.lb-row{display:flex;justify-content:space-between;padding:8px 14px;border-bottom:1px solid rgba(255,255,255,0.08);color:#e2e8f0;font-size:14px;font-weight:600}
+.lb-row:nth-child(1) .lb-rank{color:#fbbf24}.lb-row:nth-child(2) .lb-rank{color:#94a3b8}.lb-row:nth-child(3) .lb-rank{color:#b45309}
+.lb-rank{width:30px;color:#64748b}.lb-name{flex:1;margin:0 8px}.lb-score{color:#22d3ee}
+.overlay-close{margin-top:16px;padding:10px 30px;font-size:16px;font-weight:700;color:#fff;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:10px;cursor:pointer}
+#death-screen{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;z-index:90;background:rgba(10,10,18,0.97)}
+#death-screen h1{font-size:2.5rem;margin-bottom:0.5rem;color:#e2e8f0}
+#death-score{font-size:3rem;font-weight:900;color:#fbbf24;margin-bottom:4px}
+#death-wave{font-size:1.1rem;color:#ef4444;font-weight:700;margin-bottom:4px}
+#death-gems{font-size:1rem;color:#22d3ee;font-weight:700;margin-bottom:4px}
+#death-unlock{font-size:1rem;color:#22c55e;font-weight:700;margin-bottom:8px;display:none}
+#death-screen input{padding:10px 16px;font-size:16px;border-radius:8px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.1);color:#fff;text-align:center;width:200px;margin-bottom:12px}
+#death-screen button{margin:4px;padding:10px 24px;font-size:14px;font-weight:700;border:none;border-radius:10px;cursor:pointer;color:#fff}
+#death-submit{background:linear-gradient(135deg,#22c55e,#16a34a)}
+#death-retry{background:linear-gradient(135deg,#3b82f6,#8b5cf6)}
+#death-lb{background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2)!important}
+#death-skills{background:linear-gradient(135deg,#06b6d4,#0891b2)}
+</style>
+</head>
+<body>
+<div id="header">
+  <a href="index.html">← AJ GameTime</a>
+  <div id="hud">
+    <div class="stat"><div class="stat-val" id="waveVal">1</div><div class="stat-label">Wave</div></div>
+    <div class="stat"><div class="stat-val" id="livesVal">20</div><div class="stat-label">❤️</div></div>
+    <div class="stat"><div class="stat-val" id="goldVal">100</div><div class="stat-label">💰</div></div>
+    <div class="stat"><div class="stat-val" id="gemsVal">0</div><div class="stat-label">💎</div></div>
+    <div class="stat"><div class="stat-val" id="scoreVal">0</div><div class="stat-label">Score</div></div>
+  </div>
+</div>
+
+<div id="startScreen">
+  <div class="emoji">🧟</div>
+  <h1>Zombie Defense</h1>
+  <p>Place turrets to stop waves of zombies! Boss every 10 waves! 4 new towers! Skill tree!</p>
+  <p style="color:#64748b;font-size:0.8rem">Tap to place towers. Tap existing towers for upgrades. 💎 Gems earned every 5 waves for the skill tree!</p>
+  <p style="color:#fbbf24;font-weight:700;margin-top:10px;font-size:0.9rem">Choose Difficulty:</p>
+  <div id="diffPicker" style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-top:8px"></div>
+  <p style="color:#fbbf24;font-weight:700;margin-top:10px;font-size:0.9rem">Choose Map:</p>
+  <div id="mapPicker" style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-top:8px"></div>
+  <p id="unlockHint" style="color:#64748b;font-size:0.75rem;margin-top:6px"></p>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:10px">
+    <button class="play-btn" id="startBtn">⚔️ Defend!</button>
+    <button id="skillTreeStartBtn" style="padding:10px 20px;font-size:14px;font-weight:700;color:#fff;background:linear-gradient(135deg,#06b6d4,#0891b2);border:none;border-radius:10px;cursor:pointer">🌳 Skill Tree</button>
+    <button id="prestigeBtn" style="padding:10px 20px;font-size:14px;font-weight:700;color:#fff;background:linear-gradient(135deg,#f59e0b,#f97316);border:none;border-radius:10px;cursor:pointer">🏅 Prestige</button>
+    <button id="challengeBtn" style="padding:10px 20px;font-size:14px;font-weight:700;color:#fff;background:linear-gradient(135deg,#ef4444,#dc2626);border:none;border-radius:10px;cursor:pointer">🏆 Challenges</button>
+    <button id="lb-show-btn" style="padding:10px 20px;font-size:14px;font-weight:700;color:#fff;background:linear-gradient(135deg,#f59e0b,#ef4444);border:none;border-radius:10px;cursor:pointer">🏆 Leaderboard</button>
+  </div>
+</div>
+
+<div id="waveBanner"></div>
+<div id="bossBar"><div id="bossName">💀 BOSS</div><div id="bossHpOuter"><div id="bossHpInner"></div></div></div>
+<canvas id="game"></canvas>
+<button class="float-btn" id="settingsBtn">⚙️</button>
+<button class="float-btn" id="musicBtn">🔊</button>
+<button class="float-btn" id="pauseBtn">⏸️</button>
+<button class="float-btn" id="skillTreeBtn">🌳</button>
+
+<div id="pauseOverlay"><h1>⏸️ Paused</h1><button id="resumeBtn">▶️ Resume</button></div>
+
+<div id="upgradePanel">
+  <h3 id="upgTitle">⬆️ Upgrade Tower</h3>
+  <div id="upgRows"></div>
+  <button class="upg-close" id="upgClose">Close</button>
+</div>
+
+<div id="settingsOverlay">
+<h2>⚙️ Settings</h2>
+<div class="vol-row"><span class="vol-label">🎵 Music</span><input type="range" class="vol-slider" id="musicVol" min="0" max="100" value="50"><span class="vol-val" id="musicVolVal">50%</span></div>
+<div class="vol-row"><span class="vol-label">🔊 SFX</span><input type="range" class="vol-slider" id="sfxVol" min="0" max="100" value="70"><span class="vol-val" id="sfxVolVal">70%</span></div>
+<button class="overlay-close" id="settingsClose">Close</button>
+</div>
+
+<div id="skillOverlay">
+<h2>🌳 Skill Tree</h2>
+<div id="skillGems">💎 0 Gems</div>
+<div id="skillContent"></div>
+<button id="skillClose" class="overlay-close">Close</button>
+</div>
+
+<div id="lb-overlay"><h2>🏆 Leaderboard</h2><div id="lb-list"></div><button class="overlay-close" id="lb-close-btn">Close</button></div>
+<div id="death-screen">
+  <h1>🧟 Overrun!</h1>
+  <div id="death-score">0</div>
+  <div id="death-wave">Wave 1</div>
+  <div id="death-gems">+0 💎</div>
+  <div id="death-unlock"></div>
+  <input type="text" id="death-name" placeholder="Your name" maxlength="16" autocomplete="off">
+  <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">
+    <button id="death-submit">📤 Submit</button>
+    <button id="death-skills">🌳 Skills</button>
+    <button id="death-lb">🏆 Board</button>
+    <button id="death-retry">⚔️ Retry</button>
+  </div>
+</div>
+
+<div id="towerBar">
+  <div class="towers" id="towerButtons"></div>
+</div>
+
+<script>
+var canvas=document.getElementById('game'),ctx=canvas.getContext('2d');
+let W,H,TILE,COLS,ROWS,MAP_OFFSET_Y;
+var TOWER_BAR_H=70,HEADER_H=46;
+function resize(){W=window.innerWidth;H=window.innerHeight;canvas.width=W;canvas.height=H;TILE=Math.floor(Math.min(W/14,(H-TOWER_BAR_H-HEADER_H)/10));COLS=Math.floor(W/TILE);ROWS=Math.floor((H-TOWER_BAR_H-HEADER_H)/TILE);MAP_OFFSET_Y=HEADER_H}
+resize();window.addEventListener('resize',resize);
+
+// === AUDIO ===
+var AudioCtx=window.AudioContext||window.webkitAudioContext,audioCtx=null,musicPlaying=false,musicGain=null,sfxGain=null,musicInterval=null,droneOsc=null,droneOsc2=null;
+var _musicVol=parseInt(localStorage.getItem('zd_musicVol')||'50')/100;
+var _sfxVol=parseInt(localStorage.getItem('zd_sfxVol')||'70')/100;
+function initAudio(){if(audioCtx)return;audioCtx=new AudioCtx();musicGain=audioCtx.createGain();musicGain.gain.value=_musicVol*0.5;musicGain.connect(audioCtx.destination);sfxGain=audioCtx.createGain();sfxGain.gain.value=_sfxVol;sfxGain.connect(audioCtx.destination)}
+function playNote(freq,dur,type,vol){if(!audioCtx)return;var o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type=type||'sine';o.frequency.value=freq;g.gain.setValueAtTime(vol||0.1,audioCtx.currentTime);g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+dur);o.connect(g);g.connect(sfxGain||audioCtx.destination);o.start();o.stop(audioCtx.currentTime+dur)}
+function sfxPlace(){playNote(400,0.1,'triangle',0.08)}
+function sfxKill(){playNote(600,0.08,'sine',0.06);playNote(800,0.06,'sine',0.04)}
+function sfxBossDie(){playNote(200,0.3,'sawtooth',0.15);playNote(300,0.2,'sine',0.12);playNote(400,0.15,'sine',0.1)}
+function sfxLoseLife(){playNote(200,0.2,'sawtooth',0.1)}
+function sfxGameOver(){playNote(150,0.4,'sawtooth',0.15);playNote(100,0.6,'square',0.1)}
+function sfxUnlock(){playNote(523,0.2,'sine',0.12);playNote(659,0.15,'sine',0.1);playNote(784,0.2,'sine',0.12)}
+function sfxGem(){playNote(880,0.15,'sine',0.1);playNote(1100,0.1,'sine',0.08)}
+function sfxConvert(){playNote(523,0.15,'sine',0.08);playNote(659,0.1,'sine',0.06);playNote(784,0.1,'sine',0.05)}
+var MUSIC_NOTES=[[196,0.3],[220,0.2],[262,0.4],[0,0.2],[220,0.3],[196,0.4],[0,0.2],[165,0.3],[196,0.2],[220,0.4],[0,0.2],[196,0.3],[165,0.5],[0,0.3],[147,0.3],[165,0.2],[196,0.4],[0,0.2],[220,0.3],[196,0.4],[0,0.3]];
+function startMusic(){if(musicPlaying)return;initAudio();musicPlaying=true;
+droneOsc=audioCtx.createOscillator();var dg=audioCtx.createGain();droneOsc.type='sine';droneOsc.frequency.value=98;dg.gain.value=0.04;droneOsc.connect(dg);dg.connect(musicGain);droneOsc.start();
+droneOsc2=audioCtx.createOscillator();var dg2=audioCtx.createGain();droneOsc2.type='sine';droneOsc2.frequency.value=147;dg2.gain.value=0.02;droneOsc2.connect(dg2);dg2.connect(musicGain);droneOsc2.start();
+var idx=0;function next(){if(!musicPlaying)return;var n=MUSIC_NOTES[idx%MUSIC_NOTES.length];if(n[0]>0){var o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type='triangle';o.frequency.value=n[0];g.gain.setValueAtTime(0.06,audioCtx.currentTime);g.gain.exponentialRampToValueAtTime(0.01,audioCtx.currentTime+n[1]*0.85);o.connect(g);g.connect(musicGain);o.start();o.stop(audioCtx.currentTime+n[1])}idx++;musicInterval=setTimeout(next,n[1]*1000)}next();
+document.getElementById('musicBtn').textContent='🔊'}
+function stopMusic(){musicPlaying=false;if(musicInterval)clearTimeout(musicInterval);try{if(droneOsc)droneOsc.stop()}catch(e){}try{if(droneOsc2)droneOsc2.stop()}catch(e){}droneOsc=null;droneOsc2=null;document.getElementById('musicBtn').textContent='🔇'}
+document.getElementById('musicBtn').onclick=function(){if(musicPlaying)stopMusic();else startMusic()};
+
+// === SKILL TREE (permanent upgrades, persisted) ===
+var gems=parseInt(localStorage.getItem('zd_gems')||'0');
+var skills=JSON.parse(localStorage.getItem('zd_skills')||'{}');
+function getSkill(id){return skills[id]||0}
+function setSkill(id,val){skills[id]=val;localStorage.setItem('zd_skills',JSON.stringify(skills))}
+function saveGems(){localStorage.setItem('zd_gems',''+gems)}
+
+var SKILL_TREE=[
+  {tower:'gun',name:'🔫 Gun Skills',items:[
+    {id:'gun_upg_eff',name:'Upgrade Power',desc:'Upgrades 10% more effective',icon:'⬆️',max:5,cost:[2,3,5,8,12]},
+    {id:'gun_cost_red',name:'Price Reduction',desc:'Price increase reduced 20%',icon:'💰',max:3,cost:[3,5,8]},
+    {id:'gun_range',name:'Extended Range',desc:'+5% range',icon:'🎯',max:5,cost:[2,3,4,6,9]},
+  ]},
+  {tower:'cannon',name:'💣 Cannon Skills',items:[
+    {id:'can_upg_eff',name:'Upgrade Power',desc:'Upgrades 10% more effective',icon:'⬆️',max:5,cost:[2,4,6,9,13]},
+    {id:'can_cost_red',name:'Price Reduction',desc:'Price increase reduced 20%',icon:'💰',max:3,cost:[3,5,8]},
+    {id:'can_splash',name:'Bigger Splash',desc:'+10% splash radius',icon:'💥',max:5,cost:[3,4,6,8,11]},
+  ]},
+  {tower:'frost',name:'❄️ Frost Skills',items:[
+    {id:'fro_upg_eff',name:'Upgrade Power',desc:'Upgrades 10% more effective',icon:'⬆️',max:5,cost:[2,3,5,8,12]},
+    {id:'fro_slow',name:'Deep Freeze',desc:'+10% slow strength',icon:'🥶',max:5,cost:[3,4,6,8,11]},
+    {id:'fro_dur',name:'Slow Duration',desc:'+15% slow duration',icon:'⏱️',max:4,cost:[3,5,7,10]},
+  ]},
+  {tower:'laser',name:'⚡ Laser Skills',items:[
+    {id:'las_upg_eff',name:'Upgrade Power',desc:'Upgrades 10% more effective',icon:'⬆️',max:5,cost:[3,5,7,10,14]},
+    {id:'las_cost_red',name:'Price Reduction',desc:'Price increase reduced 20%',icon:'💰',max:3,cost:[4,6,9]},
+    {id:'las_speed',name:'Faster Bolts',desc:'+10% projectile speed',icon:'💨',max:4,cost:[3,5,7,10]},
+  ]},
+  {tower:'fire',name:'🔥 Fire Skills',items:[
+    {id:'fir_upg_eff',name:'Upgrade Power',desc:'Upgrades 10% more effective',icon:'⬆️',max:5,cost:[2,4,6,9,13]},
+    {id:'fir_dot',name:'Hotter Flames',desc:'+15% burn damage',icon:'🌡️',max:5,cost:[3,4,6,8,11]},
+    {id:'fir_splash',name:'Wider Burn',desc:'+10% splash',icon:'💥',max:4,cost:[3,5,7,10]},
+  ]},
+  {tower:'bank',name:'🏦 Bank Skills',items:[
+    {id:'bnk_income',name:'More Interest',desc:'+15% income per tick',icon:'📈',max:5,cost:[3,5,7,10,14]},
+    {id:'bnk_cost_red',name:'Cheaper Banks',desc:'Price increase reduced 20%',icon:'💰',max:3,cost:[4,6,9]},
+  ]},
+  {tower:'mage',name:'🧙 Mage Skills',items:[
+    {id:'mag_conv',name:'Faster Convert',desc:'+10% conversion speed',icon:'⚡',max:5,cost:[3,5,7,10,14]},
+    {id:'mag_range',name:'Extended Range',desc:'+10% range',icon:'🎯',max:4,cost:[3,5,7,10]},
+  ]},
+  {tower:'trap',name:'🪤 Trap Skills',items:[
+    {id:'trp_dmg',name:'Sharper Traps',desc:'+15% trap damage',icon:'🗡️',max:5,cost:[2,4,6,8,11]},
+    {id:'trp_mine',name:'More Mines',desc:'+5% mine chance',icon:'💣',max:5,cost:[3,5,7,10,14]},
+  ]},
+  {tower:'banana',name:'🍌 Banana Skills',items:[
+    {id:'ban_stun',name:'Longer Stun',desc:'+15% stun duration',icon:'😵',max:5,cost:[3,5,7,10,14]},
+    {id:'ban_range',name:'More Peels',desc:'+1 peel per drop',icon:'🍌',max:3,cost:[4,7,11]},
+  ]},
+];
+
+function renderSkillTree(){
+  var c=document.getElementById('skillContent');c.innerHTML='';
+  document.getElementById('skillGems').textContent='💎 '+gems+' Gems';
+  SKILL_TREE.forEach(function(sec){
+    var s=document.createElement('div');s.className='skill-section';
+    var h=document.createElement('h4');h.textContent=sec.name;s.appendChild(h);
+    sec.items.forEach(function(sk){
+      var lvl=getSkill(sk.id),maxed=lvl>=sk.max;
+      var cost=maxed?'-':sk.cost[lvl];
+      var r=document.createElement('div');r.className='skill-row'+(maxed?' maxed':'');
+      r.innerHTML='<div class="skill-icon">'+sk.icon+'</div><div class="skill-info"><div class="skill-name">'+sk.name+'</div><div class="skill-desc">'+sk.desc+'</div><div class="skill-lvl">Lv '+lvl+'/'+sk.max+'</div></div><div class="skill-cost">'+(maxed?'MAX':'💎 '+cost)+'</div>';
+      if(!maxed){r.onclick=function(){
+        if(gems>=cost){gems-=cost;saveGems();setSkill(sk.id,lvl+1);renderSkillTree();sfxGem()}
+      }}
+      s.appendChild(r);
+    });
+    c.appendChild(s);
+  });
+}
+
+function openSkillTree(){renderSkillTree();document.getElementById('skillOverlay').style.display='flex'}
+document.getElementById('skillClose').onclick=function(){document.getElementById('skillOverlay').style.display='none'};
+document.getElementById('skillTreeBtn').onclick=openSkillTree;
+document.getElementById('skillTreeStartBtn').onclick=openSkillTree;
+
+// === DIFFICULTY & UNLOCK SYSTEM ===
+var DIFF_ORDER=['easy','normal','medium','hard','insane','impossible','freeplay'];
+var DIFF_SETTINGS={
+  easy:      {startGold:200,lives:30,hpScale:0.6,speedScale:0.7,spawnScale:0.7,goldScale:1.5,waveGrowth:1,scoreMulti:0.5,label:'😊 Easy',color:'#22c55e',unlockWave:0,bossHpMult:0.5},
+  normal:    {startGold:200,lives:20,hpScale:1.0,speedScale:1.0,spawnScale:1.0,goldScale:1.0,waveGrowth:2,scoreMulti:1.0,label:'😐 Normal',color:'#3b82f6',unlockWave:5,bossHpMult:1.0},
+  medium:    {startGold:180,lives:15,hpScale:1.4,speedScale:1.15,spawnScale:1.3,goldScale:0.9,waveGrowth:3,scoreMulti:1.5,label:'😤 Medium',color:'#f59e0b',unlockWave:8,bossHpMult:1.5},
+  hard:      {startGold:160,lives:10,hpScale:2.0,speedScale:1.3,spawnScale:1.6,goldScale:0.75,waveGrowth:4,scoreMulti:2.0,label:'😈 Hard',color:'#ef4444',unlockWave:10,bossHpMult:2.0},
+  insane:    {startGold:140,lives:5,hpScale:3.0,speedScale:1.5,spawnScale:2.0,goldScale:0.6,waveGrowth:5,scoreMulti:3.0,label:'🤯 Insane',color:'#a855f7',unlockWave:12,bossHpMult:3.0},
+  impossible:{startGold:290,lives:3,hpScale:5.0,speedScale:1.8,spawnScale:2.5,goldScale:0.5,waveGrowth:7,scoreMulti:5.0,label:'💀 Impossible',color:'#ec4899',unlockWave:15,bossHpMult:5.0},
+  freeplay:  {startGold:200,lives:20,hpScale:1.0,speedScale:1.0,spawnScale:1.0,goldScale:1.0,waveGrowth:2,scoreMulti:1.0,label:'♾️ Free Play',color:'#22d3ee',unlockWave:0,bossHpMult:1.0},
+};
+
+var bestWaves=JSON.parse(localStorage.getItem('zd_bestWaves')||'{}');
+var unlockedDiffs=JSON.parse(localStorage.getItem('zd_unlocked')||'["easy"]');
+var freeplayUnlocked=localStorage.getItem('zd_freeplay')==='true';
+let difficulty='easy';
+
+function saveProg(){localStorage.setItem('zd_bestWaves',JSON.stringify(bestWaves));localStorage.setItem('zd_unlocked',JSON.stringify(unlockedDiffs));localStorage.setItem('zd_freeplay',freeplayUnlocked)}
+function checkUnlocks(){
+  var newUnlock=null;
+  for(var i=0;i<DIFF_ORDER.length-1;i++){var d=DIFF_ORDER[i];if(d==='freeplay')continue;var best=bestWaves[d]||0;var nextIdx=i+1;if(nextIdx<DIFF_ORDER.length-1){var nextD=DIFF_ORDER[nextIdx];if(nextD==='freeplay')continue;if(best>=DIFF_SETTINGS[d].unlockWave&&!unlockedDiffs.includes(nextD)){unlockedDiffs.push(nextD);newUnlock=nextD}}}
+  if(!freeplayUnlocked){for(var key in bestWaves){if(bestWaves[key]>=10){freeplayUnlocked=true;if(!newUnlock)newUnlock='freeplay';break}}}
+  saveProg();return newUnlock;
+}
+function buildMapPicker(){
+  var cont=document.getElementById("mapPicker");if(!cont)return;cont.innerHTML="";
+  Object.keys(MAPS).forEach(function(id){
+    var m=MAPS[id];var btn=document.createElement("button");
+    btn.className="diff-btn";btn.style.background=m.color;btn.style.color="#fff";btn.style.fontSize="11px";btn.style.padding="6px 10px";
+    btn.textContent=m.name;
+    if(id===currentMap){btn.style.opacity="1";btn.style.transform="scale(1.1)";btn.style.boxShadow="0 0 10px "+m.color}else{btn.style.opacity="0.5"}
+    btn.onclick=function(){currentMap=id;buildMapPicker()};
+    cont.appendChild(btn);
+  });
+}
+
+function buildDiffPicker(){
+  var picker=document.getElementById('diffPicker');picker.innerHTML='';
+  DIFF_ORDER.forEach(function(d){
+    if(d==='freeplay'&&!freeplayUnlocked)return;
+    var ds=DIFF_SETTINGS[d],isU=d==='easy'||unlockedDiffs.includes(d)||(d==='freeplay'&&freeplayUnlocked);
+    var btn=document.createElement('button');btn.className='diff-btn'+(isU?'':' locked-diff');btn.dataset.diff=d;
+    btn.style.cssText='padding:8px 14px;border-radius:10px;border:2px solid '+ds.color+';background:rgba(0,0,0,0.3);color:'+ds.color+';font-weight:700;font-size:13px;cursor:pointer;position:relative';
+    btn.textContent=ds.label;if(!isU)btn.innerHTML+='<span class="lock-icon">🔒</span>';
+    if(d===difficulty&&isU){btn.style.opacity='1';btn.style.transform='scale(1.1)'}else if(!isU){btn.style.opacity='0.3'}else{btn.style.opacity='0.6'}
+    btn.onclick=function(){if(!isU)return;difficulty=d;buildDiffPicker();updateUnlockHint()};
+    picker.appendChild(btn);
+  });
+}
+function updateUnlockHint(){
+  var hint=document.getElementById('unlockHint'),idx=DIFF_ORDER.indexOf(difficulty);
+  if(idx>=0&&idx<DIFF_ORDER.length-2){var nextD=DIFF_ORDER[idx+1];if(nextD!=='freeplay'&&!unlockedDiffs.includes(nextD)){hint.textContent='🔓 Reach wave '+DIFF_SETTINGS[difficulty].unlockWave+' to unlock '+DIFF_SETTINGS[nextD].label+' (best: '+(bestWaves[difficulty]||0)+')';return}}
+  if(!freeplayUnlocked){hint.textContent='🔓 Reach wave 10 to unlock Free Play';return}
+  hint.textContent='Best: Wave '+(bestWaves[difficulty]||0);
+}
+buildDiffPicker();buildMapPicker();updateUnlockHint();
+
+// === TOWER DEFS (prices 2x, new towers) ===
+var TOWER_DEFS={
+  gun:    {cost:100,range:3,damage:1,rate:20,emoji:'🔫',color:'#22c55e',projColor:'#fbbf24',projSpeed:8,splash:0},
+  cannon: {cost:200,range:3.5,damage:3,rate:50,emoji:'💣',color:'#ef4444',projColor:'#ef4444',projSpeed:5,splash:1.2},
+  frost:  {cost:150,range:3,damage:0.5,rate:25,emoji:'❄️',color:'#38bdf8',projColor:'#38bdf8',projSpeed:6,splash:0,slow:0.4},
+  laser:  {cost:300,range:4,damage:2,rate:10,emoji:'⚡',color:'#fbbf24',projColor:'#fbbf24',projSpeed:12,splash:0},
+  fire:   {cost:250,range:2.5,damage:0.8,rate:8,emoji:'🔥',color:'#f97316',projColor:'#f97316',projSpeed:7,splash:0.8,dot:3},
+  bank:   {cost:200,range:0,damage:0,rate:0,emoji:'🏦',color:'#10b981',projColor:'',projSpeed:0,splash:0,income:true},
+  mage:   {cost:350,range:3,damage:0,rate:120,emoji:'🧙',color:'#a855f7',projColor:'#a855f7',projSpeed:4,splash:0,convert:true},
+  trap:   {cost:150,range:0,damage:0,rate:0,emoji:'🪤',color:'#78716c',projColor:'',projSpeed:0,splash:0,trapTower:true},
+  banana: {cost:400,range:0,damage:0,rate:0,emoji:'🍌',color:'#fbbf24',projColor:'',projSpeed:0,splash:0,bananaTree:true,size:2},
+  poison: {cost:275,range:3,damage:0.3,rate:15,emoji:'🧪',color:'#84cc16',projColor:'#84cc16',projSpeed:6,splash:1.0,dot:5},
+  sniper: {cost:400,range:6,damage:8,rate:80,emoji:'🎯',color:'#f472b6',projColor:'#f472b6',projSpeed:20,splash:0},
+  tesla:  {cost:500,range:3.5,damage:1.5,rate:30,emoji:'⚡',color:'#c084fc',projColor:'#c084fc',projSpeed:15,splash:0},
+};
+
+var TOWER_ORDER=['gun','cannon','frost','laser','fire','poison','sniper','tesla','bank','mage','trap','banana'];
+
+var ZOMBIE_TYPES=[
+  {emoji:'🧟',hp:4,speed:0.8,gold:5,points:10},
+  {emoji:'🧟‍♂️',hp:6,speed:1.0,gold:8,points:15},
+  {emoji:'🧟‍♀️',hp:5,speed:1.3,gold:7,points:12},
+  {emoji:'💀',hp:10,speed:0.6,gold:12,points:20},
+  {emoji:'👹',hp:18,speed:0.5,gold:25,points:40},
+  {emoji:'🦇',hp:3,speed:2.0,gold:6,points:8},
+  {emoji:'💚',hp:8,speed:0.7,gold:15,points:25},
+  {emoji:'🛡️',hp:6,speed:0.9,gold:10,points:18},
+  {emoji:'🪱',hp:12,speed:0.6,gold:20,points:30},
+];
+
+var BOSS_TYPES=[
+  {emoji:'🐲',name:'Dragon Lord',hpBase:120,speed:0.3,gold:150,points:500},
+  {emoji:'👾',name:'Mega Alien',hpBase:180,speed:0.35,gold:200,points:750},
+  {emoji:'🦖',name:'Zombie Rex',hpBase:250,speed:0.25,gold:250,points:1000},
+  {emoji:'👿',name:'Demon King',hpBase:350,speed:0.3,gold:300,points:1500},
+  {emoji:'🌋',name:'Lava Titan',hpBase:500,speed:0.2,gold:400,points:2000},
+  {emoji:'💀',name:'Death Himself',hpBase:700,speed:0.35,gold:500,points:3000},
+  {emoji:'🐙',name:'Kraken',hpBase:900,speed:0.28,gold:600,points:4000},
+  {emoji:'🤖',name:'Mecha Zombie',hpBase:1200,speed:0.4,gold:750,points:5000},
+  {emoji:'☠️',name:'Necromancer',hpBase:1500,speed:0.32,gold:900,points:7000},
+  {emoji:'👑',name:'Zombie King',hpBase:2000,speed:0.3,gold:1200,points:10000},
+];
+
+
+
+
+// === TOWER SKINS ===
+var towerSkins=JSON.parse(localStorage.getItem('zd_skins')||'{}');
+var TOWER_SKINS={
+  gun:[{id:'gun_gold',name:'Golden Gun',emoji:'🔫',cost:10,color:'#fbbf24'},{id:'gun_neon',name:'Neon Gun',emoji:'🔫',cost:15,color:'#22d3ee'}],
+  cannon:[{id:'can_skull',name:'Skull Cannon',emoji:'💀',cost:12,color:'#ef4444'},{id:'can_rocket',name:'Rocket',emoji:'🚀',cost:18,color:'#f97316'}],
+  frost:[{id:'frost_snow',name:'Snowflake',emoji:'❄️',cost:10,color:'#bfdbfe'},{id:'frost_diamond',name:'Diamond Frost',emoji:'💠',cost:20,color:'#67e8f9'}],
+  laser:[{id:'las_plasma',name:'Plasma',emoji:'🔮',cost:15,color:'#c084fc'},{id:'las_sun',name:'Solar Beam',emoji:'☀️',cost:20,color:'#fbbf24'}],
+  fire:[{id:'fire_dragon',name:'Dragon Fire',emoji:'🐉',cost:15,color:'#dc2626'},{id:'fire_phoenix',name:'Phoenix',emoji:'🐦‍🔥',cost:25,color:'#f59e0b'}]
+};
+function saveSkins(){localStorage.setItem('zd_skins',JSON.stringify(towerSkins))}
+function getActiveSkin(type){return towerSkins[type+'_active']||null}
+
+// === PRESTIGE SYSTEM ===
+var prestige=parseInt(localStorage.getItem('zd_prestige')||'0');
+var prestigeTokens=parseInt(localStorage.getItem('zd_ptokens')||'0');
+var prestigePerks=JSON.parse(localStorage.getItem('zd_perks')||'{}');
+function getPerk(id){return prestigePerks[id]||0}
+function savePrestige(){localStorage.setItem('zd_prestige',''+prestige);localStorage.setItem('zd_ptokens',''+prestigeTokens);localStorage.setItem('zd_perks',JSON.stringify(prestigePerks))}
+var PRESTIGE_PERKS=[
+  {id:'p_dmg',name:'🗡️ Damage+',desc:'+10% all tower damage',max:5,cost:1},
+  {id:'p_gold',name:'💰 Gold+',desc:'+15% gold from kills',max:5,cost:1},
+  {id:'p_hp',name:'❤️ Extra Lives',desc:'+2 starting lives',max:5,cost:1},
+  {id:'p_range',name:'🎯 Range+',desc:'+5% all tower range',max:3,cost:2},
+  {id:'p_speed',name:'⚡ Fire Rate+',desc:'+8% fire rate',max:3,cost:2},
+  {id:'p_start_gold',name:'🏦 Starting Gold+',desc:'+50 starting gold',max:5,cost:1},
+  {id:'p_gem',name:'💎 Gem Bonus',desc:'+1 gem per 5 waves',max:3,cost:2}
+];
+function getPrestigeMult(id,per){return 1+getPerk(id)*per}
+
+// === TOWER ABILITIES ===
+var TOWER_ABILITIES={
+  gun:{name:'Rapid Fire',emoji:'💨',cooldown:900,dur:180,desc:'3x fire rate 3s'},
+  cannon:{name:'Mega Bomb',emoji:'💥',cooldown:1200,dur:1,desc:'Huge explosion'},
+  frost:{name:'Blizzard',emoji:'🌨️',cooldown:1000,dur:1,desc:'Slow ALL zombies 5s'},
+  laser:{name:'Overcharge',emoji:'⚡',cooldown:1100,dur:240,desc:'4x damage 4s'},
+  fire:{name:'Inferno',emoji:'🔥',cooldown:1000,dur:180,desc:'Fire ring all nearby'},
+  poison:{name:'Plague',emoji:'☠️',cooldown:1200,dur:1,desc:'Poison all zombies'},
+  sniper:{name:'Headshot',emoji:'🎯',cooldown:800,dur:1,desc:'Instant kill strongest'},
+  tesla:{name:'EMP Burst',emoji:'💫',cooldown:1000,dur:1,desc:'Stun all 3s'}
+};
+function activateAbility(tower){
+  if(!tower||!TOWER_ABILITIES[tower.type])return;
+  var ab=TOWER_ABILITIES[tower.type];
+  if(tower.abilityCool>0)return;
+  tower.abilityCool=ab.cooldown;tower.abilityActive=ab.dur;
+  sfxKill();
+  var tcx=tower.col*TILE+TILE/2,tcy=tower.row*TILE+MAP_OFFSET_Y+TILE/2;
+  particles.push({x:tcx,y:tcy,vx:0,vy:-1.5,life:40,color:'#fbbf24',size:0,text:ab.emoji+' '+ab.name+'!'});
+  if(tower.type==='cannon'){for(var i=zombies.length-1;i>=0;i--){var z=zombies[i];var dx=z.x-tcx,dy=z.y-tcy;if(Math.sqrt(dx*dx+dy*dy)<TILE*4){z.hp-=15;for(var p=0;p<3;p++)particles.push({x:z.x,y:z.y,vx:(Math.random()-0.5)*5,vy:(Math.random()-0.5)*5,life:20,color:'#ef4444',size:4})}}}
+  if(tower.type==='frost'){for(var i=0;i<zombies.length;i++)zombies[i].slowTimer=Math.max(zombies[i].slowTimer,300)}
+  if(tower.type==='poison'){for(var i=0;i<zombies.length;i++){zombies[i].dotTimer=300;zombies[i].dotDmg=3}}
+  if(tower.type==='sniper'){var best=null,maxH=0;for(var i=0;i<zombies.length;i++){if(!zombies[i].isBoss&&zombies[i].hp>maxH){maxH=zombies[i].hp;best=zombies[i]}}if(best){best.hp=0;particles.push({x:best.x,y:best.y,vx:0,vy:-1,life:40,color:'#f472b6',size:0,text:'💀 HEADSHOT!'})}}
+  if(tower.type==='tesla'){for(var i=0;i<zombies.length;i++)zombies[i].stunTimer=Math.max(zombies[i].stunTimer,180)}
+}
+
+// === GAME STATE ===
+let gold,lives,wave,score,gameRunning,paused,zombies,towers,projectiles,particles,allies,traps,bananas;
+let spawnTimer,spawnCount,spawnMax,waveDelay,waveActive;
+let selectedTower='gun',path=[],pathSet;
+let towerBuyCount={};
+let boss=null,bossActive=false,isFreeplay=false;
+let gemsEarned=0,bankTimer=0;
+let globalSpeedBuff=1,globalHpBuff=1; // +2.5% every 10 waves
+
+function getSkillMult(id,base){return 1+getSkill(id)*base}
+function getTowerCost(type){
+  var def=TOWER_DEFS[type];if(!def)return 0;
+  var costRedId=type==='gun'?'gun_cost_red':type==='cannon'?'can_cost_red':type==='laser'?'las_cost_red':type==='bank'?'bnk_cost_red':null;
+  var redMult=costRedId?1-getSkill(costRedId)*0.2:1;
+  return Math.round(def.cost*(1+(towerBuyCount[type]||0)*0.25*Math.max(0.01,redMult)));
+}
+
+function buildTowerBar(){
+  var c=document.getElementById('towerButtons');c.innerHTML='';
+  TOWER_ORDER.forEach(function(t){
+    var d=TOWER_DEFS[t];
+    var b=document.createElement('button');b.className='tower-btn';b.dataset.tower=t;
+    b.innerHTML='<span class="emoji">'+d.emoji+'</span>'+t.charAt(0).toUpperCase()+t.slice(1)+'<span class="cost">💰 '+d.cost+'</span>';
+    c.appendChild(b);
+  });
+  // Sell + upgrade buttons
+  c.innerHTML+='<button class="tower-btn" data-tower="sell" id="sellBtn" style="border-color:rgba(239,68,68,0.4);display:none"><span class="emoji">💰</span>Sell<span class="cost" id="sellCost">+0</span></button>';
+  c.innerHTML+='<button class="tower-btn" data-tower="upgrade" id="upgradeBtn" style="border-color:rgba(251,191,36,0.4);display:none"><span class="emoji">⬆️</span>Upgrade<span class="cost" id="upgradeCost">💰 0</span></button>';
+  // Re-bind events
+  document.querySelectorAll('.tower-btn').forEach(function(btn){
+    btn.addEventListener('click',function(e){
+      e.stopPropagation();var type=btn.dataset.tower;
+      if(type==='sell'){doSell();return}
+      if(type==='upgrade'){doUpgrade();return}
+      selectedTower=type;updateTowerButtons();
+    });
+  });
+}
+buildTowerBar();
+
+
+// === MAPS ===
+var currentMap='random';
+var MAPS={
+  random:{name:'🎲 Random',desc:'Random path each game',color:'#22c55e'},
+  serpent:{name:'🐍 Serpent',desc:'Long winding S-path',color:'#3b82f6'},
+  spiral:{name:'🌀 Spiral',desc:'Spiral to center',color:'#a855f7'},
+  cross:{name:'✝️ Crossroads',desc:'Two paths merge',color:'#ef4444'},
+  maze:{name:'🏰 Fortress',desc:'Tight corridors',color:'#f59e0b'},
+  desert:{name:'🏜️ Desert',desc:'Wide open, short path',color:'#f97316'}
+};
+function generateMapPath(mapId){
+  path=[];pathSet=new Set();
+  var cx=Math.floor(COLS/2),cy;
+  function add(x,y){path.push({x:x,y:y});pathSet.add(x+','+y)}
+  if(mapId==='serpent'){
+    var x=1,y=0;add(x,y);
+    for(var seg=0;seg<4;seg++){
+      var dir=seg%2===0?1:-1;
+      var endX=dir>0?COLS-2:1;
+      while(x!==endX){x+=dir;add(x,y)}
+      for(var d=0;d<Math.min(3,ROWS-1-y);d++){y++;add(x,y)}
+    }
+    while(y<ROWS-1){y++;add(x,y)}
+  } else if(mapId==='spiral'){
+    var x=0,y=0;
+    var left=0,right=COLS-1,top2=0,bottom=ROWS-1;
+    while(left<=right&&top2<=bottom){
+      for(var c=left;c<=right;c++)add(c,top2);top2++;
+      for(var r=top2;r<=bottom;r++)add(right,r);right--;
+      if(top2<=bottom){for(var c=right;c>=left;c--)add(c,bottom);bottom--}
+      if(left<=right){for(var r=bottom;r>=top2;r--)add(left,r);left++}
+    }
+  } else if(mapId==='cross'){
+    var midX=Math.floor(COLS/2),midY=Math.floor(ROWS/2);
+    // Left entry going right
+    for(var x=0;x<=midX;x++)add(x,Math.floor(ROWS*0.3));
+    // Turn down to merge point
+    for(var y=Math.floor(ROWS*0.3)+1;y<=midY;y++)add(midX,y);
+    // Right entry going left
+    for(var x=COLS-1;x>midX;x--)add(x,Math.floor(ROWS*0.7));
+    // Reorder: just do top-down for now
+    path=[];pathSet=new Set();
+    var x2=1,y2=0;add(x2,y2);
+    for(var i=0;i<3;i++){y2++;add(x2,y2)}
+    while(x2<COLS-2){x2++;add(x2,y2)}
+    for(var i=0;i<3;i++){y2++;add(x2,y2)}
+    while(x2>1){x2--;add(x2,y2)}
+    for(var i=0;i<3;i++){y2++;add(x2,y2)}
+    while(x2<Math.floor(COLS/2)){x2++;add(x2,y2)}
+    while(y2<ROWS-1){y2++;add(x2,y2)}
+  } else if(mapId==='maze'){
+    var x=Math.floor(COLS/2),y=0;add(x,y);
+    y++;add(x,y);
+    // Tight zigzag
+    for(var seg=0;seg<6;seg++){
+      var dir=seg%2===0?-1:1;
+      var steps=Math.min(3+seg,Math.floor(COLS/2)-1);
+      for(var i=0;i<steps;i++){x+=dir;x=Math.max(1,Math.min(COLS-2,x));add(x,y)}
+      var down=1+Math.floor(seg/3);
+      for(var i=0;i<down&&y<ROWS-1;i++){y++;add(x,y)}
+    }
+    while(y<ROWS-1){y++;add(x,y)}
+  } else if(mapId==='desert'){
+    // Short straight-ish path (harder - less time to kill)
+    var x=Math.floor(COLS/2),y=0;add(x,y);
+    for(var i=0;i<3;i++){y++;add(x,y)}
+    var dir=Math.random()>0.5?1:-1;
+    for(var i=0;i<4;i++){x+=dir;x=Math.max(1,Math.min(COLS-2,x));add(x,y)}
+    while(y<ROWS-1){y++;add(x,y)}
+  } else {
+    // Random (original)
+    var x=Math.floor(COLS/2),y=0;add(x,y);
+    var segments=5+Math.floor(Math.random()*3);
+    for(var s=0;s<segments;s++){
+      var dir=Math.random()<0.5?-1:1;var len=2+Math.floor(Math.random()*(COLS/3));
+      for(var i=0;i<len;i++){x+=dir;x=Math.max(1,Math.min(COLS-2,x));add(x,y)}
+      var down=1+Math.floor(Math.random()*2);
+      for(var i=0;i<down&&y<ROWS-1;i++){y++;add(x,y)}
+    }
+    while(y<ROWS-1){y++;add(x,y)}
+  }
+}
+
+function generatePath(){generateMapPath(currentMap)}
+function isOnPath(c,r){return pathSet.has(c+','+r)}
+function towerAt(c,r){return towers.find(function(t){if(t.size===2)return(c>=t.col&&c<t.col+2&&r>=t.row&&r<t.row+2);return t.col===c&&t.row===r})}
+
+function init(){
+  var ds=DIFF_SETTINGS[difficulty];isFreeplay=difficulty==='freeplay';
+  gold=ds.startGold+getPerk("p_start_gold")*50;lives=ds.lives+getPerk("p_hp")*2;wave=0;score=0;gemsEarned=0;
+  gameRunning=true;paused=false;zombies=[];towers=[];projectiles=[];particles=[];allies=[];traps=[];bananas=[];
+  towerBuyCount={};TOWER_ORDER.forEach(function(t){towerBuyCount[t]=0});
+  spawnTimer=0;spawnCount=0;spawnMax=0;waveDelay=90;waveActive=false;bankTimer=0;
+  boss=null;bossActive=false;globalSpeedBuff=1;globalHpBuff=1;
+  document.getElementById('bossBar').style.display='none';
+  document.getElementById('upgradePanel').style.display='none';
+  generatePath();updateHUD();nextWave();
+}
+
+function updateHUD(){
+  document.getElementById('waveVal').textContent=wave;
+  document.getElementById('livesVal').textContent=lives;
+  document.getElementById('goldVal').textContent=gold;
+  document.getElementById('gemsVal').textContent=gems;
+  document.getElementById('scoreVal').textContent=score;
+  updateTowerButtons();
+}
+
+function nextWave(){
+  wave++;waveActive=false;waveDelay=120;spawnCount=0;spawnTimer=0;
+  var ds=DIFF_SETTINGS[difficulty];
+  // Every 10 waves: +2.5% speed and HP
+  if(wave>1&&wave%10===1){globalSpeedBuff*=1.025;globalHpBuff*=1.025}
+  // Gems every 5 waves
+  if(wave>1&&(wave-1)%5===0){var g=Math.floor(1+(wave-1)/10)+getPerk("p_gem");gems+=g;gemsEarned+=g;saveGems();sfxGem()}
+  // Boss
+  if(wave%10===0){
+    bossActive=true;spawnMax=Math.round(3+wave*0.5);
+    var bossIdx=Math.min(Math.floor(wave/10)-1,BOSS_TYPES.length-1);
+    var bt=BOSS_TYPES[bossIdx];var hpScale=(1+(wave-1)*0.3)*ds.bossHpMult*globalHpBuff;
+    boss={pathIdx:0,x:path[0].x*TILE+TILE/2,y:path[0].y*TILE+MAP_OFFSET_Y+TILE/2,
+      hp:bt.hpBase*hpScale,maxHp:bt.hpBase*hpScale,speed:bt.speed*ds.speedScale*globalSpeedBuff,baseSpeed:bt.speed*ds.speedScale*globalSpeedBuff,
+      gold:bt.gold,points:bt.points,emoji:bt.emoji,name:bt.name,slowTimer:0,dotTimer:0,dotDmg:0,isBoss:true,stunTimer:0};
+    zombies.push(boss);
+    document.getElementById('bossBar').style.display='block';
+    document.getElementById('bossName').textContent=bt.emoji+' '+bt.name+' — Wave '+wave;
+    document.getElementById('bossHpInner').style.width='100%';
+  }else{bossActive=false;boss=null;document.getElementById('bossBar').style.display='none';spawnMax=Math.round((5+wave*ds.waveGrowth)*ds.spawnScale)}
+  if(isFreeplay&&wave>20)spawnMax=Math.round(spawnMax*(1+(wave-20)*0.05));
+  var banner=document.getElementById('waveBanner');
+  banner.textContent=wave%10===0?'💀 BOSS WAVE '+wave+' 💀':'⚔️ Wave '+wave+' ⚔️';
+  banner.style.color=wave%10===0?'#fbbf24':'#ef4444';
+  banner.style.display='block';setTimeout(function(){banner.style.display='none'},2000);
+  updateHUD();
+}
+
+function spawnZombie(){
+  var diff=Math.min(wave/10,1),ti,r=Math.random(),ds=DIFF_SETTINGS[difficulty];
+  if(wave<3)ti=0;else if(r<0.4)ti=0;else if(r<0.65)ti=1;else if(r<0.8)ti=2;
+  else if(r<0.82&&wave>5)ti=3;else if(r<0.88&&wave>8)ti=4;else if(r<0.92&&wave>4)ti=5;else if(r<0.95&&wave>6)ti=6;else if(r<0.97&&wave>10)ti=7;else if(wave>12)ti=8;else ti=Math.floor(Math.random()*3);
+  var type=ZOMBIE_TYPES[ti];
+  var hpS=(1+(wave-1)*0.3)*ds.hpScale*globalHpBuff;var spdM=(0.9+diff*0.3)*ds.speedScale*globalSpeedBuff;
+  zombies.push({pathIdx:0,x:path[0].x*TILE+TILE/2,y:path[0].y*TILE+MAP_OFFSET_Y+TILE/2,
+    hp:type.hp*hpS,maxHp:type.hp*hpS,speed:type.speed*spdM,baseSpeed:type.speed*spdM,
+    gold:Math.round(type.gold*ds.goldScale),points:Math.round(type.points*ds.scoreMulti),
+    emoji:type.emoji,slowTimer:0,dotTimer:0,dotDmg:0,stunTimer:0,isBoss:false});
+}
+
+// === UPDATE ===
+function update(){
+  if(!gameRunning||paused)return;
+  // Particles
+  for(var i=particles.length-1;i>=0;i--){var p=particles[i];p.x+=p.vx;p.y+=p.vy;p.life--;p.vx*=0.95;p.vy*=0.95;if(p.life<=0)particles.splice(i,1)}
+  // Bank income — $50 every 2.5 seconds (150 frames), works between waves too
+  bankTimer++;
+  if(!waveActive){waveDelay--;if(waveDelay<=0)waveActive=true;
+    // Still process bank during wave delay
+    if(bankTimer>=150){bankTimer=0;var bankPaid=false;towers.forEach(function(t){if(t.type==='bank'){var inc=Math.round(50*(1+t.upgSpeed*0.3)*getSkillMult('bnk_income',0.15));gold+=inc;bankPaid=true;
+      particles.push({x:t.col*TILE+TILE/2,y:t.row*TILE+MAP_OFFSET_Y+TILE/2,vx:0,vy:-1,life:40,color:'#fbbf24',size:0,text:'+$'+inc+'💰'})}});if(bankPaid)document.getElementById('goldVal').textContent=gold;}
+    return}
+  // Spawn
+  if(spawnCount<spawnMax){spawnTimer--;if(spawnTimer<=0){spawnZombie();spawnCount++;spawnTimer=Math.max(10,40-wave*2)}}
+  if(bankTimer>=150){
+    bankTimer=0;
+    towers.forEach(function(t){if(t.type==='bank'){var inc=Math.round(50*(1+t.upgSpeed*0.3)*getSkillMult('bnk_income',0.15));gold+=inc;
+      particles.push({x:t.col*TILE+TILE/2,y:t.row*TILE+MAP_OFFSET_Y+TILE/2,vx:0,vy:-1,life:40,color:'#fbbf24',size:0,text:'+$'+inc+'💰'})}});document.getElementById('goldVal').textContent=gold;
+  }
+  // Helper: snap to nearest path cell
+  function nearestPathSpot(cx,cy,range){
+    var best=null,bestD=Infinity;
+    for(var pi=0;pi<path.length;pi++){var px=path[pi].x*TILE+TILE/2,py=path[pi].y*TILE+MAP_OFFSET_Y+TILE/2;
+      var d=Math.sqrt((cx-px)**2+(cy-py)**2);if(d<bestD&&d<=range){bestD=d;best={x:px,y:py}}}
+    return best;
+  }
+  // Trap spawning — snaps to path, stays until walked on, has cap
+  towers.forEach(function(t){
+    if(!t.trapTower)return;
+    t.trapTimer=(t.trapTimer||0)+1;
+    var cap=3+t.upgMulti; // base 3, +1 per upgMulti
+    var myTraps=traps.filter(function(tr){return tr.owner===t}).length;
+    if(t.trapTimer>=120&&myTraps<cap){
+      t.trapTimer=0;
+      var tcx=t.col*TILE+TILE/2,tcy=t.row*TILE+MAP_OFFSET_Y+TILE/2;
+      var spot=nearestPathSpot(tcx,tcy,TILE*3);
+      if(spot){
+        var isMine=Math.random()<(0.1+getSkill('trp_mine')*0.05);
+        traps.push({x:spot.x,y:spot.y,damage:(isMine?15:5)*(1+t.upgEffect*0.5)*getSkillMult('trp_dmg',0.15),isMine:isMine,owner:t});
+      }
+    }
+  });
+  // Banana peel spawning — snaps to path, stays until walked on, has cap
+  towers.forEach(function(t){
+    if(!t.bananaTree)return;
+    t.bTimer=(t.bTimer||0)+1;
+    var cap=4+t.upgMulti; // base 4, +1 per upgMulti
+    var myBananas=bananas.filter(function(bn){return bn.owner===t}).length;
+    if(t.bTimer>=200&&myBananas<cap){
+      t.bTimer=0;
+      var bcx=t.col*TILE+TILE,bcy=t.row*TILE+MAP_OFFSET_Y+TILE;
+      var range=TILE*6; // big range for banana tree
+      var peelCount=2+getSkill('ban_range');
+      for(var bi=0;bi<peelCount&&myBananas+bi<cap;bi++){
+        // Pick random path spot within range
+        var candidates=[];
+        for(var pi=0;pi<path.length;pi++){var px=path[pi].x*TILE+TILE/2,py=path[pi].y*TILE+MAP_OFFSET_Y+TILE/2;
+          if(Math.sqrt((bcx-px)**2+(bcy-py)**2)<=range)candidates.push({x:px,y:py})}
+        if(candidates.length>0){var pick=candidates[Math.floor(Math.random()*candidates.length)];
+          bananas.push({x:pick.x,y:pick.y,stunDur:Math.round(90*(1+t.upgEffect*0.3)*getSkillMult('ban_stun',0.15)),radius:TILE*1.5,owner:t})}
+      }
+    }
+  });
+  // Check traps vs zombies — only removed when walked on
+  for(var ti=traps.length-1;ti>=0;ti--){
+    var tr=traps[ti];
+    for(var zi=0;zi<zombies.length;zi++){
+      var z=zombies[zi];if(z.isBoss)continue;
+      var dx=z.x-tr.x,dy=z.y-tr.y;if(Math.sqrt(dx*dx+dy*dy)<TILE*0.5){
+        z.hp-=tr.damage;
+        if(tr.isMine){
+          for(var ez=0;ez<zombies.length;ez++){var ez2=zombies[ez];var ed=Math.sqrt((ez2.x-tr.x)**2+(ez2.y-tr.y)**2);if(ed<TILE*1.5)ez2.hp-=tr.damage*0.5}
+          for(var pp=0;pp<10;pp++)particles.push({x:tr.x,y:tr.y,vx:(Math.random()-0.5)*6,vy:(Math.random()-0.5)*6,life:25,color:'#ef4444',size:3+Math.random()*3});
+        }
+        traps.splice(ti,1);break;
+      }
+    }
+  }
+  // Check bananas vs zombies — only removed when walked on
+  for(var bi2=bananas.length-1;bi2>=0;bi2--){
+    var bn=bananas[bi2];
+    var hit=false;
+    for(var zi2=0;zi2<zombies.length;zi2++){
+      var z2=zombies[zi2];if(z2.stunTimer>0||z2.isBoss)continue;
+      if(Math.sqrt((z2.x-bn.x)**2+(z2.y-bn.y)**2)<bn.radius){
+        for(var zi3=0;zi3<zombies.length;zi3++){var z3=zombies[zi3];if(z3.isBoss)continue;if(Math.sqrt((z3.x-bn.x)**2+(z3.y-bn.y)**2)<bn.radius)z3.stunTimer=bn.stunDur}
+        hit=true;break;
+      }
+    }
+    if(hit){particles.push({x:bn.x,y:bn.y,vx:0,vy:-0.5,life:30,color:'#fbbf24',size:0,text:'😵 STUN!'});bananas.splice(bi2,1)}
+  }
+  // Move allies (converted humans)
+  for(var ai=allies.length-1;ai>=0;ai--){
+    var a=allies[ai];
+    // Attack nearby zombies FIRST (before moving)
+    a.atk=(a.atk||0)+1;
+    var foundTarget=false;
+    if(a.atk>=20){
+      for(var azi=0;azi<zombies.length;azi++){var az=zombies[azi];var ad2=Math.sqrt((az.x-a.x)**2+(az.y-a.y)**2);
+        if(ad2<TILE*2.5&&!az.isBoss){
+          az.hp-=a.damage;a.atk=0;foundTarget=true;
+          particles.push({x:a.x,y:a.y-5,vx:0,vy:-0.5,life:12,color:'#fbbf24',size:0,text:'👊'});
+          break;
+        }
+      }
+    }
+    // Walk backwards on path (toward start)
+    if(a.pathIdx>0){
+      var pt=path[a.pathIdx-1],atx=pt.x*TILE+TILE/2,aty=pt.y*TILE+MAP_OFFSET_Y+TILE/2;
+      var adx=atx-a.x,ady=aty-a.y,adist=Math.sqrt(adx*adx+ady*ady);
+      if(adist<2){a.pathIdx--;a.x=atx;a.y=aty}else{a.x+=(adx/adist)*1.5;a.y+=(ady/adist)*1.5}
+    }else{allies.splice(ai,1)}// reached start, disappear
+  }
+  // Move zombies
+  var hudDirty=false;
+  for(var i=zombies.length-1;i>=0;i--){
+    var z=zombies[i];
+    if(z.stunTimer>0){z.stunTimer--;continue}// stunned = frozen
+    if(z.dotTimer>0){z.hp-=z.dotDmg/60;z.dotTimer--}
+    if(z.slowTimer>0){z.speed=z.baseSpeed*0.4;z.slowTimer--}else z.speed=z.baseSpeed;
+    if(z.pathIdx<path.length-1){
+      var t=path[z.pathIdx+1],tx=t.x*TILE+TILE/2,ty=t.y*TILE+MAP_OFFSET_Y+TILE/2;
+      var dx=tx-z.x,dy=ty-z.y,dist=Math.sqrt(dx*dx+dy*dy);
+      if(dist<z.speed*2||dist===0){z.pathIdx++;z.x=tx;z.y=ty}else{z.x+=(dx/dist)*z.speed*2;z.y+=(dy/dist)*z.speed*2}
+    }
+    if(z.pathIdx>=path.length-1){var dmg=z.isBoss?5:1;lives-=dmg;sfxLoseLife();zombies.splice(i,1);hudDirty=true;
+      if(z.isBoss){boss=null;bossActive=false;document.getElementById('bossBar').style.display='none'}
+      if(lives<=0){gameOverFn();return}continue}
+    if(z.hp<=0){
+      gold+=Math.round(z.gold*getPrestigeMult("p_gold",0.15));score+=z.points;
+      if(z.isBoss){sfxBossDie();boss=null;bossActive=false;document.getElementById('bossBar').style.display='none';
+        for(var pp=0;pp<20;pp++)particles.push({x:z.x,y:z.y,vx:(Math.random()-0.5)*8,vy:(Math.random()-0.5)*8,life:40,color:['#fbbf24','#ef4444','#a855f7'][pp%3],size:4+Math.random()*5})}
+      else{if(z.emoji==='🪱'&&!z.isMini){for(var sp=0;sp<2;sp++)zombies.push({pathIdx:z.pathIdx,x:z.x+(sp?8:-8),y:z.y,hp:z.maxHp*0.3,maxHp:z.maxHp*0.3,speed:z.baseSpeed*1.4,baseSpeed:z.baseSpeed*1.4,gold:Math.round(z.gold*0.3),points:Math.round(z.points*0.3),emoji:'🪱',slowTimer:0,dotTimer:0,dotDmg:0,stunTimer:0,isBoss:false,isMini:true})}sfxKill();for(var pp=0;pp<6;pp++)particles.push({x:z.x,y:z.y,vx:(Math.random()-0.5)*4,vy:(Math.random()-0.5)*4,life:30,color:'#22c55e',size:3+Math.random()*3})}
+      zombies.splice(i,1);hudDirty=true;continue}
+    if(z.isBoss&&boss)document.getElementById('bossHpInner').style.width=Math.max(0,z.hp/z.maxHp*100)+'%';
+  }
+  if(hudDirty)updateHUD();
+
+  // Ability cooldowns & active effects
+  for(var ai=0;ai<towers.length;ai++){var at=towers[ai];if(at.abilityCool>0)at.abilityCool--;if(at.abilityActive>0){at.abilityActive--;
+    if(at.type==='gun'&&at.abilityActive>0)at.cooldown=0;
+    if(at.type==='fire'&&at.abilityActive>0){var ax=at.col*TILE+TILE/2,ay=at.row*TILE+MAP_OFFSET_Y+TILE/2;for(var fi=0;fi<zombies.length;fi++){var fz=zombies[fi];var fd=Math.sqrt((fz.x-ax)*(fz.x-ax)+(fz.y-ay)*(fz.y-ay));if(fd<TILE*3)fz.hp-=0.5}}
+  }}
+  // Healer zombies heal nearby
+  for(var hi=0;hi<zombies.length;hi++){var hz=zombies[hi];if(hz.emoji==='💚'){if(!hz.healCd)hz.healCd=0;hz.healCd--;if(hz.healCd<=0){hz.healCd=90;for(var hj=0;hj<zombies.length;hj++){var hz2=zombies[hj];if(hz2===hz)continue;var hd=Math.sqrt((hz2.x-hz.x)*(hz2.x-hz.x)+(hz2.y-hz.y)*(hz2.y-hz.y));if(hd<TILE*2.5){hz2.hp=Math.min(hz2.maxHp,hz2.hp+hz2.maxHp*0.05);particles.push({x:hz2.x,y:hz2.y,vx:0,vy:-0.5,life:20,color:'#22c55e',size:0,text:'💚'})}}}}}
+  // Splitter zombies: spawn minis on death (handled in death section)
+
+  // Tower shooting
+  for(var ti2=0;ti2<towers.length;ti2++){
+    var t=towers[ti2];if(t.type==='bank'||t.type==='trap'||t.type==='banana')continue;
+    t.cooldown--;if(t.cooldown>0)continue;
+    var def=TOWER_DEFS[t.type];
+    var rangeMult=1;
+    if(t.type==='gun')rangeMult=getSkillMult('gun_range',0.05);
+    if(t.type==='mage')rangeMult=getSkillMult('mag_range',0.1);
+    var range=def.range*TILE*rangeMult;
+    var tcx=t.col*TILE+TILE/2+(t.size===2?TILE/2:0),tcy=t.row*TILE+MAP_OFFSET_Y+TILE/2+(t.size===2?TILE/2:0);
+    var closest=null,closestDist=Infinity;
+    for(var zi=0;zi<zombies.length;zi++){var zz=zombies[zi];var dx=zz.x-tcx,dy=zz.y-tcy,dist=Math.sqrt(dx*dx+dy*dy);if(dist<range&&dist<closestDist){closest=zz;closestDist=dist}}
+    if(!closest)continue;
+    // Mage: convert zombie to ally
+    if(def.convert){
+      if(!closest.isBoss){
+        t.cooldown=Math.round(def.rate/(1+t.upgSpeed*0.3)*1/getSkillMult('mag_conv',0.1));
+        sfxConvert();
+        // Convert zombie to ally
+        allies.push({x:closest.x,y:closest.y,pathIdx:closest.pathIdx,damage:2+t.upgEffect*2,emoji:'🧑'});
+        zombies.splice(zombies.indexOf(closest),1);
+        particles.push({x:closest.x,y:closest.y,vx:0,vy:-1,life:30,color:'#a855f7',size:0,text:'✨ Converted!'});
+      }
+      continue;
+    }
+    // Speed upgrade + multi-attack
+    var rateDiv=1+t.upgSpeed*0.3;var upgEffMult=1+t.upgEffect*0.25;
+    // Skill tree upgrade effectiveness bonus
+    var upgSkillId=t.type==='gun'?'gun_upg_eff':t.type==='cannon'?'can_upg_eff':t.type==='frost'?'fro_upg_eff':t.type==='laser'?'las_upg_eff':t.type==='fire'?'fir_upg_eff':null;
+    if(upgSkillId)upgEffMult*=getSkillMult(upgSkillId,0.1);
+    t.cooldown=Math.round(def.rate/rateDiv);
+    var projCount=1+t.upgMulti;
+    var splashMult=1;if(t.type==='cannon')splashMult=getSkillMult('can_splash',0.1);if(t.type==='fire')splashMult=getSkillMult('fir_splash',0.1);
+    var slowMult=1;if(t.type==='frost')slowMult=getSkillMult('fro_slow',0.1);
+    var dotMult=1;if(t.type==='fire')dotMult=getSkillMult('fir_dot',0.15);
+    var speedMult=1;if(t.type==='laser')speedMult=getSkillMult('las_speed',0.1);
+    var slowDur=60;if(t.type==='frost')slowDur=Math.round(60*getSkillMult('fro_dur',0.15));
+    // Fire multiple projectiles at different targets
+    var targets=[closest];
+    if(projCount>1){
+      var sorted=zombies.filter(function(zz){return zz!==closest&&Math.sqrt((zz.x-tcx)**2+(zz.y-tcy)**2)<range}).sort(function(a,b){return Math.sqrt((a.x-tcx)**2+(a.y-tcy)**2)-Math.sqrt((b.x-tcx)**2+(b.y-tcy)**2)});
+      for(var mi=0;mi<projCount-1&&mi<sorted.length;mi++)targets.push(sorted[mi]);
+    }
+    targets.forEach(function(tgt){
+      projectiles.push({x:tcx,y:tcy,tx:tgt.x,ty:tgt.y,speed:def.projSpeed*speedMult,
+        damage:def.damage*upgEffMult,color:def.projColor,splash:def.splash*splashMult,
+        slow:def.slow?def.slow*slowMult:0,slowDur:slowDur,dot:def.dot?def.dot*dotMult:0,dotDmg:def.damage*0.3*dotMult});
+    });
+  }
+  // Move projectiles
+  for(var i=projectiles.length-1;i>=0;i--){
+    var p=projectiles[i],dx=p.tx-p.x,dy=p.ty-p.y,dist=Math.sqrt(dx*dx+dy*dy);
+    if(dist<p.speed*2||dist===0){
+      if(p.splash>0){var sR=p.splash*TILE;for(var zi=0;zi<zombies.length;zi++){var zz=zombies[zi];var zd=Math.sqrt((zz.x-p.tx)**2+(zz.y-p.ty)**2);if(zd<sR){zz.hp-=p.damage*(1-zd/sR*0.5);if(p.slow){zz.slowTimer=p.slowDur||60}if(p.dot){zz.dotTimer=p.dot*60;zz.dotDmg=p.dotDmg}}}
+        for(var pp=0;pp<8;pp++)particles.push({x:p.tx,y:p.ty,vx:(Math.random()-0.5)*6,vy:(Math.random()-0.5)*6,life:20,color:p.color,size:2+Math.random()*3})}
+      else{var hit=null,hitD=Infinity;for(var zi=0;zi<zombies.length;zi++){var zz=zombies[zi];var zd=Math.sqrt((zz.x-p.tx)**2+(zz.y-p.ty)**2);if(zd<TILE&&zd<hitD){hit=zz;hitD=zd}}
+        if(hit){hit.hp-=p.damage;if(p.slow){hit.slowTimer=p.slowDur||60}if(p.dot){hit.dotTimer=p.dot*60;hit.dotDmg=p.dotDmg}}}
+      projectiles.splice(i,1);
+    }else{p.x+=(dx/dist)*p.speed;p.y+=(dy/dist)*p.speed}
+  }
+  // Wave complete
+  if(spawnCount>=spawnMax&&zombies.length===0&&waveActive){
+    gold+=Math.round((10+wave*5)*DIFF_SETTINGS[difficulty].goldScale);updateHUD();nextWave();
+  }
+}
+
+// === DRAW ===
+function draw(){
+  ctx.clearRect(0,0,W,H);ctx.fillStyle='#1a1a2e';ctx.fillRect(0,0,W,H);
+  if(!gameRunning||!pathSet)return;
+  // Grid
+  for(var r=0;r<ROWS;r++)for(var c=0;c<COLS;c++){
+    ctx.fillStyle=isOnPath(c,r)?((c+r)%2===0?'#3d2f1f':'#352a1a'):((c+r)%2===0?'#1a2e1a':'#162816');
+    ctx.fillRect(c*TILE,r*TILE+MAP_OFFSET_Y,TILE,TILE);
+  }
+  // Path lines
+  ctx.strokeStyle='rgba(255,255,255,0.05)';ctx.lineWidth=2;
+  for(var i=0;i<path.length-1;i++){ctx.beginPath();ctx.moveTo(path[i].x*TILE+TILE/2,path[i].y*TILE+MAP_OFFSET_Y+TILE/2);ctx.lineTo(path[i+1].x*TILE+TILE/2,path[i+1].y*TILE+MAP_OFFSET_Y+TILE/2);ctx.stroke()}
+  ctx.font=TILE*0.6+'px sans-serif';ctx.textAlign='center';
+  ctx.fillText('☠️',path[0].x*TILE+TILE/2,path[0].y*TILE+MAP_OFFSET_Y+TILE*0.7);
+  ctx.fillText('🏠',path[path.length-1].x*TILE+TILE/2,path[path.length-1].y*TILE+MAP_OFFSET_Y+TILE*0.7);
+  // Traps
+  for(var i=0;i<traps.length;i++){var tr=traps[i];ctx.font=(TILE*0.5)+'px sans-serif';ctx.globalAlpha=0.7;ctx.fillText(tr.isMine?'💣':'🪤',tr.x,tr.y);ctx.globalAlpha=1}
+  // Bananas
+  for(var i=0;i<bananas.length;i++){var bn=bananas[i];ctx.font=(TILE*0.45)+'px sans-serif';ctx.globalAlpha=0.6;ctx.fillText('🍌',bn.x,bn.y);ctx.globalAlpha=1}
+  // Towers
+  for(var i=0;i<towers.length;i++){
+    var t=towers[i],def=TOWER_DEFS[t.type];
+    var cx,cy;
+    if(t.size===2){cx=t.col*TILE+TILE;cy=t.row*TILE+MAP_OFFSET_Y+TILE;ctx.fillStyle=def.color;ctx.globalAlpha=0.2;ctx.fillRect(t.col*TILE,t.row*TILE+MAP_OFFSET_Y,TILE*2,TILE*2);ctx.globalAlpha=1;ctx.font=TILE*1.2+'px sans-serif'}
+    else{cx=t.col*TILE+TILE/2;cy=t.row*TILE+MAP_OFFSET_Y+TILE/2;ctx.fillStyle=def.color;ctx.globalAlpha=0.3;ctx.beginPath();ctx.arc(cx,cy,TILE*0.4,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;ctx.font=TILE*0.7+'px sans-serif'}
+    ctx.textAlign='center';ctx.fillText(def.emoji,cx,cy+TILE*0.25);
+    // Upgrade stars
+    var totalUpg=t.upgSpeed+t.upgEffect+t.upgMulti;
+    if(totalUpg>0){ctx.fillStyle='#fbbf24';ctx.font='bold '+TILE*0.2+'px sans-serif';ctx.fillText('★'.repeat(Math.min(totalUpg,9)),cx,cy-TILE*0.35)}
+    if(t.selected){ctx.strokeStyle='rgba(251,191,36,0.3)';ctx.lineWidth=1;ctx.beginPath();ctx.arc(cx,cy,def.range*TILE,0,Math.PI*2);ctx.stroke()}
+  }
+  // Allies
+  for(var i=0;i<allies.length;i++){var a=allies[i];ctx.font=TILE*0.6+'px sans-serif';ctx.textAlign='center';ctx.fillText(a.emoji,a.x,a.y+TILE*0.2)}
+  // Zombies
+  for(var i=0;i<zombies.length;i++){
+    var z=zombies[i],fs=z.isBoss?TILE*1.4:TILE*0.75;
+    ctx.font=fs+'px sans-serif';ctx.textAlign='center';
+    if(z.stunTimer>0){ctx.fillStyle='rgba(251,191,36,0.3)';ctx.beginPath();ctx.arc(z.x,z.y,TILE*(z.isBoss?0.7:0.4),0,Math.PI*2);ctx.fill();ctx.font=TILE*0.3+'px sans-serif';ctx.fillText('😵',z.x,z.y-TILE*0.45);ctx.font=fs+'px sans-serif'}
+    if(z.slowTimer>0){ctx.fillStyle='rgba(56,189,248,0.3)';ctx.beginPath();ctx.arc(z.x,z.y,TILE*(z.isBoss?0.7:0.4),0,Math.PI*2);ctx.fill()}
+    if(z.dotTimer>0){ctx.fillStyle='rgba(249,115,22,0.3)';ctx.beginPath();ctx.arc(z.x,z.y,TILE*(z.isBoss?0.6:0.35),0,Math.PI*2);ctx.fill()}
+    if(z.isBoss){ctx.shadowColor='#ef4444';ctx.shadowBlur=20}
+    ctx.fillText(z.emoji,z.x,z.y+fs*0.3);ctx.shadowBlur=0;
+    if(!z.isBoss){var bW=TILE*0.7,bH=4,bX=z.x-bW/2,bY=z.y-TILE*0.45;ctx.fillStyle='#1f2937';ctx.fillRect(bX,bY,bW,bH);var hp=Math.max(0,z.hp/z.maxHp);ctx.fillStyle=hp>0.5?'#22c55e':hp>0.25?'#fbbf24':'#ef4444';ctx.fillRect(bX,bY,bW*hp,bH)}
+  }
+  // Projectiles
+  for(var i=0;i<projectiles.length;i++){var p=projectiles[i];ctx.fillStyle=p.color;ctx.beginPath();ctx.arc(p.x,p.y,3,0,Math.PI*2);ctx.fill()}
+  // Particles
+  for(var i=0;i<particles.length;i++){var p=particles[i];ctx.globalAlpha=p.life/40;
+    if(p.text){ctx.fillStyle=p.color||'#fbbf24';ctx.font='bold 12px sans-serif';ctx.textAlign='center';ctx.fillText(p.text,p.x,p.y)}
+    else{ctx.fillStyle=p.color;ctx.beginPath();ctx.arc(p.x,p.y,p.size,0,Math.PI*2);ctx.fill()}}
+  ctx.globalAlpha=1;
+}
+
+// === GAME OVER ===
+function gameOverFn(){
+  gameRunning=false;sfxGameOver();stopMusic();
+  document.getElementById('towerBar').style.display='none';document.getElementById('bossBar').style.display='none';
+  document.getElementById('upgradePanel').style.display='none';
+  document.getElementById('death-score').textContent=score;
+  document.getElementById('death-wave').textContent='Wave '+wave+' | '+DIFF_SETTINGS[difficulty].label;
+  document.getElementById('death-gems').textContent='+'+gemsEarned+' 💎 earned';
+  if(!bestWaves[difficulty]||wave>bestWaves[difficulty])bestWaves[difficulty]=wave;
+  var newUnlock=checkUnlocks();var unlockEl=document.getElementById('death-unlock');
+  if(newUnlock){unlockEl.textContent='🔓 Unlocked: '+DIFF_SETTINGS[newUnlock].label+'!';unlockEl.style.display='block';sfxUnlock()}else unlockEl.style.display='none';
+  document.getElementById('death-name').value=localStorage.getItem('ajgt_name')||'';
+  document.getElementById('death-screen').style.display='flex';canvas.style.pointerEvents='none';
+}
+
+// === TOWER BUTTONS ===
+function updateTowerButtons(){
+  document.querySelectorAll('.tower-btn').forEach(function(btn){
+    var type=btn.dataset.tower,def=TOWER_DEFS[type];if(!def)return;
+    var cost=getTowerCost(type),costEl=btn.querySelector('.cost');
+    if(costEl)costEl.textContent='💰 '+cost;
+    btn.classList.toggle('locked',gold<cost);
+    btn.classList.toggle('selected',type===selectedTower);
+  });
+}
+
+// === TOWER UPGRADE PANEL (3 paths) ===
+var selectedMapTower=null;
+function openUpgradePanel(t){
+  towers.forEach(function(tw){tw.selected=false});t.selected=true;selectedMapTower=t;
+  var def=TOWER_DEFS[t.type];
+  if(def.income||def.trapTower||def.bananaTree){
+    // Simple towers: just sell + basic upgrade
+    document.getElementById('sellBtn').style.display='';document.getElementById('sellCost').textContent='+'+Math.floor(def.cost*(1+t.upgSpeed+t.upgEffect)*0.6);
+    document.getElementById('upgradeBtn').style.display='none';
+    // Show upgrade panel for effect upgrades
+  }else{
+    document.getElementById('sellBtn').style.display='';document.getElementById('sellCost').textContent='+'+Math.floor(def.cost*(1+t.upgSpeed+t.upgEffect+t.upgMulti)*0.6);
+    document.getElementById('upgradeBtn').style.display='none';// we use panel instead
+  }
+  // Build upgrade panel
+  var panel=document.getElementById('upgradePanel');
+  document.getElementById('upgTitle').textContent=def.emoji+' '+t.type.charAt(0).toUpperCase()+t.type.slice(1)+' Upgrades';
+  var rows=document.getElementById('upgRows');rows.innerHTML='';
+  var upgrades=[
+    {key:'upgSpeed',name:'⚡ Attack Speed',desc:'Fires faster',max:5,baseCost:def.cost*0.5},
+    {key:'upgEffect',name:'💪 Effect Power',desc:def.convert?'Stronger ally':def.income?'More income':def.trapTower?'More damage':def.bananaTree?'Longer stun':'More damage/effect',max:5,baseCost:def.cost*0.6},
+    {key:'upgMulti',name:def.trapTower?'🪤 +1 Trap Cap':def.bananaTree?'🍌 +1 Banana Cap':'🎯 Multi-Attack',desc:def.trapTower?'+1 max traps on field':def.bananaTree?'+1 max bananas on field':def.convert?'N/A':def.income?'N/A':'Extra projectiles',max:def.convert||def.income?0:def.trapTower||def.bananaTree?5:3,baseCost:def.cost*0.8}
+  ];
+  upgrades.forEach(function(u){
+    if(u.max===0)return;
+    var lvl=t[u.key]||0,maxed=lvl>=u.max;
+    var cost=maxed?0:Math.round(u.baseCost*(1+lvl*0.5));
+    var r=document.createElement('div');r.className='upg-row'+(maxed?' maxed':'');
+    r.innerHTML='<div class="upg-icon">'+u.name.split(' ')[0]+'</div><div class="upg-info"><div class="upg-name">'+u.name+'</div><div class="upg-desc">'+u.desc+'</div><div class="upg-lvl">Lv '+lvl+'/'+u.max+'</div></div><div class="upg-cost">'+(maxed?'MAX':'💰 '+cost)+'</div>';
+    if(!maxed){r.onclick=function(){if(gold>=cost){gold-=cost;t[u.key]=lvl+1;updateHUD();openUpgradePanel(t)}}}
+    rows.appendChild(r);
+  });
+  panel.style.display='block';
+}
+function closeUpgradePanel(){
+  document.getElementById('upgradePanel').style.display='none';
+  if(selectedMapTower)selectedMapTower.selected=false;selectedMapTower=null;
+  document.getElementById('sellBtn').style.display='none';
+}
+document.getElementById('upgClose').onclick=closeUpgradePanel;
+
+function doSell(){
+  if(!selectedMapTower)return;var def=TOWER_DEFS[selectedMapTower.type];
+  var sv=Math.floor(def.cost*(1+selectedMapTower.upgSpeed+selectedMapTower.upgEffect+selectedMapTower.upgMulti)*0.6);
+  gold+=sv;var idx=towers.indexOf(selectedMapTower);if(idx!==-1)towers.splice(idx,1);
+  closeUpgradePanel();updateHUD();
+}
+function doUpgrade(){}// unused now, panel handles it
+
+// === CANVAS CLICK ===
+function handleCanvasClick(mx,my){
+  if(!gameRunning||paused)return;
+  var col=Math.floor(mx/TILE),row=Math.floor((my-MAP_OFFSET_Y)/TILE);
+  if(row<0||row>=ROWS||col<0||col>=COLS)return;
+  var existing=towerAt(col,row);
+  if(existing){openUpgradePanel(existing);return}
+  closeUpgradePanel();
+  if(isOnPath(col,row))return;
+  var def=TOWER_DEFS[selectedTower];if(!def)return;
+  // Check 2x2 for banana tree
+  if(def.size===2){
+    if(col+1>=COLS||row+1>=ROWS)return;
+    if(isOnPath(col,row)||isOnPath(col+1,row)||isOnPath(col,row+1)||isOnPath(col+1,row+1))return;
+    if(towerAt(col,row)||towerAt(col+1,row)||towerAt(col,row+1)||towerAt(col+1,row+1))return;
+  }else{if(towerAt(col,row))return}
+  var cost=getTowerCost(selectedTower);if(gold<cost)return;
+  gold-=cost;towerBuyCount[selectedTower]=(towerBuyCount[selectedTower]||0)+1;sfxPlace();
+  var newT={col:col,row:row,type:selectedTower,cooldown:0,upgSpeed:0,upgEffect:0,upgMulti:0,selected:false,abilityCool:0,abilityActive:0,
+    size:def.size||1,trapTower:!!def.trapTower,bananaTree:!!def.bananaTree,trapTimer:0,bTimer:0};
+  towers.push(newT);updateHUD();
+}
+
+canvas.addEventListener('click',function(e){var r=canvas.getBoundingClientRect();handleCanvasClick(e.clientX-r.left,e.clientY-r.top)});
+canvas.addEventListener('touchstart',function(e){e.preventDefault();var t=e.touches[0],r=canvas.getBoundingClientRect();handleCanvasClick(t.clientX-r.left,t.clientY-r.top)});
+
+if(document.getElementById('sellBtn'))document.getElementById('sellBtn').onclick=function(e){e.stopPropagation();doSell()};
+
+// === PAUSE ===
+document.getElementById('pauseBtn').onclick=function(){
+  if(!gameRunning)return;paused=!paused;
+  document.getElementById('pauseOverlay').style.display=paused?'flex':'none';
+  document.getElementById('pauseBtn').textContent=paused?'▶️':'⏸️';
+};
+document.getElementById('resumeBtn').onclick=function(){paused=false;document.getElementById('pauseOverlay').style.display='none';document.getElementById('pauseBtn').textContent='⏸️'};
+
+// === GAME LOOP ===
+function loop(){update();draw();}
+
+document.getElementById('startBtn').onclick=function(){
+  document.getElementById('startScreen').classList.add('hidden');
+  document.getElementById('towerBar').style.display='block';canvas.style.pointerEvents='';
+  initAudio();startMusic();init();
+};
+
+
+// Prestige UI
+function renderPrestige(){
+  document.getElementById('pLevel').textContent=prestige;
+  document.getElementById('pTokens').textContent=prestigeTokens;
+  var best=Math.max.apply(null,Object.values(bestWaves).concat([0]));
+  document.getElementById('prestigeReq').textContent=best>=20?'✅ Ready to prestige! (Best wave: '+best+')':'❌ Need wave 20+ to prestige (Best: '+best+')';
+  document.getElementById('doPrestige').style.opacity=best>=20?'1':'0.4';
+  var grid=document.getElementById('perkGrid');grid.innerHTML='';
+  PRESTIGE_PERKS.forEach(function(pk){
+    var lvl=getPerk(pk.id);var isMax=lvl>=pk.max;
+    var card=document.createElement('div');
+    card.style.cssText='background:rgba(255,255,255,0.06);border:2px solid '+(isMax?'#22c55e':'rgba(255,255,255,0.1)')+';border-radius:10px;padding:8px;width:100px;text-align:center;cursor:pointer';
+    card.innerHTML='<div style="font-size:10px;font-weight:700;color:#e2e8f0">'+pk.name+'</div><div style="color:#94a3b8;font-size:8px">'+pk.desc+'</div><div style="color:#22d3ee;font-size:9px">Lv '+lvl+'/'+pk.max+'</div>'+(isMax?'<div style="color:#22c55e;font-size:9px">MAX</div>':'<div style="color:#fbbf24;font-size:10px">🎖️ '+pk.cost+'</div>');
+    card.onclick=function(){
+      if(isMax||prestigeTokens<pk.cost)return;
+      prestigeTokens-=pk.cost;prestigePerks[pk.id]=lvl+1;savePrestige();renderPrestige();
+    };
+    grid.appendChild(card);
+  });
+}
+document.getElementById('prestigeBtn').onclick=function(){renderPrestige();document.getElementById('prestigeOverlay').style.display='flex'};
+document.getElementById('pClose').onclick=function(){document.getElementById('prestigeOverlay').style.display='none'};
+document.getElementById('doPrestige').onclick=function(){
+  var best=Math.max.apply(null,Object.values(bestWaves).concat([0]));
+  if(best<20)return;
+  var tokens=Math.floor(best/10);
+  prestige++;prestigeTokens+=tokens;
+  // Reset gems and skills
+  gems=0;skills={};saveGems();localStorage.setItem('zd_skills',JSON.stringify(skills));
+  savePrestige();
+  renderPrestige();
+  alert('🏅 Prestige '+ prestige+'! Earned '+tokens+' tokens. Gems & skills reset.');
+};
+
+// Challenge system
+var CHALLENGES=[
+  {id:'no_gun',name:'🚫🔫 No Guns',desc:'Win wave 10 without Gun towers',reward:'5 💎',check:function(){return wave>=10}},
+  {id:'speed_run',name:'⚡ Speed Run',desc:'Reach wave 15 in under 5 min',reward:'8 💎',check:function(){return wave>=15}},
+  {id:'one_life',name:'💀 One Life',desc:'Reach wave 10 with 1 life',reward:'10 💎',check:function(){return wave>=10&&lives>=1}},
+  {id:'no_upgrade',name:'🔒 No Upgrades',desc:'Reach wave 8 without upgrading towers',reward:'6 💎',check:function(){return wave>=8}},
+  {id:'cannon_only',name:'💣 Cannon Only',desc:'Reach wave 12 using only Cannons',reward:'8 💎',check:function(){return wave>=12}},
+  {id:'boss_slayer',name:'👹 Boss Slayer',desc:'Defeat 3 bosses in one run',reward:'12 💎',check:function(){return false}}
+];
+var completedChallenges=JSON.parse(localStorage.getItem('zd_challenges')||'[]');
+function renderChallenges(){
+  var list=document.getElementById('challengeList');list.innerHTML='';
+  CHALLENGES.forEach(function(ch){
+    var done=completedChallenges.indexOf(ch.id)>=0;
+    var row=document.createElement('div');
+    row.style.cssText='display:flex;align-items:center;justify-content:space-between;padding:10px;margin-bottom:6px;border-radius:10px;background:rgba(255,255,255,0.05);border:1px solid '+(done?'#22c55e':'rgba(255,255,255,0.1)');
+    row.innerHTML='<div><div style="color:#e2e8f0;font-size:13px;font-weight:700">'+ch.name+'</div><div style="color:#94a3b8;font-size:10px">'+ch.desc+'</div></div><div style="text-align:right"><div style="color:#fbbf24;font-size:11px">'+ch.reward+'</div>'+(done?'<div style="color:#22c55e;font-size:10px">✅ Done</div>':'')+'</div>';
+    list.appendChild(row);
+  });
+}
+document.getElementById('challengeBtn').onclick=function(){renderChallenges();document.getElementById('challengeOverlay').style.display='flex'};
+document.getElementById('cClose').onclick=function(){document.getElementById('challengeOverlay').style.display='none'};
+
+// === LEADERBOARD ===
+var _LB_URL='https://adudgrfxwildzwpcvyil.supabase.co',_LB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFkdWRncmZ4d2lsZHp3cGN2eWlsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyOTkzODUsImV4cCI6MjA4Nzg3NTM4NX0.-JYXn5r9QUjxbpwckwDMSvCm8w1xRXOp5lP2TWNOC_E',_LB_GAME='zombie-defense';
+async function _lbFetch(){try{var r=await fetch(_LB_URL+'/rest/v1/ajgametime_leaderboard?game=eq.'+_LB_GAME+'&order=score.desc&limit=10',{headers:{'apikey':_LB_KEY,'Authorization':'Bearer '+_LB_KEY}});return await r.json()}catch(e){return[]}}
+async function _lbSubmit(name,sc){try{await fetch(_LB_URL+'/rest/v1/ajgametime_leaderboard',{method:'POST',headers:{'apikey':_LB_KEY,'Authorization':'Bearer '+_LB_KEY,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({game:_LB_GAME,player_name:name,score:sc,wave:wave})})}catch(e){}}
+async function _lbShow(){var lb=document.getElementById('lb-overlay'),list=document.getElementById('lb-list');list.innerHTML='<div style="color:#64748b;text-align:center;padding:20px">Loading...</div>';lb.style.display='flex';var data=await _lbFetch();if(!data.length){list.innerHTML='<div style="color:#64748b;text-align:center;padding:20px">No scores yet!</div>';return}list.innerHTML=data.map(function(d,i){return'<div class="lb-row"><span class="lb-rank">#'+(i+1)+'</span><span class="lb-name">'+d.player_name+'</span><span class="lb-score">'+d.score+' (W'+d.wave+')</span></div>'}).join('')}
+document.getElementById('lb-close-btn').onclick=function(){document.getElementById('lb-overlay').style.display='none'};
+document.getElementById('lb-show-btn').onclick=_lbShow;
+document.getElementById('death-submit').onclick=async function(){var n=document.getElementById('death-name').value.trim()||'Anonymous';localStorage.setItem('ajgt_name',n);await _lbSubmit(n,score);this.textContent='✅ Done!';this.disabled=true};
+document.getElementById('death-retry').onclick=function(){
+  document.getElementById('death-screen').style.display='none';
+  document.getElementById('death-submit').textContent='📤 Submit';document.getElementById('death-submit').disabled=false;
+  document.getElementById('startScreen').classList.remove('hidden');buildDiffPicker();buildMapPicker();updateUnlockHint();
+};
+document.getElementById('death-lb').onclick=_lbShow;
+document.getElementById('death-skills').onclick=openSkillTree;
+document.getElementById('death-name').onkeydown=function(e){if(e.key==='Enter')document.getElementById('death-submit').click()};
+
+// === VOLUME SETTINGS ===
+function _applyVol(){if(musicGain)musicGain.gain.value=_musicVol*0.5;if(sfxGain)sfxGain.gain.value=_sfxVol}
+document.getElementById('settingsBtn').onclick=function(){document.getElementById('settingsOverlay').style.display='flex';document.getElementById('musicVol').value=Math.round(_musicVol*100);document.getElementById('sfxVol').value=Math.round(_sfxVol*100);document.getElementById('musicVolVal').textContent=Math.round(_musicVol*100)+'%';document.getElementById('sfxVolVal').textContent=Math.round(_sfxVol*100)+'%'};
+document.getElementById('settingsClose').onclick=function(){document.getElementById('settingsOverlay').style.display='none'};
+document.getElementById('musicVol').oninput=function(){_musicVol=this.value/100;document.getElementById('musicVolVal').textContent=this.value+'%';localStorage.setItem('zd_musicVol',this.value);_applyVol()};
+document.getElementById('sfxVol').oninput=function(){_sfxVol=this.value/100;document.getElementById('sfxVolVal').textContent=this.value+'%';localStorage.setItem('zd_sfxVol',this.value);_applyVol()};
+
+// Start game loop LAST (after all event handlers are set up)
+setInterval(loop,1000/30);
+</script>
+
+<div id="prestigeOverlay" style="position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;z-index:100;background:rgba(0,0,0,0.95);overflow-y:auto;padding:20px">
+  <h2 style="font-size:22px;color:#f59e0b;font-weight:900;margin-bottom:4px">🏅 Prestige</h2>
+  <div style="color:#94a3b8;font-size:12px;margin-bottom:4px">Level: <span id="pLevel" style="color:#f59e0b">0</span> | Tokens: <span id="pTokens" style="color:#fbbf24">0</span></div>
+  <div style="color:#64748b;font-size:10px;margin-bottom:12px">Reach wave 20+ then prestige to earn tokens. Resets gems & skills!</div>
+  <div id="perkGrid" style="display:flex;flex-wrap:wrap;justify-content:center;gap:8px;max-width:400px;margin-bottom:12px"></div>
+  <button id="doPrestige" style="padding:10px 24px;font-size:14px;font-weight:700;color:#fff;background:linear-gradient(135deg,#f59e0b,#ef4444);border:none;border-radius:10px;cursor:pointer;margin-bottom:8px">🔄 Prestige Now</button>
+  <div id="prestigeReq" style="color:#ef4444;font-size:11px;margin-bottom:8px"></div>
+  <button id="pClose" style="padding:8px 24px;font-size:14px;color:#fff;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:10px;cursor:pointer">Close</button>
+</div>
+
+
+<div id="challengeOverlay" style="position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;z-index:100;background:rgba(0,0,0,0.95);overflow-y:auto;padding:20px">
+  <h2 style="font-size:22px;color:#ef4444;font-weight:900;margin-bottom:8px">🏆 Challenges</h2>
+  <div id="challengeList" style="width:min(360px,90vw)"></div>
+  <button id="cClose" style="margin-top:12px;padding:8px 24px;font-size:14px;color:#fff;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:10px;cursor:pointer">Close</button>
+</div>
+
+</body>
+</html>
