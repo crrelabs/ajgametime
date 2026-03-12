@@ -212,6 +212,103 @@ function initNewGames() {
 }
 initNewGames();
 
+
+// === WEEKLY CHALLENGE ===
+function initWeeklyChallenge() {
+  // Rotate challenge weekly based on date
+  var weekNum = Math.floor(Date.now() / (7 * 86400000));
+  var challengeGames = GAMES.filter(function(g) { return g.category !== 'Puzzle'; });
+  var game = challengeGames[weekNum % challengeGames.length];
+  var targetScore = [3000, 5000, 7500, 4000, 6000, 8000, 10000][weekNum % 7];
+  
+  document.getElementById('wcTitle').textContent = 'Beat this score!';
+  document.getElementById('wcScore').textContent = '🏆 ' + targetScore.toLocaleString();
+  document.getElementById('wcGame').textContent = game.emoji + ' ' + game.name;
+  document.getElementById('wcPlay').href = game.href;
+  document.getElementById('wcPlay').onclick = function() { trackPlay(game.id); };
+  
+  // Timer until next challenge
+  var now = new Date();
+  var nextMonday = new Date(now);
+  nextMonday.setDate(now.getDate() + (8 - now.getDay()) % 7);
+  nextMonday.setHours(0, 0, 0, 0);
+  if (nextMonday <= now) nextMonday.setDate(nextMonday.getDate() + 7);
+  var diff = nextMonday - now;
+  var days = Math.floor(diff / 86400000);
+  var hours = Math.floor((diff % 86400000) / 3600000);
+  document.getElementById('wcTimer').textContent = '⏰ Resets in ' + days + 'd ' + hours + 'h';
+}
+initWeeklyChallenge();
+
+// === SHARE SYSTEM ===
+// Expose globally so games can call it
+window.ajgtShare = function(gameName, score) {
+  document.getElementById('shareScore').textContent = score.toLocaleString();
+  document.getElementById('shareOverlay').style.display = 'flex';
+  window._shareGame = gameName;
+  window._shareScore = score;
+};
+
+function copyShareLink() {
+  var text = '🏆 I scored ' + (window._shareScore || 0) + ' in ' + (window._shareGame || 'a game') + ' on AJ GameTime! Can you beat me? 🎮 https://ajgametime.com';
+  navigator.clipboard.writeText(text).then(function() {
+    event.target.textContent = '✅ Copied!';
+    setTimeout(function() { event.target.textContent = '📋 Copy Link'; }, 2000);
+  });
+}
+
+function shareTwitter() {
+  var text = '🏆 I scored ' + (window._shareScore || 0) + ' in ' + (window._shareGame || 'a game') + ' on AJ GameTime! Can you beat me? 🎮';
+  window.open('https://twitter.com/intent/tweet?text=' + encodeURIComponent(text) + '&url=' + encodeURIComponent('https://ajgametime.com'), '_blank');
+}
+
+function shareWhatsApp() {
+  var text = '🏆 I scored ' + (window._shareScore || 0) + ' in ' + (window._shareGame || 'a game') + ' on AJ GameTime! Can you beat me? 🎮 https://ajgametime.com';
+  window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank');
+}
+
+function closeShare() {
+  document.getElementById('shareOverlay').style.display = 'none';
+}
+
+// === BOREDOM CHALLENGE ===
+function initBoredomChallenge() {
+  var today = new Date().toISOString().slice(0, 10);
+  var bc = JSON.parse(localStorage.getItem('ajgt_boredom') || '{"date":"","games":[],"done":[]}');
+  
+  // New challenge each day
+  if (bc.date !== today) {
+    var shuffled = GAMES.slice().sort(function() { return Math.random() - 0.5; });
+    bc = { date: today, games: shuffled.slice(0, 3).map(function(g) { return g.id; }), done: [] };
+    localStorage.setItem('ajgt_boredom', JSON.stringify(bc));
+  }
+  
+  var grid = document.getElementById('bcGames');
+  grid.innerHTML = bc.games.map(function(gid) {
+    var g = GAMES.find(function(x) { return x.id === gid; });
+    if (!g) return '';
+    var isDone = bc.done.indexOf(gid) >= 0;
+    return '<a href="' + g.href + '" class="bc-game" onclick="completeBoredom(\'' + gid + '\')" style="' + (isDone ? 'border-color:#22c55e;background:rgba(34,197,94,0.1)' : '') + '">' +
+      '<div class="bc-emoji">' + (isDone ? '✅' : g.emoji) + '</div>' +
+      '<div class="bc-name">' + g.name + '</div></a>';
+  }).join('');
+  
+  var progress = bc.done.length;
+  document.getElementById('bcFill').style.width = (progress / 3 * 100) + '%';
+  document.getElementById('bcStatus').textContent = progress >= 3 ? '🎉 Challenge Complete!' : progress + '/3 completed';
+}
+
+function completeBoredom(gid) {
+  var bc = JSON.parse(localStorage.getItem('ajgt_boredom') || '{"date":"","games":[],"done":[]}');
+  if (bc.done.indexOf(gid) < 0) {
+    bc.done.push(gid);
+    localStorage.setItem('ajgt_boredom', JSON.stringify(bc));
+  }
+  trackPlay(gid);
+}
+
+initBoredomChallenge();
+
 </script>
 <script type="application/ld+json">
 {
@@ -499,6 +596,80 @@ footer a:hover { color: #94a3b8; }
 /* Category section headers */
 .cat-header { font-family: 'Lilita One', cursive; font-size: 1.3rem; color: #94a3b8; padding: 0.8rem 0 0.3rem; grid-column: 1 / -1; border-bottom: 1px solid rgba(255,255,255,0.06); }
 
+
+/* Weekly Challenge */
+.weekly-challenge {
+  margin: 1.5rem auto; max-width: 500px; padding: 0 1rem;
+}
+.wc-box {
+  background: linear-gradient(135deg, rgba(239,68,68,0.1), rgba(249,115,22,0.1));
+  border: 2px solid rgba(239,68,68,0.25); border-radius: 16px;
+  padding: 18px; text-align: center; position: relative; overflow: hidden;
+}
+.wc-box::before {
+  content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
+  background: conic-gradient(from 0deg, transparent, rgba(239,68,68,0.08), transparent, rgba(249,115,22,0.08), transparent);
+  animation: wcSpin 6s linear infinite;
+}
+@keyframes wcSpin { to { transform: rotate(360deg); } }
+.wc-label { font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 2px; color: #ef4444; margin-bottom: 4px; position: relative; }
+.wc-title { font-family: 'Lilita One', cursive; font-size: 1.3rem; color: #e2e8f0; margin-bottom: 6px; position: relative; }
+.wc-score { font-size: 2rem; font-weight: 900; color: #fbbf24; position: relative; }
+.wc-game { font-size: 0.85rem; color: #94a3b8; margin: 6px 0; position: relative; }
+.wc-cta {
+  display: inline-block; margin-top: 10px; padding: 10px 24px;
+  font-family: 'Lilita One', cursive; font-size: 1rem; color: #fff;
+  background: linear-gradient(135deg, #ef4444, #f97316);
+  border: none; border-radius: 12px; cursor: pointer; text-decoration: none;
+  transition: transform 0.2s; position: relative;
+}
+.wc-cta:hover { transform: scale(1.05); }
+.wc-timer { font-size: 0.7rem; color: #64748b; margin-top: 8px; position: relative; }
+
+/* Share Modal */
+.share-overlay {
+  position: fixed; inset: 0; display: none; align-items: center; justify-content: center;
+  z-index: 200; background: rgba(0,0,0,0.85); backdrop-filter: blur(6px);
+}
+.share-box {
+  background: #16132e; border: 2px solid rgba(124,58,237,0.3); border-radius: 20px;
+  padding: 24px; max-width: 340px; width: 90%; text-align: center;
+}
+.share-title { font-family: 'Lilita One', cursive; font-size: 1.5rem; color: #fbbf24; margin-bottom: 4px; }
+.share-score { font-size: 2.5rem; font-weight: 900; color: #22d3ee; margin: 8px 0; }
+.share-sub { color: #94a3b8; font-size: 0.9rem; margin-bottom: 16px; }
+.share-btns { display: flex; flex-direction: column; gap: 8px; }
+.share-btn {
+  padding: 12px; border: none; border-radius: 12px; font-size: 0.9rem;
+  font-weight: 700; color: #fff; cursor: pointer; transition: transform 0.2s;
+}
+.share-btn:hover { transform: scale(1.03); }
+.share-btn.copy { background: linear-gradient(135deg, #7c3aed, #3b82f6); }
+.share-btn.twitter { background: #1da1f2; }
+.share-btn.whatsapp { background: #25d366; }
+.share-close { margin-top: 12px; background: none; border: 1px solid rgba(255,255,255,0.15); color: #94a3b8; padding: 8px 20px; border-radius: 10px; cursor: pointer; font-size: 0.8rem; }
+
+/* Boredom Challenge */
+.boredom-challenge { margin: 1.5rem auto; max-width: 500px; padding: 0 1rem; }
+.bc-box {
+  background: rgba(124,58,237,0.08); border: 2px solid rgba(124,58,237,0.2);
+  border-radius: 16px; padding: 18px; text-align: center;
+}
+.bc-title { font-family: 'Lilita One', cursive; font-size: 1.2rem; color: #c084fc; margin-bottom: 6px; }
+.bc-desc { color: #94a3b8; font-size: 0.85rem; margin-bottom: 10px; }
+.bc-games { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-bottom: 10px; }
+.bc-game {
+  background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 12px; padding: 10px; width: 80px; text-align: center; text-decoration: none;
+  transition: transform 0.2s;
+}
+.bc-game:hover { transform: scale(1.08); }
+.bc-game .bc-emoji { font-size: 1.5rem; display: block; }
+.bc-game .bc-name { font-size: 0.65rem; color: #e2e8f0; font-weight: 700; margin-top: 2px; }
+.bc-progress { height: 6px; background: rgba(255,255,255,0.06); border-radius: 3px; overflow: hidden; margin: 8px auto; max-width: 200px; }
+.bc-fill { height: 100%; background: linear-gradient(90deg, #7c3aed, #ec4899); border-radius: 3px; transition: width 0.3s; }
+.bc-status { font-size: 0.75rem; color: #64748b; }
+
 </style>
 </head>
 <body>
@@ -534,6 +705,18 @@ footer a:hover { color: #94a3b8; }
     <div class="streak-days" id="streakDays"></div>
   </div>
 
+  <!-- Weekly Challenge -->
+  <div class="weekly-challenge">
+    <div class="wc-box">
+      <div class="wc-label">🔥 WEEKLY CHALLENGE</div>
+      <div class="wc-title" id="wcTitle">Loading...</div>
+      <div class="wc-score" id="wcScore">🏆 ???</div>
+      <div class="wc-game" id="wcGame"></div>
+      <a class="wc-cta" id="wcPlay" href="#">⚔️ Accept Challenge!</a>
+      <div class="wc-timer" id="wcTimer"></div>
+    </div>
+  </div>
+
   <!-- Top Players -->
   <div class="top-players">
     <div class="top-players-box">
@@ -552,6 +735,17 @@ footer a:hover { color: #94a3b8; }
   <div class="quick-play">
     <div class="quick-play-title">⚡ <span>Quick Play</span> — Jump Right In!</div>
     <div class="quick-grid" id="quickGrid"></div>
+  </div>
+
+  <!-- Boredom Challenge -->
+  <div class="boredom-challenge">
+    <div class="bc-box">
+      <div class="bc-title">😴 BOREDOM CHALLENGE</div>
+      <div class="bc-desc">Try 3 random games! Can you beat all of them?</div>
+      <div class="bc-games" id="bcGames"></div>
+      <div class="bc-progress"><div class="bc-fill" id="bcFill" style="width:0%"></div></div>
+      <div class="bc-status" id="bcStatus">0/3 completed</div>
+    </div>
   </div>
 
   <!-- New Games -->
@@ -1034,5 +1228,18 @@ for (let i = 0; i < 20; i++) {
 
 init();
 </script>
+<div class="share-overlay" id="shareOverlay">
+  <div class="share-box">
+    <div class="share-title">🏆 Nice Score!</div>
+    <div class="share-score" id="shareScore">0</div>
+    <div class="share-sub">Can your friends beat you? 😏</div>
+    <div class="share-btns">
+      <button class="share-btn copy" onclick="copyShareLink()">📋 Copy Link</button>
+      <button class="share-btn twitter" onclick="shareTwitter()">🐦 Share on X</button>
+      <button class="share-btn whatsapp" onclick="shareWhatsApp()">💬 Share on WhatsApp</button>
+    </div>
+    <button class="share-close" onclick="closeShare()">Close</button>
+  </div>
+</div>
 </body>
 </html>
