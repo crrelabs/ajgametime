@@ -341,7 +341,10 @@ function checkUnlocks(){
   saveProg();return newUnlock;
 }
 function buildMapPicker(){
-  var cont=document.getElementById("mapPicker");if(!cont)return;cont.innerHTML="";
+  console.log('buildMapPicker called');
+  var cont=document.getElementById("mapPicker");
+  if(!cont){console.error('mapPicker element not found');return;}
+  cont.innerHTML="";
   Object.keys(MAPS).forEach(function(id){
     var m=MAPS[id];var btn=document.createElement("button");
     btn.className="diff-btn";btn.style.background=m.color;btn.style.color="#fff";btn.style.fontSize="11px";btn.style.padding="6px 10px";
@@ -353,7 +356,10 @@ function buildMapPicker(){
 }
 
 function buildDiffPicker(){
-  var picker=document.getElementById('diffPicker');picker.innerHTML='';
+  console.log('buildDiffPicker called');
+  var picker=document.getElementById('diffPicker');
+  if(!picker){console.error('diffPicker element not found');return;}
+  picker.innerHTML='';
   DIFF_ORDER.forEach(function(d){
     if(d==='freeplay'&&!freeplayUnlocked)return;
     var ds=DIFF_SETTINGS[d],isU=d==='easy'||unlockedDiffs.includes(d)||(d==='freeplay'&&freeplayUnlocked);
@@ -1135,10 +1141,19 @@ document.getElementById('musicVol').oninput=function(){_musicVol=this.value/100;
 document.getElementById('sfxVol').oninput=function(){_sfxVol=this.value/100;document.getElementById('sfxVolVal').textContent=this.value+'%';localStorage.setItem('zd_sfxVol',this.value);_applyVol()};
 
 // === INIT ALL UI (after everything is defined) ===
-try{buildDiffPicker();}catch(e){console.error('buildDiffPicker:',e);}
-try{updateUnlockHint();}catch(e){console.error('updateUnlockHint:',e);}
-try{buildTowerBar();}catch(e){console.error('buildTowerBar:',e);}
-try{buildMapPicker();}catch(e){console.error('buildMapPicker:',e);}
+function initUI(){
+  console.log('Initializing UI...');
+  try{buildDiffPicker();}catch(e){console.error('buildDiffPicker:',e);}
+  try{updateUnlockHint();}catch(e){console.error('updateUnlockHint:',e);}
+  try{buildTowerBar();}catch(e){console.error('buildTowerBar:',e);}
+  try{buildMapPicker();}catch(e){console.error('buildMapPicker:',e);}
+  console.log('UI initialized');
+}
+
+// Run immediately and also after DOM loads
+initUI();
+document.addEventListener('DOMContentLoaded', initUI);
+setTimeout(initUI, 100); // Backup
 
 // Start game loop LAST
 setInterval(loop,1000/30);
