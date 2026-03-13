@@ -1090,12 +1090,7 @@ document.getElementById('doPrestige').onclick=function(){
   alert('🏅 Prestige '+ prestige+'! Earned '+tokens+' tokens. Gems & skills reset.');
 };
 
-// Use the zdStart function that's defined early
-try {
-  document.getElementById('startBtn').onclick = zdStart;
-} catch(e) {
-  console.error('Failed to set startBtn onclick:', e);
-}
+// onclick handler now set in initUI function
 
 // Challenge system
 var CHALLENGES=[
@@ -1152,6 +1147,20 @@ function initUI(){
   try{updateUnlockHint();}catch(e){console.error('updateUnlockHint:',e);}
   try{buildTowerBar();}catch(e){console.error('buildTowerBar:',e);}
   try{buildMapPicker();}catch(e){console.error('buildMapPicker:',e);}
+  
+  // Set up startBtn onclick handler
+  try {
+    var startBtn = document.getElementById('startBtn');
+    if(startBtn) {
+      startBtn.onclick = zdStart;
+      console.log('startBtn onclick handler set');
+    } else {
+      console.error('startBtn not found');
+    }
+  } catch(e) {
+    console.error('Failed to set startBtn onclick:', e);
+  }
+  
   console.log('UI initialized');
 }
 
