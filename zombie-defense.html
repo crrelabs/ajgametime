@@ -196,16 +196,55 @@ resize();window.addEventListener('resize',resize);
 // === START GAME (defined early so onclick always works) ===
 function zdStart(){
   try{
-    document.getElementById('startScreen').classList.add('hidden');
-    document.getElementById('towerBar').style.display='block';
-    canvas.style.pointerEvents='auto';
-    if(typeof initAudio==='function')initAudio();
-    if(typeof startMusic==='function')startMusic();
-    if(typeof buildTowerBar==='function')buildTowerBar();
-    if(typeof init==='function')init();
-    if(typeof loop==='function')loop();
+    console.log('zdStart called - starting game...');
+    
+    // Hide start screen
+    var startScreen = document.getElementById('startScreen');
+    if(startScreen) {
+      startScreen.style.display = 'none';
+      startScreen.classList.add('hidden');
+    }
+    
+    // Show tower bar
+    var towerBar = document.getElementById('towerBar');
+    if(towerBar) {
+      towerBar.style.display = 'block';
+    }
+    
+    // Enable canvas
+    if(typeof canvas !== 'undefined') {
+      canvas.style.pointerEvents = 'auto';
+    }
+    
+    // Initialize audio
+    if(typeof initAudio === 'function') {
+      try { initAudio(); } catch(e) { console.error('initAudio failed:', e); }
+    }
+    
+    // Start music
+    if(typeof startMusic === 'function') {
+      try { startMusic(); } catch(e) { console.error('startMusic failed:', e); }
+    }
+    
+    // Build tower bar
+    if(typeof buildTowerBar === 'function') {
+      try { buildTowerBar(); } catch(e) { console.error('buildTowerBar failed:', e); }
+    }
+    
+    // Initialize game
+    if(typeof init === 'function') {
+      try { init(); } catch(e) { console.error('init failed:', e); }
+    }
+    
+    // Start game loop
+    if(typeof loop === 'function') {
+      try { loop(); } catch(e) { console.error('loop failed:', e); }
+    }
+    
     console.log('Game started successfully');
-  }catch(e){console.error('zdStart error:',e);}
+  }catch(e){
+    console.error('zdStart error:', e);
+  }
 }
 
 function zdRetry(){
@@ -1164,9 +1203,56 @@ function initUI(){
   console.log('UI initialized');
 }
 
-// Run immediately and also after DOM loads
+// Chromebook-compatible initialization - run multiple times to ensure it works
+function forceInitUI() {
+  console.log('Force init UI attempt...');
+  
+  // Ensure difficulty picker
+  var diffPicker = document.getElementById('diffPicker');
+  if(!diffPicker || diffPicker.innerHTML.trim() === '') {
+    console.log('Building diff picker...');
+    try { buildDiffPicker(); } catch(e) { console.error('buildDiffPicker failed:', e); }
+  }
+  
+  // Ensure map picker  
+  var mapPicker = document.getElementById('mapPicker');
+  if(!mapPicker || mapPicker.innerHTML.trim() === '') {
+    console.log('Building map picker...');
+    try { buildMapPicker(); } catch(e) { console.error('buildMapPicker failed:', e); }
+  }
+  
+  // Ensure startBtn handler
+  var startBtn = document.getElementById('startBtn');
+  if(startBtn && !startBtn.onclick) {
+    console.log('Setting startBtn handler...');
+    startBtn.onclick = zdStart;
+  }
+  
+  // Check if everything loaded
+  var diffLoaded = diffPicker && diffPicker.innerHTML.trim() !== '';
+  var mapLoaded = mapPicker && mapPicker.innerHTML.trim() !== '';
+  console.log('Diff loaded:', diffLoaded, 'Map loaded:', mapLoaded);
+  
+  return diffLoaded && mapLoaded;
+}
+
+// Run immediately, after DOM loads, and keep trying until it works
 initUI();
-document.addEventListener('DOMContentLoaded', initUI);
+forceInitUI();
+document.addEventListener('DOMContentLoaded', function() {
+  initUI();
+  forceInitUI();
+  
+  // Keep trying every 500ms until it works (Chromebook fix)
+  var attempts = 0;
+  var checkInterval = setInterval(function() {
+    attempts++;
+    if(forceInitUI() || attempts > 20) {
+      clearInterval(checkInterval);
+      console.log('UI initialization completed after', attempts, 'attempts');
+    }
+  }, 500);
+});
 setTimeout(initUI, 100); // Backup
 
 // Start game loop LAST
