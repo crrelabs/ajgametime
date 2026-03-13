@@ -245,13 +245,14 @@ function zdStart(){
       try { buildTowerBar(); } catch(e) { console.error('buildTowerBar failed:', e); }
     }
     
-    // Set difficulty from UI selection
+    // Set difficulty and map from UI selection
     if(typeof window.currentDiff !== 'undefined' && typeof difficulty !== 'undefined') {
       difficulty = window.currentDiff;
       console.log('Using difficulty:', difficulty);
     }
-    if(typeof window.currentMap !== 'undefined') {
-      console.log('Using map:', window.currentMap);
+    if(typeof window.currentMap !== 'undefined' && typeof currentMap !== 'undefined') {
+      currentMap = window.currentMap;
+      console.log('Using map:', currentMap);
     }
     
     // Initialize game
@@ -402,6 +403,9 @@ function selectDiff(diffId) {
 
 function selectMap(mapId) {
   window.currentMap = mapId;
+  if(typeof currentMap !== 'undefined') {
+    currentMap = mapId; // Also set the global variable
+  }
   console.log('Selected map:', mapId);
   
   // Update button styles
@@ -422,6 +426,9 @@ function selectMap(mapId) {
 // Set defaults
 window.currentDiff = 'easy';
 window.currentMap = 'random';
+// Also set global variables
+if(typeof difficulty !== 'undefined') difficulty = 'easy';
+if(typeof currentMap !== 'undefined') currentMap = 'random';
 
 // === DIFFICULTY & UNLOCK SYSTEM ===
 var DIFF_ORDER=['easy','normal','medium','hard','insane','impossible','freeplay'];
@@ -710,7 +717,11 @@ function generateMapPath(mapId){
   }
 }
 
-function generatePath(){generateMapPath(currentMap)}
+function generatePath(){
+  console.log('Generating path for map:', currentMap);
+  generateMapPath(currentMap);
+  console.log('Path generated - length:', path.length, 'pathSet size:', pathSet ? pathSet.size : 'undefined');
+}
 function isOnPath(c,r){return pathSet.has(c+','+r)}
 function towerAt(c,r){return towers.find(function(t){if(t.size===2)return(c>=t.col&&c<t.col+2&&r>=t.row&&r<t.row+2);return t.col===c&&t.row===r})}
 
@@ -737,6 +748,7 @@ function updateHUD(){
 
 function nextWave(){
   wave++;waveActive=false;waveDelay=120;spawnCount=0;spawnTimer=0;
+  console.log('Next wave started - wave:', wave, 'delay:', waveDelay);
   var ds=DIFF_SETTINGS[difficulty];
   // Every 10 waves: +2.5% speed and HP
   if(wave>1&&wave%10===1){globalSpeedBuff*=1.025;globalHpBuff*=1.025}
@@ -782,7 +794,7 @@ function update(){
   for(var i=particles.length-1;i>=0;i--){var p=particles[i];p.x+=p.vx;p.y+=p.vy;p.life--;p.vx*=0.95;p.vy*=0.95;if(p.life<=0)particles.splice(i,1)}
   // Bank income — $50 every 2.5 seconds (150 frames), works between waves too
   bankTimer++;
-  if(!waveActive){waveDelay--;if(waveDelay<=0)waveActive=true;
+  if(!waveActive){waveDelay--;if(waveDelay<=0){waveActive=true;console.log('Wave', wave, 'is now active!');};
     // Still process bank during wave delay
     if(bankTimer>=150){bankTimer=0;var bankPaid=false;towers.forEach(function(t){if(t.type==='bank'){var inc=Math.round(50*(1+t.upgSpeed*0.3)*getSkillMult('bnk_income',0.15));gold+=inc;bankPaid=true;
       particles.push({x:t.col*TILE+TILE/2,y:t.row*TILE+MAP_OFFSET_Y+TILE/2,vx:0,vy:-1,life:40,color:'#fbbf24',size:0,text:'+$'+inc+'💰'})}});if(bankPaid)document.getElementById('goldVal').textContent=gold;}
@@ -992,7 +1004,10 @@ function update(){
 function draw(){
   if(!gameRunning)return; // Don't draw if game isn't running
   ctx.clearRect(0,0,W,H);ctx.fillStyle='#1a1a2e';ctx.fillRect(0,0,W,H);
-  if(!gameRunning||!pathSet)return;
+  if(!gameRunning||!pathSet){
+    console.log('Draw early exit - gameRunning:', gameRunning, 'pathSet:', !!pathSet);
+    return;
+  }
   // Grid
   for(var r=0;r<ROWS;r++)for(var c=0;c<COLS;c++){
     ctx.fillStyle=isOnPath(c,r)?((c+r)%2===0?'#3d2f1f':'#352a1a'):((c+r)%2===0?'#1a2e1a':'#162816');
