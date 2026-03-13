@@ -18,7 +18,7 @@ body{min-height:100vh;display:flex;flex-direction:column;align-items:center;font
 #hud{display:flex;gap:0.7rem;align-items:center}
 .stat{text-align:center}.stat-val{font-size:1rem;font-weight:800}.stat-label{font-size:0.5rem;text-transform:uppercase;letter-spacing:0.08em;color:#64748b}
 #waveVal{color:#ef4444}#livesVal{color:#22c55e}#goldVal{color:#fbbf24}#scoreVal{color:#a78bfa}#gemsVal{color:#22d3ee}
-canvas{display:block}
+canvas{display:block;z-index:1;pointer-events:none}
 #startScreen{position:fixed;inset:0;background:rgba(10,10,18,0.97);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:30;overflow-y:auto;padding:20px}
 #startScreen.hidden{display:none}
 #startScreen h1{font-size:2.2rem;margin-bottom:0.5rem}
@@ -475,13 +475,13 @@ function activateAbility(tower){
 }
 
 // === GAME STATE ===
-var gold,lives,wave,score,gameRunning,paused,zombies,towers,projectiles,particles,allies,traps,bananas;
-var spawnTimer,spawnCount,spawnMax,waveDelay,waveActive;
-var selectedTower='gun',path=[],pathSet;
-var towerBuyCount={};
-var boss=null,bossActive=false,isFreeplay=false;
-var gemsEarned=0,bankTimer=0;
-var globalSpeedBuff=1,globalHpBuff=1; // +2.5% every 10 waves
+let gold,lives,wave,score,gameRunning=false,paused,zombies,towers,projectiles,particles,allies,traps,bananas;
+let spawnTimer,spawnCount,spawnMax,waveDelay,waveActive;
+let selectedTower='gun',path=[],pathSet;
+let towerBuyCount={};
+let boss=null,bossActive=false,isFreeplay=false;
+let gemsEarned=0,bankTimer=0;
+let globalSpeedBuff=1,globalHpBuff=1; // +2.5% every 10 waves
 
 function getSkillMult(id,base){return 1+getSkill(id)*base}
 function getTowerCost(type){
@@ -879,6 +879,7 @@ function update(){
 
 // === DRAW ===
 function draw(){
+  if(!gameRunning)return; // Don't draw if game isn't running
   ctx.clearRect(0,0,W,H);ctx.fillStyle='#1a1a2e';ctx.fillRect(0,0,W,H);
   if(!gameRunning||!pathSet)return;
   // Grid
@@ -1044,6 +1045,7 @@ document.getElementById('resumeBtn').onclick=function(){paused=false;document.ge
 // === GAME LOOP ===
 function loop(){update();draw();}
 
+<<<<<<< HEAD
 // startBtn uses inline onclick="zdStart()" now
 
 
@@ -1079,6 +1081,10 @@ document.getElementById('doPrestige').onclick=function(){
   savePrestige();
   renderPrestige();
   alert('🏅 Prestige '+ prestige+'! Earned '+tokens+' tokens. Gems & skills reset.');
+document.getElementById('startBtn').onclick=function(){
+  document.getElementById('startScreen').classList.add('hidden');
+  document.getElementById('towerBar').style.display='block';canvas.style.pointerEvents='auto';
+  initAudio();startMusic();init();loop();
 };
 
 // Challenge system
@@ -1116,6 +1122,7 @@ document.getElementById('death-retry').onclick=function(){
   document.getElementById('death-screen').style.display='none';
   document.getElementById('death-submit').textContent='📤 Submit';document.getElementById('death-submit').disabled=false;
   document.getElementById('startScreen').classList.remove('hidden');buildDiffPicker();buildMapPicker();updateUnlockHint();
+  canvas.style.pointerEvents='none'; // Reset canvas to non-interactive
 };
 document.getElementById('death-lb').onclick=_lbShow;
 document.getElementById('death-skills').onclick=openSkillTree;
