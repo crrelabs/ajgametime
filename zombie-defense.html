@@ -196,13 +196,15 @@ resize();window.addEventListener('resize',resize);
 // === START GAME (defined early so onclick always works) ===
 function zdStart(){
   try{
-    document.getElementById('startScreen').style.display='none';
+    document.getElementById('startScreen').classList.add('hidden');
     document.getElementById('towerBar').style.display='block';
-    canvas.style.pointerEvents='';
+    canvas.style.pointerEvents='auto';
     if(typeof initAudio==='function')initAudio();
     if(typeof startMusic==='function')startMusic();
     if(typeof buildTowerBar==='function')buildTowerBar();
     if(typeof init==='function')init();
+    if(typeof loop==='function')loop();
+    console.log('Game started successfully');
   }catch(e){console.error('zdStart error:',e);}
 }
 
@@ -1088,11 +1090,12 @@ document.getElementById('doPrestige').onclick=function(){
   alert('🏅 Prestige '+ prestige+'! Earned '+tokens+' tokens. Gems & skills reset.');
 };
 
-document.getElementById('startBtn').onclick=function(){
-  document.getElementById('startScreen').classList.add('hidden');
-  document.getElementById('towerBar').style.display='block';canvas.style.pointerEvents='auto';
-  initAudio();startMusic();init();loop();
-};
+// Use the zdStart function that's defined early
+try {
+  document.getElementById('startBtn').onclick = zdStart;
+} catch(e) {
+  console.error('Failed to set startBtn onclick:', e);
+}
 
 // Challenge system
 var CHALLENGES=[
