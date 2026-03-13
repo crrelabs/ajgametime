@@ -1,0 +1,1009 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Among Us - AJ GameTime</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: white;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+            touch-action: manipulation;
+        }
+        
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 46px;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 10px;
+            z-index: 100;
+            font-size: 14px;
+        }
+        
+        .back-btn {
+            color: #fff;
+            text-decoration: none;
+            padding: 5px;
+        }
+        
+        .stats {
+            display: flex;
+            gap: 15px;
+        }
+        
+        .stat {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-size: 12px;
+        }
+        
+        .stat-value {
+            font-weight: bold;
+        }
+        
+        #game {
+            position: fixed;
+            top: 46px;
+            left: 0;
+            background: #000;
+            z-index: 1;
+            pointer-events: none;
+        }
+        
+        .start-screen {
+            position: fixed;
+            inset: 0;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .game-icon {
+            font-size: 72px;
+            margin-bottom: 20px;
+        }
+        
+        .start-screen h1 {
+            margin: 0 0 10px 0;
+            font-size: 2.5rem;
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .start-screen p {
+            margin: 10px 0;
+            opacity: 0.8;
+            max-width: 400px;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            padding: 15px 25px;
+            margin: 8px;
+            border-radius: 25px;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .controls {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+            z-index: 80;
+        }
+        
+        .control-btn {
+            width: 50px;
+            height: 50px;
+            border: 2px solid #fff;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            cursor: pointer;
+            touch-action: manipulation;
+        }
+        
+        .death-screen {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.95);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 90;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .death-screen h1 {
+            color: #ff6b6b;
+            margin-bottom: 20px;
+        }
+        
+        .leaderboard {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.95);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 95;
+            padding: 20px;
+        }
+        
+        .leaderboard h2 {
+            margin-bottom: 20px;
+        }
+        
+        .leaderboard-entry {
+            display: flex;
+            justify-content: space-between;
+            width: 300px;
+            padding: 10px;
+            margin: 5px 0;
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+        }
+        
+        .shop {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.95);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 95;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        
+        .meeting-screen {
+            position: fixed;
+            inset: 0;
+            background: rgba(139, 69, 19, 0.95);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 85;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .task-ui {
+            position: fixed;
+            bottom: 80px;
+            right: 20px;
+            background: rgba(0,0,0,0.8);
+            padding: 10px;
+            border-radius: 10px;
+            z-index: 75;
+        }
+        
+        .pause-btn, .settings-btn, .music-btn {
+            position: fixed;
+            top: 60px;
+            right: 20px;
+            width: 45px;
+            height: 45px;
+            border: 2px solid #fff;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            cursor: pointer;
+            z-index: 70;
+        }
+        
+        .settings-btn {
+            right: 75px;
+        }
+        
+        .music-btn {
+            right: 130px;
+        }
+        
+        .pause-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 80;
+            flex-direction: column;
+        }
+        
+        input[type="text"] {
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            margin: 10px;
+            background: rgba(255,255,255,0.9);
+            color: #333;
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <a href="index.html" class="back-btn">← AJ GameTime</a>
+    <div class="stats">
+        <div class="stat">
+            <div class="stat-value" id="roundDisplay">1</div>
+            <div>Round</div>
+        </div>
+        <div class="stat">
+            <div class="stat-value" id="scoreDisplay">0</div>
+            <div>Score</div>
+        </div>
+        <div class="stat">
+            <div class="stat-value" id="coinDisplay">0</div>
+            <div>🪙</div>
+        </div>
+        <div class="stat">
+            <div class="stat-value" id="crewDisplay">5</div>
+            <div>👥</div>
+        </div>
+    </div>
+</div>
+
+<canvas id="game"></canvas>
+
+<div id="startScreen" class="start-screen">
+    <div class="game-icon">🚀</div>
+    <h1>Among Us</h1>
+    <p>Complete tasks or eliminate the crew! Find the impostors before they sabotage everything!</p>
+    <p>🪙 <span id="startCoins">0</span></p>
+    <button class="btn" onclick="startGame()">🚀 Play!</button>
+    <button class="btn" onclick="showShop()">🛍️ Shop</button>
+    <button class="btn" onclick="showLeaderboard()">🏆 Leaderboard</button>
+</div>
+
+<div class="controls">
+    <div class="control-btn" onclick="movePlayer(-1, 0)">⬅️</div>
+    <div class="control-btn" onclick="movePlayer(1, 0)">➡️</div>
+    <div class="control-btn" onclick="movePlayer(0, -1)">⬆️</div>
+    <div class="control-btn" onclick="movePlayer(0, 1)">⬇️</div>
+    <div class="control-btn" onclick="interact()">🔧</div>
+    <div class="control-btn" onclick="emergencyMeeting()">🚨</div>
+</div>
+
+<div class="task-ui" id="taskUI">
+    <div>Tasks: <span id="taskProgress">0/5</span></div>
+    <div id="currentTask">Find the reactor!</div>
+</div>
+
+<div class="pause-btn" onclick="togglePause()" id="pauseBtn">⏸️</div>
+<div class="settings-btn" onclick="toggleSettings()" id="settingsBtn">⚙️</div>
+<div class="music-btn" onclick="toggleMusic()" id="musicBtn">🔊</div>
+
+<div id="pauseOverlay" class="pause-overlay">
+    <h2>Game Paused</h2>
+    <button class="btn" onclick="togglePause()">Resume</button>
+    <button class="btn" onclick="location.reload()">Main Menu</button>
+</div>
+
+<div id="meetingScreen" class="meeting-screen">
+    <h1>🚨 Emergency Meeting!</h1>
+    <p id="meetingText">Someone called an emergency meeting!</p>
+    <div id="playerVotes">
+        <button class="btn" onclick="vote('red')">🔴 Vote Red</button>
+        <button class="btn" onclick="vote('blue')">🔵 Vote Blue</button>
+        <button class="btn" onclick="vote('green')">🟢 Vote Green</button>
+        <button class="btn" onclick="vote('skip')">⏭️ Skip Vote</button>
+    </div>
+    <button class="btn" onclick="endMeeting()">Continue</button>
+</div>
+
+<div id="deathScreen" class="death-screen">
+    <h1>💀 Game Over!</h1>
+    <p id="gameOverText">The impostors won!</p>
+    <p>Score: <span id="finalScore">0</span></p>
+    <p>Rounds Survived: <span id="roundsSurvived">0</span></p>
+    <p>🪙 +<span id="coinsEarned">0</span></p>
+    <input type="text" id="playerName" placeholder="Your name" value="THE DEV">
+    <button class="btn" onclick="submitScore()" id="submitBtn">📤 Submit Score</button>
+    <button class="btn" onclick="showLeaderboard()">🏆 Leaderboard</button>
+    <button class="btn" onclick="restartGame()">🚀 Try Again</button>
+    <button class="btn" onclick="showShop()">🛍️ Shop</button>
+</div>
+
+<div id="leaderboard" class="leaderboard">
+    <h2>🏆 Leaderboard</h2>
+    <div id="leaderboardList"></div>
+    <button class="btn" onclick="hideLeaderboard()">Close</button>
+</div>
+
+<div id="shop" class="shop">
+    <h2>🛍️ Shop</h2>
+    <p>🪙 <span id="shopCoins">0</span></p>
+    <div id="shopItems"></div>
+    <button class="btn" onclick="hideShop()">Close</button>
+</div>
+
+<script>
+// Game variables
+var canvas = document.getElementById('game');
+var ctx = canvas.getContext('2d');
+var gameRunning = false;
+var paused = false;
+
+// Game state
+var score = 0;
+var round = 1;
+var coins = 0;
+var totalCoins = parseInt(localStorage.getItem('au_coins') || '0');
+var player = {x: 5, y: 5, role: 'crewmate', alive: true, skin: 'red'};
+var npcs = [];
+var tasks = [];
+var completedTasks = 0;
+var requiredTasks = 5;
+var impostorsRemaining = 1;
+var crewmatesAlive = 5;
+var gameEndTimer = 0;
+var scoreSubmitted = false;
+
+// Supabase
+var SUPABASE_URL = 'https://adudgrfxwildzwpcvyil.supabase.co';
+var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFkdWRncmZ4d2lsZHp3cGN2eWlsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyOTkzODUsImV4cCI6MjA4Nzg3NTM4NX0.-JYXn5r9QUjxbpwckwDMSvCm8w1xRXOp5lP2TWNOC_E';
+var _LB_GAME = 'among_us';
+
+// Canvas setup
+function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight - 46;
+}
+resize();
+window.addEventListener('resize', resize);
+
+// Game initialization
+function init() {
+    scoreSubmitted = false;
+    score = 0;
+    round = 1;
+    coins = 0;
+    completedTasks = 0;
+    impostorsRemaining = 1;
+    crewmatesAlive = 5;
+    
+    player = {
+        x: Math.floor(Math.random() * 15) + 2,
+        y: Math.floor(Math.random() * 10) + 2,
+        role: Math.random() < 0.3 ? 'impostor' : 'crewmate',
+        alive: true,
+        skin: 'red'
+    };
+    
+    // Create NPCs
+    npcs = [];
+    for(let i = 0; i < 6; i++) {
+        npcs.push({
+            x: Math.floor(Math.random() * 15) + 2,
+            y: Math.floor(Math.random() * 10) + 2,
+            role: i < 2 ? 'impostor' : 'crewmate',
+            alive: true,
+            skin: ['blue', 'green', 'yellow', 'purple', 'orange', 'pink'][i],
+            ai: true,
+            suspicion: 0
+        });
+    }
+    
+    // Create tasks
+    tasks = [];
+    var taskLocations = [
+        {x: 3, y: 3, name: 'Fix Reactor'},
+        {x: 12, y: 3, name: 'Calibrate Engine'},
+        {x: 8, y: 8, name: 'Download Data'},
+        {x: 15, y: 6, name: 'Clear Asteroids'},
+        {x: 5, y: 10, name: 'Scan Medbay'},
+        {x: 10, y: 2, name: 'Align Telescope'},
+        {x: 2, y: 8, name: 'Empty Trash'}
+    ];
+    
+    for(let i = 0; i < requiredTasks; i++) {
+        if(taskLocations[i]) {
+            tasks.push({
+                x: taskLocations[i].x,
+                y: taskLocations[i].y,
+                name: taskLocations[i].name,
+                completed: false
+            });
+        }
+    }
+    
+    updateDisplay();
+    initAudio();
+    if(!musicPlaying) startMusic();
+}
+
+function startGame() {
+    document.getElementById('startScreen').classList.add('hidden');
+    canvas.style.pointerEvents = 'auto';
+    gameRunning = true;
+    init();
+    gameLoop();
+}
+
+function gameLoop() {
+    if(!gameRunning || paused) return;
+    
+    update();
+    draw();
+    
+    if(gameRunning) {
+        requestAnimationFrame(gameLoop);
+    }
+}
+
+function update() {
+    if(paused) return;
+    
+    // Update NPCs
+    for(let npc of npcs) {
+        if(!npc.alive) continue;
+        
+        // Simple AI movement
+        if(Math.random() < 0.02) {
+            npc.x += Math.random() < 0.5 ? -1 : 1;
+            npc.y += Math.random() < 0.5 ? -1 : 1;
+            npc.x = Math.max(1, Math.min(17, npc.x));
+            npc.y = Math.max(1, Math.min(11, npc.y));
+        }
+        
+        // Impostor behavior
+        if(npc.role === 'impostor' && Math.random() < 0.001) {
+            killNearestCrewmate(npc);
+        }
+    }
+    
+    // Check win/lose conditions
+    checkGameEnd();
+    
+    // Update task display
+    updateTaskDisplay();
+}
+
+function draw() {
+    if(!gameRunning) return;
+    
+    ctx.fillStyle = '#2c2c54';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Draw ship layout
+    drawShip();
+    
+    // Draw tasks
+    for(let task of tasks) {
+        if(!task.completed) {
+            ctx.fillStyle = '#ffeb3b';
+            ctx.fillRect(task.x * 40, task.y * 40, 35, 35);
+            ctx.fillStyle = '#000';
+            ctx.font = '20px Arial';
+            ctx.fillText('!', task.x * 40 + 15, task.y * 40 + 25);
+        }
+    }
+    
+    // Draw NPCs
+    for(let npc of npcs) {
+        if(!npc.alive) continue;
+        drawCharacter(npc.x * 40 + 20, npc.y * 40 + 20, npc.skin, npc.role === 'impostor');
+    }
+    
+    // Draw player
+    if(player.alive) {
+        drawCharacter(player.x * 40 + 20, player.y * 40 + 20, player.skin, player.role === 'impostor');
+    }
+}
+
+function drawShip() {
+    // Simple ship layout
+    ctx.strokeStyle = '#666';
+    ctx.lineWidth = 3;
+    
+    // Main areas
+    ctx.strokeRect(2 * 40, 2 * 40, 6 * 40, 4 * 40);  // Reactor
+    ctx.strokeRect(10 * 40, 2 * 40, 6 * 40, 4 * 40); // Engine
+    ctx.strokeRect(5 * 40, 7 * 40, 8 * 40, 4 * 40);  // Cafeteria
+    ctx.strokeRect(1 * 40, 7 * 40, 3 * 40, 3 * 40);  // Medbay
+    ctx.strokeRect(14 * 40, 7 * 40, 3 * 40, 3 * 40); // Navigation
+}
+
+function drawCharacter(x, y, color, isImpostor) {
+    // Body
+    ctx.fillStyle = getColorCode(color);
+    ctx.beginPath();
+    ctx.arc(x, y, 15, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Visor
+    ctx.fillStyle = isImpostor ? '#ff4444' : '#87ceeb';
+    ctx.beginPath();
+    ctx.arc(x, y - 3, 8, 0, Math.PI * 2);
+    ctx.fill();
+}
+
+function getColorCode(color) {
+    var colors = {
+        'red': '#ff4444',
+        'blue': '#4444ff',
+        'green': '#44ff44',
+        'yellow': '#ffff44',
+        'purple': '#ff44ff',
+        'orange': '#ff8844',
+        'pink': '#ff88ff'
+    };
+    return colors[color] || '#ffffff';
+}
+
+function movePlayer(dx, dy) {
+    if(!gameRunning || paused || !player.alive) return;
+    
+    player.x = Math.max(1, Math.min(17, player.x + dx));
+    player.y = Math.max(1, Math.min(11, player.y + dy));
+    
+    checkPlayerActions();
+}
+
+function interact() {
+    if(!gameRunning || paused || !player.alive) return;
+    
+    // Check for tasks
+    for(let task of tasks) {
+        if(!task.completed && Math.abs(task.x - player.x) <= 1 && Math.abs(task.y - player.y) <= 1) {
+            completeTask(task);
+            return;
+        }
+    }
+    
+    // Check for kills (if impostor)
+    if(player.role === 'impostor') {
+        for(let npc of npcs) {
+            if(npc.alive && npc.role === 'crewmate' && 
+               Math.abs(npc.x - player.x) <= 1 && Math.abs(npc.y - player.y) <= 1) {
+                killCrewmate(npc);
+                return;
+            }
+        }
+    }
+}
+
+function completeTask(task) {
+    task.completed = true;
+    completedTasks++;
+    score += 100;
+    coins += 10;
+    
+    playSound('task');
+    updateDisplay();
+}
+
+function killCrewmate(target) {
+    target.alive = false;
+    crewmatesAlive--;
+    score += player.role === 'impostor' ? 200 : -100;
+    
+    playSound('kill');
+    updateDisplay();
+}
+
+function killNearestCrewmate(impostor) {
+    for(let npc of npcs) {
+        if(npc.alive && npc.role === 'crewmate' && 
+           Math.abs(npc.x - impostor.x) <= 1 && Math.abs(npc.y - impostor.y) <= 1) {
+            npc.alive = false;
+            crewmatesAlive--;
+            break;
+        }
+    }
+}
+
+function emergencyMeeting() {
+    if(!gameRunning || paused || !player.alive) return;
+    
+    document.getElementById('meetingScreen').style.display = 'flex';
+    playSound('meeting');
+}
+
+function vote(choice) {
+    // Simple voting simulation
+    if(choice !== 'skip' && Math.random() < 0.3) {
+        // Sometimes vote out an impostor
+        for(let npc of npcs) {
+            if(npc.alive && npc.role === 'impostor' && npc.skin === choice) {
+                npc.alive = false;
+                impostorsRemaining--;
+                break;
+            }
+        }
+    }
+    
+    document.getElementById('meetingText').textContent = 
+        choice === 'skip' ? 'No one was ejected.' : choice + ' was ejected.';
+}
+
+function endMeeting() {
+    document.getElementById('meetingScreen').style.display = 'none';
+}
+
+function checkGameEnd() {
+    // Crewmates win: all tasks complete OR all impostors dead
+    if(completedTasks >= requiredTasks || impostorsRemaining <= 0) {
+        if(player.role === 'crewmate') {
+            score += 500;
+            endGame('🎉 Victory! All tasks completed!');
+        } else {
+            endGame('💀 Defeat! Crewmates won!');
+        }
+        return;
+    }
+    
+    // Impostors win: equal or more impostors than crewmates
+    var aliveImpostors = npcs.filter(n => n.alive && n.role === 'impostor').length;
+    if(player.role === 'impostor' && player.alive) aliveImpostors++;
+    
+    if(aliveImpostors >= crewmatesAlive) {
+        if(player.role === 'impostor') {
+            score += 1000;
+            endGame('🎉 Victory! Impostors win!');
+        } else {
+            endGame('💀 Defeat! Impostors won!');
+        }
+        return;
+    }
+    
+    // Player death
+    if(!player.alive) {
+        endGame('💀 You were eliminated!');
+    }
+}
+
+function endGame(message) {
+    gameRunning = false;
+    canvas.style.pointerEvents = 'none';
+    
+    totalCoins += coins;
+    localStorage.setItem('au_coins', totalCoins.toString());
+    
+    document.getElementById('gameOverText').textContent = message;
+    document.getElementById('finalScore').textContent = score;
+    document.getElementById('roundsSurvived').textContent = round;
+    document.getElementById('coinsEarned').textContent = coins;
+    document.getElementById('deathScreen').style.display = 'flex';
+}
+
+function restartGame() {
+    document.getElementById('deathScreen').style.display = 'none';
+    document.getElementById('startScreen').classList.remove('hidden');
+    canvas.style.pointerEvents = 'none';
+    updateCoinsDisplay();
+}
+
+function checkPlayerActions() {
+    // Auto-interact with nearby tasks
+    for(let task of tasks) {
+        if(!task.completed && Math.abs(task.x - player.x) <= 1 && Math.abs(task.y - player.y) <= 1) {
+            document.getElementById('currentTask').textContent = 'Press 🔧 to ' + task.name;
+            return;
+        }
+    }
+    
+    document.getElementById('currentTask').textContent = 'Move around the ship';
+}
+
+function updateDisplay() {
+    document.getElementById('roundDisplay').textContent = round;
+    document.getElementById('scoreDisplay').textContent = score;
+    document.getElementById('coinDisplay').textContent = coins;
+    document.getElementById('crewDisplay').textContent = crewmatesAlive;
+}
+
+function updateTaskDisplay() {
+    document.getElementById('taskProgress').textContent = completedTasks + '/' + requiredTasks;
+}
+
+function updateCoinsDisplay() {
+    document.getElementById('startCoins').textContent = totalCoins;
+    document.getElementById('shopCoins').textContent = totalCoins;
+}
+
+// Audio system
+var AudioCtx = window.AudioContext || window.webkitAudioContext;
+var audioCtx = null;
+var musicPlaying = false;
+var musicGain = null;
+var sfxGain = null;
+
+function initAudio() {
+    if(!audioCtx) {
+        audioCtx = new AudioCtx();
+        musicGain = audioCtx.createGain();
+        sfxGain = audioCtx.createGain();
+        musicGain.connect(audioCtx.destination);
+        sfxGain.connect(audioCtx.destination);
+        musicGain.gain.value = 0.3;
+        sfxGain.gain.value = 0.5;
+    }
+}
+
+function playSound(type) {
+    if(!audioCtx) return;
+    
+    var freq = 440;
+    var duration = 0.2;
+    
+    switch(type) {
+        case 'task': freq = 800; break;
+        case 'kill': freq = 200; duration = 0.5; break;
+        case 'meeting': freq = 1000; duration = 1.0; break;
+    }
+    
+    var osc = audioCtx.createOscillator();
+    var gain = audioCtx.createGain();
+    
+    osc.connect(gain);
+    gain.connect(sfxGain);
+    
+    osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+    gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+    
+    osc.start(audioCtx.currentTime);
+    osc.stop(audioCtx.currentTime + duration);
+}
+
+function startMusic() {
+    if(!audioCtx || musicPlaying) return;
+    musicPlaying = true;
+    playMusicLoop();
+}
+
+function playMusicLoop() {
+    if(!musicPlaying || !audioCtx) return;
+    
+    var notes = [262, 294, 330, 349, 392, 440];
+    var note = notes[Math.floor(Math.random() * notes.length)];
+    
+    var osc = audioCtx.createOscillator();
+    var gain = audioCtx.createGain();
+    
+    osc.connect(gain);
+    gain.connect(musicGain);
+    
+    osc.frequency.setValueAtTime(note, audioCtx.currentTime);
+    gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 1);
+    
+    osc.start(audioCtx.currentTime);
+    osc.stop(audioCtx.currentTime + 1);
+    
+    setTimeout(() => playMusicLoop(), 2000 + Math.random() * 3000);
+}
+
+function toggleMusic() {
+    musicPlaying = !musicPlaying;
+    document.getElementById('musicBtn').textContent = musicPlaying ? '🔊' : '🔇';
+    if(musicPlaying) startMusic();
+}
+
+// UI functions
+var paused = false;
+
+function togglePause() {
+    paused = !paused;
+    document.getElementById('pauseBtn').textContent = paused ? '▶️' : '⏸️';
+    document.getElementById('pauseOverlay').style.display = paused ? 'flex' : 'none';
+    if(!paused && gameRunning) gameLoop();
+}
+
+function toggleSettings() {
+    // Settings implementation
+}
+
+function showShop() {
+    document.getElementById('shop').style.display = 'flex';
+    updateCoinsDisplay();
+    buildShop();
+}
+
+function hideShop() {
+    document.getElementById('shop').style.display = 'none';
+}
+
+function buildShop() {
+    var items = [
+        {name: 'Red Suit', cost: 100, type: 'skin'},
+        {name: 'Blue Suit', cost: 100, type: 'skin'},
+        {name: 'Green Suit', cost: 150, type: 'skin'},
+        {name: 'Yellow Suit', cost: 150, type: 'skin'},
+        {name: 'Purple Suit', cost: 200, type: 'skin'}
+    ];
+    
+    var html = '';
+    for(let item of items) {
+        var canAfford = totalCoins >= item.cost;
+        html += `
+            <div style="display: flex; justify-content: space-between; width: 300px; margin: 5px 0; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 10px;">
+                <span>${item.name}</span>
+                <button class="btn" style="padding: 5px 10px; margin: 0;" 
+                        onclick="buyItem('${item.name}', ${item.cost})" 
+                        ${!canAfford ? 'disabled' : ''}>
+                    🪙 ${item.cost}
+                </button>
+            </div>
+        `;
+    }
+    
+    document.getElementById('shopItems').innerHTML = html;
+}
+
+function buyItem(name, cost) {
+    if(totalCoins >= cost) {
+        totalCoins -= cost;
+        localStorage.setItem('au_coins', totalCoins.toString());
+        updateCoinsDisplay();
+        buildShop();
+        
+        // Apply item
+        if(name.includes('Suit')) {
+            var color = name.toLowerCase().split(' ')[0];
+            player.skin = color;
+            localStorage.setItem('au_skin', color);
+        }
+    }
+}
+
+// Leaderboard
+function showLeaderboard() {
+    document.getElementById('leaderboard').style.display = 'flex';
+    loadLeaderboard();
+}
+
+function hideLeaderboard() {
+    document.getElementById('leaderboard').style.display = 'none';
+}
+
+function loadLeaderboard() {
+    fetch(SUPABASE_URL + '/rest/v1/ajgametime_leaderboard?game=eq.' + _LB_GAME + '&order=score.desc&limit=10', {
+        headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': 'Bearer ' + SUPABASE_KEY
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        var html = '';
+        for(let i = 0; i < data.length; i++) {
+            html += `
+                <div class="leaderboard-entry">
+                    <span>#${i+1} ${data[i].player_name}</span>
+                    <span>${data[i].score}</span>
+                </div>
+            `;
+        }
+        document.getElementById('leaderboardList').innerHTML = html || '<p>No scores yet!</p>';
+    })
+    .catch(err => {
+        document.getElementById('leaderboardList').innerHTML = '<p>Error loading leaderboard</p>';
+    });
+}
+
+function submitScore() {
+    if(scoreSubmitted) return;
+    scoreSubmitted = true;
+    
+    var name = document.getElementById('playerName').value || 'Anonymous';
+    
+    fetch(SUPABASE_URL + '/rest/v1/ajgametime_leaderboard', {
+        method: 'POST',
+        headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': 'Bearer ' + SUPABASE_KEY,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            game: _LB_GAME,
+            player_name: name,
+            score: score,
+            metadata: {
+                rounds: round,
+                role: player.role,
+                tasks_completed: completedTasks
+            }
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        document.getElementById('submitBtn').textContent = '✅ Submitted!';
+        document.getElementById('submitBtn').disabled = true;
+    })
+    .catch(err => {
+        document.getElementById('submitBtn').textContent = '❌ Error';
+        setTimeout(() => {
+            document.getElementById('submitBtn').textContent = '📤 Submit Score';
+            scoreSubmitted = false;
+        }, 2000);
+    });
+}
+
+// Keyboard controls
+document.addEventListener('keydown', function(e) {
+    if(!gameRunning || paused) return;
+    
+    switch(e.key) {
+        case 'ArrowLeft':
+        case 'a':
+            movePlayer(-1, 0);
+            break;
+        case 'ArrowRight':
+        case 'd':
+            movePlayer(1, 0);
+            break;
+        case 'ArrowUp':
+        case 'w':
+            movePlayer(0, -1);
+            break;
+        case 'ArrowDown':
+        case 's':
+            movePlayer(0, 1);
+            break;
+        case ' ':
+        case 'e':
+            interact();
+            break;
+        case 'r':
+            emergencyMeeting();
+            break;
+    }
+});
+
+// Initialize
+updateCoinsDisplay();
+</script>
+
+</body>
+</html>

@@ -529,7 +529,7 @@ footer a:hover { color: #94a3b8; }
 <script>
 // Update log data
 const UPDATES = [
-
+  { date: 'Mar 13', game: '🚀 Among Us', items: ['NEW GAME! Complete tasks or eliminate crew!', 'Find impostors before they sabotage everything', 'Emergency meetings, voting, tasks & shop system'] },
   { date: 'Mar 12', game: '⛏️ Mining Tycoon', items: ['NEW GAME! Dig deep, find rare ores', 'Upgrade pickaxe, cart, helmet, lamp', '12 ore types: stone to diamond!'] },
   { date: 'Mar 12', game: '😀 Pac Chomp', items: ['NEW GAME! Classic maze action', '4 ghost AI types, power pellets, tunnels', 'Shop: characters, mazes, ghosts, pellets, effects'] },
   { date: 'Mar 12', game: '⏸️ All Games', items: ['Pause button added to ALL 35 games!'] },
@@ -562,6 +562,15 @@ const UPDATES = [
 
 // Game data — all in one place for easy updates
 const GAMES = [
+  {
+    id: 'among-us', name: 'Among Us', href: 'among-us.html',
+    desc: 'Complete tasks or eliminate the crew! Find the impostors before they sabotage everything!',
+    category: 'Strategy', emoji: '🚀',
+    added: '2026-03-13', color1: '#ef4444', color2: '#dc2626',
+    bg: 'linear-gradient(135deg, #450a0a, #dc2626)',
+    tagBg: 'rgba(239,68,68,0.2)', tagColor: '#f87171',
+    btnBg: 'linear-gradient(135deg, #ef4444, #dc2626)'
+  },
   {
     id: 'mining-tycoon', name: 'Mining Tycoon', href: 'mining-tycoon.html',
     desc: 'Dig deep underground! Find rare ores, sell for cash, upgrade your pickaxe!',
