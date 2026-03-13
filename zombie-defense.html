@@ -225,9 +225,13 @@ function zdStart(){
       towerBar.style.display = 'block';
     }
     
-    // Enable canvas
+    // Enable canvas and ensure it's visible
     if(typeof canvas !== 'undefined') {
       canvas.style.pointerEvents = 'auto';
+      canvas.style.zIndex = '1';
+      canvas.style.position = 'absolute';
+      canvas.style.top = '0';
+      canvas.style.left = '0';
     }
     
     // Initialize audio
@@ -749,6 +753,12 @@ function updateHUD(){
 function nextWave(){
   wave++;waveActive=false;waveDelay=120;spawnCount=0;spawnTimer=0;
   console.log('Next wave started - wave:', wave, 'delay:', waveDelay);
+  
+  // For wave 1, make delay much shorter to help users
+  if(wave === 1) {
+    waveDelay = 30; // 1 second instead of 4 seconds
+    console.log('Wave 1 fast start - delay reduced to:', waveDelay);
+  }
   var ds=DIFF_SETTINGS[difficulty];
   // Every 10 waves: +2.5% speed and HP
   if(wave>1&&wave%10===1){globalSpeedBuff*=1.025;globalHpBuff*=1.025}
@@ -794,7 +804,16 @@ function update(){
   for(var i=particles.length-1;i>=0;i--){var p=particles[i];p.x+=p.vx;p.y+=p.vy;p.life--;p.vx*=0.95;p.vy*=0.95;if(p.life<=0)particles.splice(i,1)}
   // Bank income — $50 every 2.5 seconds (150 frames), works between waves too
   bankTimer++;
-  if(!waveActive){waveDelay--;if(waveDelay<=0){waveActive=true;console.log('Wave', wave, 'is now active!');};
+  if(!waveActive){
+    waveDelay--;
+    if(waveDelay<=0){
+      waveActive=true;
+      console.log('Wave', wave, 'is now active!');
+      // Force spawn max calculation for this wave
+      var ds=DIFF_SETTINGS[difficulty];
+      spawnMax=Math.round((5+wave*2)*ds.zombieMult);
+      console.log('Wave', wave, 'will spawn', spawnMax, 'zombies');
+    };
     // Still process bank during wave delay
     if(bankTimer>=150){bankTimer=0;var bankPaid=false;towers.forEach(function(t){if(t.type==='bank'){var inc=Math.round(50*(1+t.upgSpeed*0.3)*getSkillMult('bnk_income',0.15));gold+=inc;bankPaid=true;
       particles.push({x:t.col*TILE+TILE/2,y:t.row*TILE+MAP_OFFSET_Y+TILE/2,vx:0,vy:-1,life:40,color:'#fbbf24',size:0,text:'+$'+inc+'💰'})}});if(bankPaid)document.getElementById('goldVal').textContent=gold;}
@@ -1004,10 +1023,13 @@ function update(){
 function draw(){
   if(!gameRunning)return; // Don't draw if game isn't running
   ctx.clearRect(0,0,W,H);ctx.fillStyle='#1a1a2e';ctx.fillRect(0,0,W,H);
-  if(!gameRunning||!pathSet){
-    console.log('Draw early exit - gameRunning:', gameRunning, 'pathSet:', !!pathSet);
-    return;
+  
+  // Force draw even if pathSet is missing (emergency fix)
+  if(!pathSet) {
+    console.log('PathSet missing, generating emergency path...');
+    generatePath();
   }
+  if(!gameRunning||!pathSet)return;
   // Grid
   for(var r=0;r<ROWS;r++)for(var c=0;c<COLS;c++){
     ctx.fillStyle=isOnPath(c,r)?((c+r)%2===0?'#3d2f1f':'#352a1a'):((c+r)%2===0?'#1a2e1a':'#162816');
@@ -1152,7 +1174,9 @@ function handleCanvasClick(mx,my){
   gold-=cost;towerBuyCount[selectedTower]=(towerBuyCount[selectedTower]||0)+1;sfxPlace();
   var newT={col:col,row:row,type:selectedTower,cooldown:0,upgSpeed:0,upgEffect:0,upgMulti:0,selected:false,abilityCool:0,abilityActive:0,
     size:def.size||1,trapTower:!!def.trapTower,bananaTree:!!def.bananaTree,trapTimer:0,bTimer:0};
-  towers.push(newT);updateHUD();
+  towers.push(newT);
+  console.log('Tower placed:', selectedTower, 'at', col, row, '- Total towers:', towers.length);
+  updateHUD();
 }
 
 canvas.addEventListener('click',function(e){var r=canvas.getBoundingClientRect();handleCanvasClick(e.clientX-r.left,e.clientY-r.top)});
