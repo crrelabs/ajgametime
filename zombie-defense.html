@@ -128,7 +128,7 @@ button.play-btn:hover{transform:scale(1.05)}
   <div id="mapPicker" style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-top:8px"></div>
   <p id="unlockHint" style="color:#64748b;font-size:0.75rem;margin-top:6px"></p>
   <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:10px">
-    <button class="play-btn" id="startBtn" onclick="zdStart()">⚔️ Defend!</button>
+    <button class="play-btn" id="startBtn">⚔️ Defend!</button>
     <button id="skillTreeStartBtn" style="padding:10px 20px;font-size:14px;font-weight:700;color:#fff;background:linear-gradient(135deg,#06b6d4,#0891b2);border:none;border-radius:10px;cursor:pointer">🌳 Skill Tree</button>
     <button id="prestigeBtn" style="padding:10px 20px;font-size:14px;font-weight:700;color:#fff;background:linear-gradient(135deg,#f59e0b,#f97316);border:none;border-radius:10px;cursor:pointer">🏅 Prestige</button>
     <button id="challengeBtn" style="padding:10px 20px;font-size:14px;font-weight:700;color:#fff;background:linear-gradient(135deg,#ef4444,#dc2626);border:none;border-radius:10px;cursor:pointer">🏆 Challenges</button>
@@ -1045,8 +1045,7 @@ document.getElementById('resumeBtn').onclick=function(){paused=false;document.ge
 // === GAME LOOP ===
 function loop(){update();draw();}
 
-<<<<<<< HEAD
-// startBtn uses inline onclick="zdStart()" now
+// startBtn onclick handler defined below
 
 
 // Prestige UI
