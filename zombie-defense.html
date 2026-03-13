@@ -448,10 +448,9 @@ function checkUnlocks(){
   saveProg();return newUnlock;
 }
 function buildMapPicker(){
-  console.log('buildMapPicker called');
-  var cont=document.getElementById("mapPicker");
-  if(!cont){console.error('mapPicker element not found');return;}
-  cont.innerHTML="";
+  console.log('buildMapPicker called - DISABLED for Chromebook compatibility');
+  // CHROMEBOOK FIX: Don't clear hardcoded HTML buttons  
+  return;
   Object.keys(MAPS).forEach(function(id){
     var m=MAPS[id];var btn=document.createElement("button");
     btn.className="diff-btn";btn.style.background=m.color;btn.style.color="#fff";btn.style.fontSize="11px";btn.style.padding="6px 10px";
@@ -463,10 +462,9 @@ function buildMapPicker(){
 }
 
 function buildDiffPicker(){
-  console.log('buildDiffPicker called');
-  var picker=document.getElementById('diffPicker');
-  if(!picker){console.error('diffPicker element not found');return;}
-  picker.innerHTML='';
+  console.log('buildDiffPicker called - DISABLED for Chromebook compatibility');
+  // CHROMEBOOK FIX: Don't clear hardcoded HTML buttons
+  return;
   DIFF_ORDER.forEach(function(d){
     if(d==='freeplay'&&!freeplayUnlocked)return;
     var ds=DIFF_SETTINGS[d],isU=d==='easy'||unlockedDiffs.includes(d)||(d==='freeplay'&&freeplayUnlocked);
