@@ -835,15 +835,19 @@ function update(){
     if(bankTimer>=150){bankTimer=0;var bankPaid=false;towers.forEach(function(t){if(t.type==='bank'){var inc=Math.round(50*(1+t.upgSpeed*0.3)*getSkillMult('bnk_income',0.15));gold+=inc;bankPaid=true;
       particles.push({x:t.col*TILE+TILE/2,y:t.row*TILE+MAP_OFFSET_Y+TILE/2,vx:0,vy:-1,life:40,color:'#fbbf24',size:0,text:'+$'+inc+'💰'})}});if(bankPaid)document.getElementById('goldVal').textContent=gold;}
     return}
-  // Spawn zombies during active wave
+  // FORCE SPAWN ZOMBIES - CHROMEBOOK DEBUG VERSION
   if(spawnCount<spawnMax){
     spawnTimer--;
+    console.log('⏰ Spawn timer:', spawnTimer, 'Count:', spawnCount, '/', spawnMax);
     if(spawnTimer<=0){
+      console.log('🚨 SPAWNING ZOMBIE NOW!');
       spawnZombie();
       spawnCount++;
       spawnTimer=Math.max(10,40-wave*2);
-      console.log('🧟 Spawned zombie', spawnCount, '/', spawnMax, 'for wave', wave);
+      console.log('✅ Zombie spawned! Total zombies:', zombies.length, 'Progress:', spawnCount, '/', spawnMax);
     }
+  } else {
+    console.log('✋ All zombies spawned for wave', wave, '- Active zombies:', zombies.length);
   }
   if(bankTimer>=150){
     bankTimer=0;
@@ -1038,6 +1042,16 @@ function update(){
       projectiles.splice(i,1);
     }else{p.x+=(dx/dist)*p.speed;p.y+=(dy/dist)*p.speed}
   }
+  
+  // CHROMEBOOK DEBUG INFO ON SCREEN
+  ctx.fillStyle='#FFFFFF';
+  ctx.font='12px Arial';
+  ctx.textAlign='left';
+  ctx.fillText('Wave: ' + wave + ' Active: ' + waveActive, 10, 50);
+  ctx.fillText('Spawned: ' + spawnCount + '/' + spawnMax, 10, 65);
+  ctx.fillText('Zombies: ' + zombies.length, 10, 80);
+  ctx.fillText('Towers: ' + towers.length, 10, 95);
+  
   // Wave complete
   if(spawnCount>=spawnMax&&zombies.length===0&&waveActive){
     gold+=Math.round((10+wave*5)*DIFF_SETTINGS[difficulty].goldScale);updateHUD();nextWave();
@@ -1070,72 +1084,61 @@ function draw(){
   for(var i=0;i<traps.length;i++){var tr=traps[i];ctx.font=(TILE*0.5)+'px sans-serif';ctx.globalAlpha=0.7;ctx.fillText(tr.isMine?'💣':'🪤',tr.x,tr.y);ctx.globalAlpha=1}
   // Bananas
   for(var i=0;i<bananas.length;i++){var bn=bananas[i];ctx.font=(TILE*0.45)+'px sans-serif';ctx.globalAlpha=0.6;ctx.fillText('🍌',bn.x,bn.y);ctx.globalAlpha=1}
-  // TOWERS - Force bright rendering
-  ctx.save();
+  // TOWERS - NUCLEAR SIMPLE RENDERING FOR CHROMEBOOK
   for(var i=0;i<towers.length;i++){
-    var t=towers[i],def=TOWER_DEFS[t.type];
+    var t=towers[i];
+    var def=TOWER_DEFS[t.type];
     if(!def) continue;
     
-    // Calculate position
-    var cx = t.col*TILE+TILE/2;
-    var cy = t.row*TILE+MAP_OFFSET_Y+TILE/2;
+    // Position calculation
+    var x = t.col*TILE;
+    var y = t.row*TILE+MAP_OFFSET_Y;
     
-    // Draw colored background - Chromebook compatible (rectangles only)
-    ctx.fillStyle=def.color;
-    ctx.globalAlpha=0.6;
-    if(t.size===2){
-      ctx.fillRect(t.col*TILE,t.row*TILE+MAP_OFFSET_Y,TILE*2,TILE*2);
-      cx = t.col*TILE+TILE; // Center for 2x2
-      cy = t.row*TILE+MAP_OFFSET_Y+TILE;
-    } else {
-      // Use rectangle instead of arc for Chromebook compatibility
-      var size = TILE*0.9;
-      ctx.fillRect(cx-size/2, cy-size/2, size, size);
-    }
-    ctx.globalAlpha=1;
+    // BRIGHT SOLID BACKGROUND - IMPOSSIBLE TO MISS
+    ctx.fillStyle='#FF0000'; // BRIGHT RED
+    ctx.fillRect(x, y, TILE, TILE);
     
-    // Draw tower emoji - Chromebook compatible (no shadows)
-    ctx.fillStyle = '#ffffff';
+    // WHITE BORDER
+    ctx.strokeStyle='#FFFFFF';
+    ctx.lineWidth=3;
+    ctx.strokeRect(x, y, TILE, TILE);
+    
+    // GIANT TEXT IN CENTER
+    ctx.fillStyle='#FFFFFF';
+    ctx.font='bold 20px Arial';
     ctx.textAlign='center';
-    ctx.font = (t.size===2 ? TILE*1.2 : TILE*0.8) + 'px Arial, sans-serif';
-    // Skip shadows on Chromebook - causes rendering issues
-    ctx.fillText(def.emoji, cx, cy+TILE*0.3);
+    ctx.fillText(def.emoji, x+TILE/2, y+TILE/2+7);
     
-    // Add contrasting outline for visibility without shadows
-    ctx.strokeStyle = '#000000';
-    ctx.lineWidth = 1;
-    ctx.strokeText(def.emoji, cx, cy+TILE*0.3);
-    
-    // Upgrade stars
-    var totalUpg=t.upgSpeed+t.upgEffect+t.upgMulti;
-    if(totalUpg>0){
-      ctx.fillStyle='#fbbf24';
-      ctx.font='bold '+TILE*0.25+'px sans-serif';
-      ctx.fillText('★'.repeat(Math.min(totalUpg,3)),cx,cy-TILE*0.3);
-    }
-    
-    // Selection circle
-    if(t.selected){
-      ctx.strokeStyle='#fbbf24';
-      ctx.lineWidth=2;
-      ctx.beginPath();
-      ctx.arc(cx,cy,TILE*0.6,0,Math.PI*2);
-      ctx.stroke();
-    }
+    // DEBUG TEXT ABOVE
+    ctx.fillStyle='#FFFF00';
+    ctx.font='10px Arial';
+    ctx.fillText('T', x+TILE/2, y-5);
   }
-  ctx.restore();
   // Allies
   for(var i=0;i<allies.length;i++){var a=allies[i];ctx.font=TILE*0.6+'px sans-serif';ctx.textAlign='center';ctx.fillText(a.emoji,a.x,a.y+TILE*0.2)}
-  // Zombies
+  // ZOMBIES - NUCLEAR BRIGHT RENDERING FOR CHROMEBOOK  
   for(var i=0;i<zombies.length;i++){
-    var z=zombies[i],fs=z.isBoss?TILE*1.4:TILE*0.75;
-    ctx.font=fs+'px sans-serif';ctx.textAlign='center';
-    if(z.stunTimer>0){ctx.fillStyle='rgba(251,191,36,0.3)';ctx.beginPath();ctx.arc(z.x,z.y,TILE*(z.isBoss?0.7:0.4),0,Math.PI*2);ctx.fill();ctx.font=TILE*0.3+'px sans-serif';ctx.fillText('😵',z.x,z.y-TILE*0.45);ctx.font=fs+'px sans-serif'}
-    if(z.slowTimer>0){ctx.fillStyle='rgba(56,189,248,0.3)';ctx.beginPath();ctx.arc(z.x,z.y,TILE*(z.isBoss?0.7:0.4),0,Math.PI*2);ctx.fill()}
-    if(z.dotTimer>0){ctx.fillStyle='rgba(249,115,22,0.3)';ctx.beginPath();ctx.arc(z.x,z.y,TILE*(z.isBoss?0.6:0.35),0,Math.PI*2);ctx.fill()}
-    if(z.isBoss){ctx.shadowColor='#ef4444';ctx.shadowBlur=20}
-    ctx.fillText(z.emoji,z.x,z.y+fs*0.3);ctx.shadowBlur=0;
-    if(!z.isBoss){var bW=TILE*0.7,bH=4,bX=z.x-bW/2,bY=z.y-TILE*0.45;ctx.fillStyle='#1f2937';ctx.fillRect(bX,bY,bW,bH);var hp=Math.max(0,z.hp/z.maxHp);ctx.fillStyle=hp>0.5?'#22c55e':hp>0.25?'#fbbf24':'#ef4444';ctx.fillRect(bX,bY,bW*hp,bH)}
+    var z=zombies[i];
+    
+    // BRIGHT GREEN BACKGROUND CIRCLE - IMPOSSIBLE TO MISS
+    ctx.fillStyle='#00FF00'; // BRIGHT GREEN
+    ctx.fillRect(z.x-15, z.y-15, 30, 30);
+    
+    // WHITE BORDER
+    ctx.strokeStyle='#FFFFFF';
+    ctx.lineWidth=2;
+    ctx.strokeRect(z.x-15, z.y-15, 30, 30);
+    
+    // GIANT ZOMBIE EMOJI
+    ctx.fillStyle='#000000';
+    ctx.font='bold 20px Arial';
+    ctx.textAlign='center';
+    ctx.fillText(z.emoji, z.x, z.y+7);
+    
+    // DEBUG TEXT ABOVE
+    ctx.fillStyle='#FFFF00';
+    ctx.font='8px Arial';
+    ctx.fillText('Z', z.x, z.y-20);
   }
   // Projectiles
   for(var i=0;i<projectiles.length;i++){var p=projectiles[i];ctx.fillStyle=p.color;ctx.beginPath();ctx.arc(p.x,p.y,3,0,Math.PI*2);ctx.fill()}
