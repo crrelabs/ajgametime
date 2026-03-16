@@ -23,6 +23,8 @@ body {
   height: 100%;
   display: flex;
   flex-direction: column;
+  visibility: visible;
+  background: rgba(15, 23, 42, 0.8);
 }
 
 #hud {
@@ -52,15 +54,22 @@ body {
   gap: 1px;
   background: #1a2e1a;
   padding: 5px;
+  width: 100%;
+  height: 400px;
+  margin: 10px 0;
+  border: 2px solid #22c55e;
 }
 
 .grid-cell {
   background: #2d5a2d;
   position: relative;
-  border: 1px solid rgba(255,255,255,0.1);
-  min-height: 40px;
+  border: 1px solid rgba(255,255,255,0.3);
+  min-height: 30px;
+  height: 30px;
   cursor: pointer;
   transition: all 0.2s ease;
+  display: block;
+  visibility: visible;
 }
 
 .grid-cell.path {
@@ -113,6 +122,8 @@ body {
   z-index: 20;
   transition: all 0.1s linear;
   animation: zombieSpawn 0.5s ease;
+  visibility: visible;
+  pointer-events: none;
 }
 
 @keyframes zombieSpawn {
@@ -653,14 +664,15 @@ function createZombieElement(zombie) {
 function updateZombiePosition(zombie) {
   if (!zombie.element) return;
   
-  const cell = getCellAt(zombie.x, zombie.y);
-  if (!cell) return;
+  // Simple grid-based positioning - much more reliable
+  const cellSize = gameGrid.offsetWidth / GRID_COLS;
+  const x = zombie.x * cellSize + cellSize/2 - 15;
+  const y = zombie.y * cellSize + cellSize/2 - 15;
   
-  const rect = cell.getBoundingClientRect();
-  const gridRect = gameGrid.getBoundingClientRect();
+  zombie.element.style.left = x + 'px';
+  zombie.element.style.top = y + 'px';
   
-  zombie.element.style.left = (rect.left - gridRect.left + rect.width/2 - 15) + 'px';
-  zombie.element.style.top = (rect.top - gridRect.top + rect.height/2 - 15) + 'px';
+  console.log('Zombie positioned at', x, y, 'for grid pos', zombie.x, zombie.y);
   
   // Update health bar
   if (zombie.healthFill) {
@@ -722,15 +734,13 @@ function removeZombie(zombie) {
 
 // === PROJECTILE SYSTEM ===
 function createProjectile(tower, target) {
-  const towerCell = getCellAt(tower.col, tower.row);
-  const towerRect = towerCell.getBoundingClientRect();
-  const gridRect = gameGrid.getBoundingClientRect();
+  const cellSize = gameGrid.offsetWidth / GRID_COLS;
   
   const projectile = {
-    x: towerRect.left - gridRect.left + towerRect.width/2,
-    y: towerRect.top - gridRect.top + towerRect.height/2,
-    targetX: target.element.offsetLeft + 15,
-    targetY: target.element.offsetTop + 15,
+    x: tower.col * cellSize + cellSize/2,
+    y: tower.row * cellSize + cellSize/2,
+    targetX: parseFloat(target.element.style.left) + 15,
+    targetY: parseFloat(target.element.style.top) + 15,
     speed: 8,
     damage: tower.damage,
     tower: tower,
