@@ -210,7 +210,12 @@ resize();window.addEventListener('resize',resize);
 // === START GAME (defined early so onclick always works) ===
 function zdStart(){
   try{
-    console.log('zdStart called - starting game...');
+    // Detect Chromebook
+    var isChromebook = navigator.userAgent.includes('CrOS');
+    console.log('zdStart called - starting game... Chromebook:', isChromebook);
+    if(isChromebook) {
+      console.log('🔧 CHROMEBOOK MODE: Using compatibility fixes');
+    }
     
     // Hide start screen
     var startScreen = document.getElementById('startScreen');
@@ -225,13 +230,19 @@ function zdStart(){
       towerBar.style.display = 'block';
     }
     
-    // Enable canvas and ensure it's visible
+    // Enable canvas and ensure it's visible - Chromebook compatible
     if(typeof canvas !== 'undefined') {
       canvas.style.pointerEvents = 'auto';
       canvas.style.zIndex = '1';
       canvas.style.position = 'absolute';
       canvas.style.top = '0';
       canvas.style.left = '0';
+      canvas.style.imageRendering = 'pixelated'; // Better for Chromebook
+      
+      // Force canvas size for Chromebook
+      canvas.width = W;
+      canvas.height = H;
+      console.log('Canvas setup for Chromebook - Size:', W, 'x', H);
     }
     
     // Initialize audio
@@ -1069,28 +1080,31 @@ function draw(){
     var cx = t.col*TILE+TILE/2;
     var cy = t.row*TILE+MAP_OFFSET_Y+TILE/2;
     
-    // Draw colored background circle/square
+    // Draw colored background - Chromebook compatible (rectangles only)
     ctx.fillStyle=def.color;
-    ctx.globalAlpha=0.6; // More visible background
+    ctx.globalAlpha=0.6;
     if(t.size===2){
       ctx.fillRect(t.col*TILE,t.row*TILE+MAP_OFFSET_Y,TILE*2,TILE*2);
       cx = t.col*TILE+TILE; // Center for 2x2
       cy = t.row*TILE+MAP_OFFSET_Y+TILE;
     } else {
-      ctx.beginPath();
-      ctx.arc(cx,cy,TILE*0.45,0,Math.PI*2);
-      ctx.fill();
+      // Use rectangle instead of arc for Chromebook compatibility
+      var size = TILE*0.9;
+      ctx.fillRect(cx-size/2, cy-size/2, size, size);
     }
     ctx.globalAlpha=1;
     
-    // Draw tower emoji with bright white and shadow for visibility
+    // Draw tower emoji - Chromebook compatible (no shadows)
     ctx.fillStyle = '#ffffff';
     ctx.textAlign='center';
-    ctx.font = (t.size===2 ? TILE*1.2 : TILE*0.8) + 'px sans-serif';
-    ctx.shadowColor = '#000000';
-    ctx.shadowBlur = 3;
+    ctx.font = (t.size===2 ? TILE*1.2 : TILE*0.8) + 'px Arial, sans-serif';
+    // Skip shadows on Chromebook - causes rendering issues
     ctx.fillText(def.emoji, cx, cy+TILE*0.3);
-    ctx.shadowBlur = 0;
+    
+    // Add contrasting outline for visibility without shadows
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 1;
+    ctx.strokeText(def.emoji, cx, cy+TILE*0.3);
     
     // Upgrade stars
     var totalUpg=t.upgSpeed+t.upgEffect+t.upgMulti;
@@ -1411,8 +1425,18 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 setTimeout(initUI, 100); // Backup
 
-// Start game loop LAST
+// Start game loop LAST - Chromebook compatible
+function gameLoop() {
+  try {
+    loop();
+  } catch(e) {
+    console.error('Game loop error:', e);
+  }
+  requestAnimationFrame(gameLoop);
+}
+// Use both for better Chromebook compatibility
 setInterval(loop,1000/30);
+requestAnimationFrame(gameLoop);
 </script>
 
 <div id="prestigeOverlay" style="position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;z-index:100;background:rgba(0,0,0,0.95);overflow-y:auto;padding:20px">
