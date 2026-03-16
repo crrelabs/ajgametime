@@ -332,27 +332,7 @@ var SKILL_TREE=[
     {id:'las_cost_red',name:'Price Reduction',desc:'Price increase reduced 20%',icon:'💰',max:3,cost:[4,6,9]},
     {id:'las_speed',name:'Faster Bolts',desc:'+10% projectile speed',icon:'💨',max:4,cost:[3,5,7,10]},
   ]},
-  {tower:'fire',name:'🔥 Fire Skills',items:[
-    {id:'fir_upg_eff',name:'Upgrade Power',desc:'Upgrades 10% more effective',icon:'⬆️',max:5,cost:[2,4,6,9,13]},
-    {id:'fir_dot',name:'Hotter Flames',desc:'+15% burn damage',icon:'🌡️',max:5,cost:[3,4,6,8,11]},
-    {id:'fir_splash',name:'Wider Burn',desc:'+10% splash',icon:'💥',max:4,cost:[3,5,7,10]},
-  ]},
-  {tower:'bank',name:'🏦 Bank Skills',items:[
-    {id:'bnk_income',name:'More Interest',desc:'+15% income per tick',icon:'📈',max:5,cost:[3,5,7,10,14]},
-    {id:'bnk_cost_red',name:'Cheaper Banks',desc:'Price increase reduced 20%',icon:'💰',max:3,cost:[4,6,9]},
-  ]},
-  {tower:'mage',name:'🧙 Mage Skills',items:[
-    {id:'mag_conv',name:'Faster Convert',desc:'+10% conversion speed',icon:'⚡',max:5,cost:[3,5,7,10,14]},
-    {id:'mag_range',name:'Extended Range',desc:'+10% range',icon:'🎯',max:4,cost:[3,5,7,10]},
-  ]},
-  {tower:'trap',name:'🪤 Trap Skills',items:[
-    {id:'trp_dmg',name:'Sharper Traps',desc:'+15% trap damage',icon:'🗡️',max:5,cost:[2,4,6,8,11]},
-    {id:'trp_mine',name:'More Mines',desc:'+5% mine chance',icon:'💣',max:5,cost:[3,5,7,10,14]},
-  ]},
-  {tower:'banana',name:'🍌 Banana Skills',items:[
-    {id:'ban_stun',name:'Longer Stun',desc:'+15% stun duration',icon:'😵',max:5,cost:[3,5,7,10,14]},
-    {id:'ban_range',name:'More Peels',desc:'+1 peel per drop',icon:'🍌',max:3,cost:[4,7,11]},
-  ]},
+
 ];
 
 function renderSkillTree(){
@@ -484,23 +464,15 @@ function updateUnlockHint(){
 }
 // Moved init calls to bottom of script
 
-// === TOWER DEFS (prices 2x, new towers) ===
+// === TOWER DEFS (simplified - basic 4 towers only) ===
 var TOWER_DEFS={
-  gun:    {cost:100,range:3,damage:1,rate:20,emoji:'🔫',color:'#22c55e',projColor:'#fbbf24',projSpeed:8,splash:0},
-  cannon: {cost:200,range:3.5,damage:3,rate:50,emoji:'💣',color:'#ef4444',projColor:'#ef4444',projSpeed:5,splash:1.2},
-  frost:  {cost:150,range:3,damage:0.5,rate:25,emoji:'❄️',color:'#38bdf8',projColor:'#38bdf8',projSpeed:6,splash:0,slow:0.4},
-  laser:  {cost:300,range:4,damage:2,rate:10,emoji:'⚡',color:'#fbbf24',projColor:'#fbbf24',projSpeed:12,splash:0},
-  fire:   {cost:250,range:2.5,damage:0.8,rate:8,emoji:'🔥',color:'#f97316',projColor:'#f97316',projSpeed:7,splash:0.8,dot:3},
-  bank:   {cost:200,range:0,damage:0,rate:0,emoji:'🏦',color:'#10b981',projColor:'',projSpeed:0,splash:0,income:true},
-  mage:   {cost:350,range:3,damage:0,rate:120,emoji:'🧙',color:'#a855f7',projColor:'#a855f7',projSpeed:4,splash:0,convert:true},
-  trap:   {cost:150,range:0,damage:0,rate:0,emoji:'🪤',color:'#78716c',projColor:'',projSpeed:0,splash:0,trapTower:true},
-  banana: {cost:400,range:0,damage:0,rate:0,emoji:'🍌',color:'#fbbf24',projColor:'',projSpeed:0,splash:0,bananaTree:true,size:2},
-  poison: {cost:275,range:3,damage:0.3,rate:15,emoji:'🧪',color:'#84cc16',projColor:'#84cc16',projSpeed:6,splash:1.0,dot:5},
-  sniper: {cost:400,range:6,damage:8,rate:80,emoji:'🎯',color:'#f472b6',projColor:'#f472b6',projSpeed:20,splash:0},
-  tesla:  {cost:500,range:3.5,damage:1.5,rate:30,emoji:'⚡',color:'#c084fc',projColor:'#c084fc',projSpeed:15,splash:0},
+  gun:    {cost:100,range:3,damage:25,rate:20,emoji:'🔫',color:'#22c55e',projColor:'#fbbf24',projSpeed:8,splash:0},
+  cannon: {cost:200,range:3.5,damage:100,rate:50,emoji:'💣',color:'#ef4444',projColor:'#ef4444',projSpeed:5,splash:1.2},
+  frost:  {cost:150,range:3,damage:15,rate:25,emoji:'❄️',color:'#38bdf8',projColor:'#38bdf8',projSpeed:6,splash:0,slow:0.4},
+  laser:  {cost:300,range:4,damage:50,rate:10,emoji:'⚡',color:'#fbbf24',projColor:'#fbbf24',projSpeed:12,splash:0}
 };
 
-var TOWER_ORDER=['gun','cannon','frost','laser','fire','poison','sniper','tesla','bank','mage','trap','banana'];
+var TOWER_ORDER=['gun','cannon','frost','laser'];
 
 var ZOMBIE_TYPES=[
   {emoji:'🧟',hp:4,speed:0.8,gold:5,points:10},
@@ -586,12 +558,12 @@ function activateAbility(tower){
 }
 
 // === GAME STATE ===
-let gold,lives,wave,score,gameRunning=false,paused,zombies,towers,projectiles,particles,allies,traps,bananas;
+let gold,lives,wave,score,gameRunning=false,paused,zombies,towers,projectiles,particles;
 let spawnTimer,spawnCount,spawnMax,waveDelay,waveActive;
 let selectedTower='gun',path=[],pathSet;
 let towerBuyCount={};
 let boss=null,bossActive=false,isFreeplay=false;
-let gemsEarned=0,bankTimer=0;
+let gemsEarned=0;
 let globalSpeedBuff=1,globalHpBuff=1; // +2.5% every 10 waves
 
 function getSkillMult(id,base){return 1+getSkill(id)*base}
@@ -717,9 +689,9 @@ function towerAt(c,r){return towers.find(function(t){if(t.size===2)return(c>=t.c
 function init(){
   var ds=DIFF_SETTINGS[difficulty];isFreeplay=difficulty==='freeplay';
   gold=ds.startGold+getPerk("p_start_gold")*50;lives=ds.lives+getPerk("p_hp")*2;wave=0;score=0;gemsEarned=0;
-  gameRunning=true;paused=false;zombies=[];towers=[];projectiles=[];particles=[];allies=[];traps=[];bananas=[];
+  gameRunning=true;paused=false;zombies=[];towers=[];projectiles=[];particles=[];
   towerBuyCount={};TOWER_ORDER.forEach(function(t){towerBuyCount[t]=0});
-  spawnTimer=0;spawnCount=0;spawnMax=0;waveDelay=90;waveActive=false;bankTimer=0;
+  spawnTimer=0;spawnCount=0;spawnMax=0;waveDelay=90;waveActive=false;
   boss=null;bossActive=false;globalSpeedBuff=1;globalHpBuff=1;
   document.getElementById('bossBar').style.display='none';
   document.getElementById('upgradePanel').style.display='none';
@@ -780,114 +752,11 @@ function update(){
   if(!gameRunning||paused)return;
   // Particles
   for(var i=particles.length-1;i>=0;i--){var p=particles[i];p.x+=p.vx;p.y+=p.vy;p.life--;p.vx*=0.95;p.vy*=0.95;if(p.life<=0)particles.splice(i,1)}
-  // Bank income — $50 every 2.5 seconds (150 frames), works between waves too
-  bankTimer++;
-  if(!waveActive){waveDelay--;if(waveDelay<=0)waveActive=true;
-    // Still process bank during wave delay
-    if(bankTimer>=150){bankTimer=0;var bankPaid=false;towers.forEach(function(t){if(t.type==='bank'){var inc=Math.round(50*(1+t.upgSpeed*0.3)*getSkillMult('bnk_income',0.15));gold+=inc;bankPaid=true;
-      particles.push({x:t.col*TILE+TILE/2,y:t.row*TILE+MAP_OFFSET_Y+TILE/2,vx:0,vy:-1,life:40,color:'#fbbf24',size:0,text:'+$'+inc+'💰'})}});if(bankPaid)document.getElementById('goldVal').textContent=gold;}
-    return}
+  if(!waveActive){waveDelay--;if(waveDelay<=0)waveActive=true;return}
   // Spawn
   if(spawnCount<spawnMax){spawnTimer--;if(spawnTimer<=0){spawnZombie();spawnCount++;spawnTimer=Math.max(10,40-wave*2)}}
-  if(bankTimer>=150){
-    bankTimer=0;
-    towers.forEach(function(t){if(t.type==='bank'){var inc=Math.round(50*(1+t.upgSpeed*0.3)*getSkillMult('bnk_income',0.15));gold+=inc;
-      particles.push({x:t.col*TILE+TILE/2,y:t.row*TILE+MAP_OFFSET_Y+TILE/2,vx:0,vy:-1,life:40,color:'#fbbf24',size:0,text:'+$'+inc+'💰'})}});document.getElementById('goldVal').textContent=gold;
-  }
-  // Helper: snap to nearest path cell
-  function nearestPathSpot(cx,cy,range){
-    var best=null,bestD=Infinity;
-    for(var pi=0;pi<path.length;pi++){var px=path[pi].x*TILE+TILE/2,py=path[pi].y*TILE+MAP_OFFSET_Y+TILE/2;
-      var d=Math.sqrt((cx-px)**2+(cy-py)**2);if(d<bestD&&d<=range){bestD=d;best={x:px,y:py}}}
-    return best;
-  }
-  // Trap spawning — snaps to path, stays until walked on, has cap
-  towers.forEach(function(t){
-    if(!t.trapTower)return;
-    t.trapTimer=(t.trapTimer||0)+1;
-    var cap=3+t.upgMulti; // base 3, +1 per upgMulti
-    var myTraps=traps.filter(function(tr){return tr.owner===t}).length;
-    if(t.trapTimer>=120&&myTraps<cap){
-      t.trapTimer=0;
-      var tcx=t.col*TILE+TILE/2,tcy=t.row*TILE+MAP_OFFSET_Y+TILE/2;
-      var spot=nearestPathSpot(tcx,tcy,TILE*3);
-      if(spot){
-        var isMine=Math.random()<(0.1+getSkill('trp_mine')*0.05);
-        traps.push({x:spot.x,y:spot.y,damage:(isMine?15:5)*(1+t.upgEffect*0.5)*getSkillMult('trp_dmg',0.15),isMine:isMine,owner:t});
-      }
-    }
-  });
-  // Banana peel spawning — snaps to path, stays until walked on, has cap
-  towers.forEach(function(t){
-    if(!t.bananaTree)return;
-    t.bTimer=(t.bTimer||0)+1;
-    var cap=4+t.upgMulti; // base 4, +1 per upgMulti
-    var myBananas=bananas.filter(function(bn){return bn.owner===t}).length;
-    if(t.bTimer>=200&&myBananas<cap){
-      t.bTimer=0;
-      var bcx=t.col*TILE+TILE,bcy=t.row*TILE+MAP_OFFSET_Y+TILE;
-      var range=TILE*6; // big range for banana tree
-      var peelCount=2+getSkill('ban_range');
-      for(var bi=0;bi<peelCount&&myBananas+bi<cap;bi++){
-        // Pick random path spot within range
-        var candidates=[];
-        for(var pi=0;pi<path.length;pi++){var px=path[pi].x*TILE+TILE/2,py=path[pi].y*TILE+MAP_OFFSET_Y+TILE/2;
-          if(Math.sqrt((bcx-px)**2+(bcy-py)**2)<=range)candidates.push({x:px,y:py})}
-        if(candidates.length>0){var pick=candidates[Math.floor(Math.random()*candidates.length)];
-          bananas.push({x:pick.x,y:pick.y,stunDur:Math.round(90*(1+t.upgEffect*0.3)*getSkillMult('ban_stun',0.15)),radius:TILE*1.5,owner:t})}
-      }
-    }
-  });
-  // Check traps vs zombies — only removed when walked on
-  for(var ti=traps.length-1;ti>=0;ti--){
-    var tr=traps[ti];
-    for(var zi=0;zi<zombies.length;zi++){
-      var z=zombies[zi];if(z.isBoss)continue;
-      var dx=z.x-tr.x,dy=z.y-tr.y;if(Math.sqrt(dx*dx+dy*dy)<TILE*0.5){
-        z.hp-=tr.damage;
-        if(tr.isMine){
-          for(var ez=0;ez<zombies.length;ez++){var ez2=zombies[ez];var ed=Math.sqrt((ez2.x-tr.x)**2+(ez2.y-tr.y)**2);if(ed<TILE*1.5)ez2.hp-=tr.damage*0.5}
-          for(var pp=0;pp<10;pp++)particles.push({x:tr.x,y:tr.y,vx:(Math.random()-0.5)*6,vy:(Math.random()-0.5)*6,life:25,color:'#ef4444',size:3+Math.random()*3});
-        }
-        traps.splice(ti,1);break;
-      }
-    }
-  }
-  // Check bananas vs zombies — only removed when walked on
-  for(var bi2=bananas.length-1;bi2>=0;bi2--){
-    var bn=bananas[bi2];
-    var hit=false;
-    for(var zi2=0;zi2<zombies.length;zi2++){
-      var z2=zombies[zi2];if(z2.stunTimer>0||z2.isBoss)continue;
-      if(Math.sqrt((z2.x-bn.x)**2+(z2.y-bn.y)**2)<bn.radius){
-        for(var zi3=0;zi3<zombies.length;zi3++){var z3=zombies[zi3];if(z3.isBoss)continue;if(Math.sqrt((z3.x-bn.x)**2+(z3.y-bn.y)**2)<bn.radius)z3.stunTimer=bn.stunDur}
-        hit=true;break;
-      }
-    }
-    if(hit){particles.push({x:bn.x,y:bn.y,vx:0,vy:-0.5,life:30,color:'#fbbf24',size:0,text:'😵 STUN!'});bananas.splice(bi2,1)}
-  }
-  // Move allies (converted humans)
-  for(var ai=allies.length-1;ai>=0;ai--){
-    var a=allies[ai];
-    // Attack nearby zombies FIRST (before moving)
-    a.atk=(a.atk||0)+1;
-    var foundTarget=false;
-    if(a.atk>=20){
-      for(var azi=0;azi<zombies.length;azi++){var az=zombies[azi];var ad2=Math.sqrt((az.x-a.x)**2+(az.y-a.y)**2);
-        if(ad2<TILE*2.5&&!az.isBoss){
-          az.hp-=a.damage;a.atk=0;foundTarget=true;
-          particles.push({x:a.x,y:a.y-5,vx:0,vy:-0.5,life:12,color:'#fbbf24',size:0,text:'👊'});
-          break;
-        }
-      }
-    }
-    // Walk backwards on path (toward start)
-    if(a.pathIdx>0){
-      var pt=path[a.pathIdx-1],atx=pt.x*TILE+TILE/2,aty=pt.y*TILE+MAP_OFFSET_Y+TILE/2;
-      var adx=atx-a.x,ady=aty-a.y,adist=Math.sqrt(adx*adx+ady*ady);
-      if(adist<2){a.pathIdx--;a.x=atx;a.y=aty}else{a.x+=(adx/adist)*1.5;a.y+=(ady/adist)*1.5}
-    }else{allies.splice(ai,1)}// reached start, disappear
-  }
+
+
   // Move zombies
   var hudDirty=false;
   for(var i=zombies.length-1;i>=0;i--){
@@ -913,72 +782,73 @@ function update(){
   }
   if(hudDirty)updateHUD();
 
-  // Ability cooldowns & active effects
-  for(var ai=0;ai<towers.length;ai++){var at=towers[ai];if(at.abilityCool>0)at.abilityCool--;if(at.abilityActive>0){at.abilityActive--;
-    if(at.type==='gun'&&at.abilityActive>0)at.cooldown=0;
-    if(at.type==='fire'&&at.abilityActive>0){var ax=at.col*TILE+TILE/2,ay=at.row*TILE+MAP_OFFSET_Y+TILE/2;for(var fi=0;fi<zombies.length;fi++){var fz=zombies[fi];var fd=Math.sqrt((fz.x-ax)*(fz.x-ax)+(fz.y-ay)*(fz.y-ay));if(fd<TILE*3)fz.hp-=0.5}}
-  }}
+  // Tower ability cooldowns
+  for(var ai=0;ai<towers.length;ai++){
+    var at=towers[ai];
+    if(at.abilityCool>0)at.abilityCool--;
+    if(at.abilityActive>0){
+      at.abilityActive--;
+      if(at.type==='gun'&&at.abilityActive>0)at.cooldown=0;
+    }
+  }
   // Healer zombies heal nearby
   for(var hi=0;hi<zombies.length;hi++){var hz=zombies[hi];if(hz.emoji==='💚'){if(!hz.healCd)hz.healCd=0;hz.healCd--;if(hz.healCd<=0){hz.healCd=90;for(var hj=0;hj<zombies.length;hj++){var hz2=zombies[hj];if(hz2===hz)continue;var hd=Math.sqrt((hz2.x-hz.x)*(hz2.x-hz.x)+(hz2.y-hz.y)*(hz2.y-hz.y));if(hd<TILE*2.5){hz2.hp=Math.min(hz2.maxHp,hz2.hp+hz2.maxHp*0.05);particles.push({x:hz2.x,y:hz2.y,vx:0,vy:-0.5,life:20,color:'#22c55e',size:0,text:'💚'})}}}}}
   // Splitter zombies: spawn minis on death (handled in death section)
 
-  // Tower shooting
+  // Tower shooting (simplified)
   for(var ti2=0;ti2<towers.length;ti2++){
-    var t=towers[ti2];if(t.type==='bank'||t.type==='trap'||t.type==='banana')continue;
+    var t=towers[ti2];
     t.cooldown--;if(t.cooldown>0)continue;
     var def=TOWER_DEFS[t.type];
-    var rangeMult=1;
-    if(t.type==='gun')rangeMult=getSkillMult('gun_range',0.05);
-    if(t.type==='mage')rangeMult=getSkillMult('mag_range',0.1);
-    var range=def.range*TILE*rangeMult;
-    var tcx=t.col*TILE+TILE/2+(t.size===2?TILE/2:0),tcy=t.row*TILE+MAP_OFFSET_Y+TILE/2+(t.size===2?TILE/2:0);
+    var range=def.range*TILE;
+    var tcx=t.col*TILE+TILE/2,tcy=t.row*TILE+MAP_OFFSET_Y+TILE/2;
+    
+    // Find closest zombie in range
     var closest=null,closestDist=Infinity;
-    for(var zi=0;zi<zombies.length;zi++){var zz=zombies[zi];var dx=zz.x-tcx,dy=zz.y-tcy,dist=Math.sqrt(dx*dx+dy*dy);if(dist<range&&dist<closestDist){closest=zz;closestDist=dist}}
+    for(var zi=0;zi<zombies.length;zi++){
+      var zz=zombies[zi];
+      var dx=zz.x-tcx,dy=zz.y-tcy,dist=Math.sqrt(dx*dx+dy*dy);
+      if(dist<range&&dist<closestDist){closest=zz;closestDist=dist}
+    }
     if(!closest)continue;
-    // Mage: convert zombie to ally
-    if(def.convert){
-      if(!closest.isBoss){
-        t.cooldown=Math.round(def.rate/(1+t.upgSpeed*0.3)*1/getSkillMult('mag_conv',0.1));
-        sfxConvert();
-        // Convert zombie to ally
-        allies.push({x:closest.x,y:closest.y,pathIdx:closest.pathIdx,damage:2+t.upgEffect*2,emoji:'🧑'});
-        zombies.splice(zombies.indexOf(closest),1);
-        particles.push({x:closest.x,y:closest.y,vx:0,vy:-1,life:30,color:'#a855f7',size:0,text:'✨ Converted!'});
-      }
-      continue;
-    }
-    // Speed upgrade + multi-attack
-    var rateDiv=1+t.upgSpeed*0.3;var upgEffMult=1+t.upgEffect*0.25;
-    // Skill tree upgrade effectiveness bonus
-    var upgSkillId=t.type==='gun'?'gun_upg_eff':t.type==='cannon'?'can_upg_eff':t.type==='frost'?'fro_upg_eff':t.type==='laser'?'las_upg_eff':t.type==='fire'?'fir_upg_eff':null;
-    if(upgSkillId)upgEffMult*=getSkillMult(upgSkillId,0.1);
+    
+    // Simple shooting with basic upgrades
+    var rateDiv=1+t.upgSpeed*0.3;
+    var upgEffMult=1+t.upgEffect*0.25;
     t.cooldown=Math.round(def.rate/rateDiv);
-    var projCount=1+t.upgMulti;
-    var splashMult=1;if(t.type==='cannon')splashMult=getSkillMult('can_splash',0.1);if(t.type==='fire')splashMult=getSkillMult('fir_splash',0.1);
-    var slowMult=1;if(t.type==='frost')slowMult=getSkillMult('fro_slow',0.1);
-    var dotMult=1;if(t.type==='fire')dotMult=getSkillMult('fir_dot',0.15);
-    var speedMult=1;if(t.type==='laser')speedMult=getSkillMult('las_speed',0.1);
-    var slowDur=60;if(t.type==='frost')slowDur=Math.round(60*getSkillMult('fro_dur',0.15));
-    // Fire multiple projectiles at different targets
-    var targets=[closest];
-    if(projCount>1){
-      var sorted=zombies.filter(function(zz){return zz!==closest&&Math.sqrt((zz.x-tcx)**2+(zz.y-tcy)**2)<range}).sort(function(a,b){return Math.sqrt((a.x-tcx)**2+(a.y-tcy)**2)-Math.sqrt((b.x-tcx)**2+(b.y-tcy)**2)});
-      for(var mi=0;mi<projCount-1&&mi<sorted.length;mi++)targets.push(sorted[mi]);
-    }
-    targets.forEach(function(tgt){
-      projectiles.push({x:tcx,y:tcy,tx:tgt.x,ty:tgt.y,speed:def.projSpeed*speedMult,
-        damage:def.damage*upgEffMult,color:def.projColor,splash:def.splash*splashMult,
-        slow:def.slow?def.slow*slowMult:0,slowDur:slowDur,dot:def.dot?def.dot*dotMult:0,dotDmg:def.damage*0.3*dotMult});
-    });
+    
+    projectiles.push({x:tcx,y:tcy,tx:closest.x,ty:closest.y,speed:def.projSpeed,
+      damage:def.damage*upgEffMult,color:def.projColor,splash:def.splash,slow:def.slow});
   }
   // Move projectiles
   for(var i=projectiles.length-1;i>=0;i--){
     var p=projectiles[i],dx=p.tx-p.x,dy=p.ty-p.y,dist=Math.sqrt(dx*dx+dy*dy);
     if(dist<p.speed*2||dist===0){
-      if(p.splash>0){var sR=p.splash*TILE;for(var zi=0;zi<zombies.length;zi++){var zz=zombies[zi];var zd=Math.sqrt((zz.x-p.tx)**2+(zz.y-p.ty)**2);if(zd<sR){zz.hp-=p.damage*(1-zd/sR*0.5);if(p.slow){zz.slowTimer=p.slowDur||60}if(p.dot){zz.dotTimer=p.dot*60;zz.dotDmg=p.dotDmg}}}
-        for(var pp=0;pp<8;pp++)particles.push({x:p.tx,y:p.ty,vx:(Math.random()-0.5)*6,vy:(Math.random()-0.5)*6,life:20,color:p.color,size:2+Math.random()*3})}
-      else{var hit=null,hitD=Infinity;for(var zi=0;zi<zombies.length;zi++){var zz=zombies[zi];var zd=Math.sqrt((zz.x-p.tx)**2+(zz.y-p.ty)**2);if(zd<TILE&&zd<hitD){hit=zz;hitD=zd}}
-        if(hit){hit.hp-=p.damage;if(p.slow){hit.slowTimer=p.slowDur||60}if(p.dot){hit.dotTimer=p.dot*60;hit.dotDmg=p.dotDmg}}}
+      if(p.splash>0){
+        // Splash damage
+        var sR=p.splash*TILE;
+        for(var zi=0;zi<zombies.length;zi++){
+          var zz=zombies[zi];
+          var zd=Math.sqrt((zz.x-p.tx)**2+(zz.y-p.ty)**2);
+          if(zd<sR){
+            zz.hp-=p.damage*(1-zd/sR*0.5);
+            if(p.slow){zz.slowTimer=60}
+          }
+        }
+        for(var pp=0;pp<8;pp++)particles.push({x:p.tx,y:p.ty,vx:(Math.random()-0.5)*6,vy:(Math.random()-0.5)*6,life:20,color:p.color,size:2+Math.random()*3});
+      }else{
+        // Direct hit
+        var hit=null,hitD=Infinity;
+        for(var zi=0;zi<zombies.length;zi++){
+          var zz=zombies[zi];
+          var zd=Math.sqrt((zz.x-p.tx)**2+(zz.y-p.ty)**2);
+          if(zd<TILE&&zd<hitD){hit=zz;hitD=zd}
+        }
+        if(hit){
+          hit.hp-=p.damage;
+          if(p.slow){hit.slowTimer=60}
+        }
+      }
       projectiles.splice(i,1);
     }else{p.x+=(dx/dist)*p.speed;p.y+=(dy/dist)*p.speed}
   }
@@ -1004,10 +874,7 @@ function draw(){
   ctx.font=TILE*0.6+'px sans-serif';ctx.textAlign='center';
   ctx.fillText('☠️',path[0].x*TILE+TILE/2,path[0].y*TILE+MAP_OFFSET_Y+TILE*0.7);
   ctx.fillText('🏠',path[path.length-1].x*TILE+TILE/2,path[path.length-1].y*TILE+MAP_OFFSET_Y+TILE*0.7);
-  // Traps
-  for(var i=0;i<traps.length;i++){var tr=traps[i];ctx.font=(TILE*0.5)+'px sans-serif';ctx.globalAlpha=0.7;ctx.fillText(tr.isMine?'💣':'🪤',tr.x,tr.y);ctx.globalAlpha=1}
-  // Bananas
-  for(var i=0;i<bananas.length;i++){var bn=bananas[i];ctx.font=(TILE*0.45)+'px sans-serif';ctx.globalAlpha=0.6;ctx.fillText('🍌',bn.x,bn.y);ctx.globalAlpha=1}
+
   // Towers
   for(var i=0;i<towers.length;i++){
     var t=towers[i],def=TOWER_DEFS[t.type];
@@ -1020,8 +887,7 @@ function draw(){
     if(totalUpg>0){ctx.fillStyle='#fbbf24';ctx.font='bold '+TILE*0.2+'px sans-serif';ctx.fillText('★'.repeat(Math.min(totalUpg,9)),cx,cy-TILE*0.35)}
     if(t.selected){ctx.strokeStyle='rgba(251,191,36,0.3)';ctx.lineWidth=1;ctx.beginPath();ctx.arc(cx,cy,def.range*TILE,0,Math.PI*2);ctx.stroke()}
   }
-  // Allies
-  for(var i=0;i<allies.length;i++){var a=allies[i];ctx.font=TILE*0.6+'px sans-serif';ctx.textAlign='center';ctx.fillText(a.emoji,a.x,a.y+TILE*0.2)}
+
   // Zombies
   for(var i=0;i<zombies.length;i++){
     var z=zombies[i],fs=z.isBoss?TILE*1.4:TILE*0.75;
