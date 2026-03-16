@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Play Tower Defense HTML - pure HTML/CSS tower defense game that works on any browser! Chromebook-friendly!">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://ajgametime.com/tower-defense-html.html">
+<meta property="og:title" content="Tower Defense HTML — AJ GameTime">
+<meta property="og:description" content="HTML-based tower defense that works on any browser! Place towers, stop zombies!">
+<title>Tower Defense HTML — AJ GameTime</title>
+<style>
+body{margin:0;padding:0;background:#0a0a0a;color:#fff;font-family:Arial,sans-serif;overflow:hidden;user-select:none}
+#gameContainer{position:fixed;top:0;left:0;width:100vw;height:100vh;display:flex;flex-direction:column}
+#header{height:60px;background:#1a1a2e;display:flex;align-items:center;justify-content:space-between;padding:0 20px;border-bottom:2px solid #16213e}
+#hud{display:flex;gap:20px;align-items:center}
+.hudItem{font-size:16px;font-weight:bold;padding:8px 12px;border-radius:6px;background:#16213e}
+#gameArea{flex:1;position:relative;background:#2d3436}
+#grid{position:absolute;top:10px;left:10px;right:200px;bottom:10px;display:grid;grid-template-columns:repeat(12, 1fr);grid-template-rows:repeat(8, 1fr);gap:1px;background:#000}
+.cell{background:#1a1a2e;border:1px solid #2d3748;position:relative;cursor:pointer}
+.cell.path{background:#4a5568!important}
+.tower{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:24px;z-index:10;cursor:pointer;text-shadow:1px 1px 2px #000}
+.zombie{position:absolute;font-size:20px;z-index:5;transition:all 0.3s ease-in-out;text-shadow:1px 1px 2px #000}
+.projectile{position:absolute;width:6px;height:6px;border-radius:50%;z-index:8;transition:all 0.2s linear}
+#sidebar{width:180px;background:#1a1a2e;border-left:2px solid #16213e;overflow-y:auto;padding:10px}
+.towerBtn{width:100%;margin:5px 0;padding:10px;background:#16213e;border:1px solid #2d3748;color:#fff;border-radius:4px;cursor:pointer;font-size:14px;display:flex;align-items:center;gap:8px}
+.towerBtn:hover{background:#2d3748}
+.towerBtn.selected{background:#3182ce;border-color:#63b3ed}
+.towerBtn:disabled{opacity:0.5;cursor:not-allowed}
+#startScreen,#deathScreen{position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.95);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:1000;text-align:center}
+.btn{padding:12px 24px;margin:10px;background:#3182ce;color:#fff;border:none;border-radius:8px;font-size:16px;cursor:pointer;font-weight:bold}
+.btn:hover{background:#2c5282}
+.btn:disabled{opacity:0.5;cursor:not-allowed}
+#pauseBtn{position:absolute;top:10px;right:10px;padding:8px 12px;background:#4a5568;color:#fff;border:none;border-radius:6px;cursor:pointer;z-index:100}
+#pauseOverlay{position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);display:none;align-items:center;justify-content:center;z-index:999;flex-direction:column}
+#musicBtn{position:absolute;bottom:10px;right:10px;padding:8px 12px;background:#4a5568;color:#fff;border:none;border-radius:6px;cursor:pointer;z-index:100}
+.upgrade{font-size:12px;color:#fbbf24;margin-top:2px}
+#waveInfo{font-size:14px;color:#94a3b8;margin-top:5px}
+.boss{font-size:32px!important;text-shadow:2px 2px 4px #000}
+</style>
+</head>
+<body>
+
+<div id="gameContainer">
+  <div id="header">
+    <div id="hud">
+      <div class="hudItem">💰 <span id="gold">100</span></div>
+      <div class="hudItem">❤️ <span id="lives">20</span></div>
+      <div class="hudItem">🌊 <span id="wave">1</span></div>
+      <div class="hudItem">⭐ <span id="score">0</span></div>
+    </div>
+    <div id="waveInfo">Next wave in <span id="countdown">5</span>s</div>
+  </div>
+  
+  <div id="gameArea">
+    <div id="grid"></div>
+    
+    <div id="sidebar">
+      <h3 style="margin:0 0 10px 0;text-align:center;font-size:16px">🏗️ TOWERS</h3>
+      <button class="towerBtn selected" data-tower="gun">
+        🔫 Gun<br><small>$100 • Fast</small>
+      </button>
+      <button class="towerBtn" data-tower="cannon">
+        💣 Cannon<br><small>$200 • Splash</small>
+      </button>
+      <button class="towerBtn" data-tower="frost">
+        ❄️ Frost<br><small>$150 • Slow</small>
+      </button>
+      <button class="towerBtn" data-tower="laser">
+        ⚡ Laser<br><small>$300 • Power</small>
+      </button>
+      
+      <div style="margin-top:20px;padding:10px;background:#16213e;border-radius:6px">
+        <div style="font-size:12px;color:#94a3b8">Selected: <span id="selectedTower">🔫 Gun</span></div>
+        <div style="font-size:11px;color:#64748b;margin-top:4px">Click cells to place towers</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="startScreen">
+  <h1 style="font-size:48px;margin:0;text-shadow:2px 2px 4px #000">🏗️ TOWER DEFENSE</h1>
+  <div style="font-size:18px;margin:20px 0;color:#94a3b8">HTML Edition - Works on ANY browser!</div>
+  <div style="font-size:14px;margin:10px 0;color:#64748b;max-width:400px">
+    Place towers to stop waves of zombies! This version uses pure HTML/CSS - guaranteed to work on Chromebook!
+  </div>
+  <button class="btn" onclick="startGame()">🚀 START GAME</button>
+  <button class="btn" onclick="showLeaderboard()" style="background:#9333ea">🏆 LEADERBOARD</button>
+</div>
+
+<div id="deathScreen" style="display:none">
+  <h2 style="font-size:36px;margin:0;color:#ef4444">💀 GAME OVER</h2>
+  <div style="font-size:18px;margin:15px 0;color:#94a3b8">Final Score: <span id="finalScore">0</span></div>
+  <div style="font-size:16px;margin:10px 0;color:#94a3b8">Wave Reached: <span id="finalWave">1</span></div>
+  <button class="btn" onclick="restartGame()">🔄 PLAY AGAIN</button>
+  <button class="btn" onclick="showLeaderboard()" style="background:#9333ea">🏆 LEADERBOARD</button>
+  <button class="btn" onclick="location.href='index.html'" style="background:#6b7280">🏠 HOME</button>
+</div>
+
+<div id="pauseOverlay">
+  <h2 style="color:#fbbf24">⏸️ PAUSED</h2>
+  <button class="btn" onclick="togglePause()">▶️ RESUME</button>
+</div>
+
+<button id="pauseBtn" onclick="togglePause()">⏸️ PAUSE</button>
+<button id="musicBtn" onclick="toggleMusic()">🔊</button>
+
+<script>
+// === AUDIO SYSTEM ===
+var audioCtx,sfxGain,musicGain,currentMusic;
+var musicEnabled=true,sfxEnabled=true;
+function initAudio(){
+  try{audioCtx=new(window.AudioContext||window.webkitAudioContext)();sfxGain=audioCtx.createGain();musicGain=audioCtx.createGain();sfxGain.connect(audioCtx.destination);musicGain.connect(audioCtx.destination);sfxGain.gain.setValueAtTime(0.3,audioCtx.currentTime);musicGain.gain.setValueAtTime(0.2,audioCtx.currentTime)}catch(e){}
+}
+function playTone(freq,dur,vol,type){if(!audioCtx||!sfxEnabled)return;try{var osc=audioCtx.createOscillator(),gain=audioCtx.createGain();osc.connect(gain);gain.connect(sfxGain);osc.frequency.setValueAtTime(freq,audioCtx.currentTime);osc.type=type||'square';gain.gain.setValueAtTime(vol*0.1,audioCtx.currentTime);gain.gain.exponentialRampToValueAtTime(0.01,audioCtx.currentTime+dur);osc.start();osc.stop(audioCtx.currentTime+dur)}catch(e){}}
+function sfxPlace(){playTone(440,0.1,0.5)}
+function sfxKill(){playTone(660,0.15,0.6)}
+function sfxHit(){playTone(220,0.08,0.3)}
+function toggleMusic(){musicEnabled=!musicEnabled;document.getElementById('musicBtn').textContent=musicEnabled?'🔊':'🔇';if(musicGain)musicGain.gain.setValueAtTime(musicEnabled?0.2:0,audioCtx.currentTime)}
+
+// === GAME STATE ===
+var gameRunning=false,paused=false,gold=100,lives=20,wave=1,score=0;
+var selectedTowerType='gun',towers=[],zombies=[],projectiles=[];
+var spawnTimer=0,waveTimer=300,waveActive=false,spawnCount=0,spawnMax=0;
+var grid,cells=[];
+
+// === TOWER DEFINITIONS ===
+var TOWER_DEFS={
+  gun:{cost:100,range:80,damage:25,rate:20,emoji:'🔫',color:'#22c55e',projColor:'#fbbf24'},
+  cannon:{cost:200,range:70,damage:60,rate:40,emoji:'💣',color:'#ef4444',projColor:'#ef4444',splash:50},
+  frost:{cost:150,range:75,damage:15,rate:30,emoji:'❄️',color:'#38bdf8',projColor:'#38bdf8',slow:true},
+  laser:{cost:300,range:90,damage:80,rate:25,emoji:'⚡',color:'#fbbf24',projColor:'#fbbf24'}
+};
+
+// === ZOMBIE TYPES ===
+var ZOMBIE_TYPES=[
+  {emoji:'🧟',hp:50,speed:1,gold:5,points:10},
+  {emoji:'🧟‍♂️',hp:80,speed:0.8,gold:8,points:15},
+  {emoji:'🧟‍♀️',hp:60,speed:1.2,gold:6,points:12},
+  {emoji:'👹',hp:150,speed:0.6,gold:15,points:25},
+  {emoji:'💀',hp:200,speed:0.5,gold:20,points:30,boss:true}
+];
+
+// === GAME PATH ===
+var PATH=[
+  {x:0,y:4},{x:1,y:4},{x:2,y:4},{x:3,y:4},{x:4,y:4},{x:5,y:4},{x:6,y:4},{x:7,y:4},{x:8,y:4},{x:9,y:4},{x:10,y:4},{x:11,y:4}
+];
+
+// === INITIALIZATION ===
+function initGame(){
+  grid=document.getElementById('grid');
+  for(var r=0;r<8;r++){
+    for(var c=0;c<12;c++){
+      var cell=document.createElement('div');
+      cell.className='cell';
+      cell.dataset.x=c;
+      cell.dataset.y=r;
+      if(PATH.find(function(p){return p.x===c&&p.y===r}))cell.classList.add('path');
+      cell.onclick=function(){if(!paused)placeTower(parseInt(this.dataset.x),parseInt(this.dataset.y))};
+      grid.appendChild(cell);
+      cells.push(cell);
+    }
+  }
+  
+  // Tower buttons
+  document.querySelectorAll('.towerBtn').forEach(function(btn){
+    btn.onclick=function(){
+      if(btn.disabled)return;
+      document.querySelectorAll('.towerBtn').forEach(function(b){b.classList.remove('selected')});
+      btn.classList.add('selected');
+      selectedTowerType=btn.dataset.tower;
+      document.getElementById('selectedTower').textContent=TOWER_DEFS[selectedTowerType].emoji+' '+selectedTowerType.charAt(0).toUpperCase()+selectedTowerType.slice(1);
+    };
+  });
+  
+  updateHUD();
+}
+
+function startGame(){
+  if(!audioCtx)initAudio();
+  if(audioCtx&&audioCtx.state==='suspended')audioCtx.resume();
+  document.getElementById('startScreen').style.display='none';
+  gameRunning=true;
+  paused=false;
+  gameLoop();
+  startWave();
+}
+
+function updateHUD(){
+  document.getElementById('gold').textContent=gold;
+  document.getElementById('lives').textContent=lives;
+  document.getElementById('wave').textContent=wave;
+  document.getElementById('score').textContent=score;
+  
+  // Update tower button availability
+  document.querySelectorAll('.towerBtn').forEach(function(btn){
+    var type=btn.dataset.tower;
+    var cost=TOWER_DEFS[type].cost;
+    btn.disabled=gold<cost;
+  });
+}
+
+// === TOWER PLACEMENT ===
+function placeTower(x,y){
+  if(!gameRunning||paused)return;
+  
+  // Check if path
+  if(PATH.find(function(p){return p.x===x&&p.y===y}))return;
+  
+  // Check if tower already there
+  if(towers.find(function(t){return t.x===x&&t.y===y}))return;
+  
+  var def=TOWER_DEFS[selectedTowerType];
+  if(gold<def.cost)return;
+  
+  gold-=def.cost;
+  sfxPlace();
+  
+  var tower={
+    x:x,y:y,type:selectedTowerType,cooldown:0,
+    upgSpeed:0,upgEffect:0,upgMulti:0
+  };
+  towers.push(tower);
+  
+  // Create visual element
+  var cell=document.querySelector('[data-x="'+x+'"][data-y="'+y+'"]');
+  var towerEl=document.createElement('div');
+  towerEl.className='tower';
+  towerEl.textContent=def.emoji;
+  towerEl.style.color=def.color;
+  towerEl.dataset.id=towers.length-1;
+  cell.appendChild(towerEl);
+  
+  updateHUD();
+}
+
+// === WAVE SYSTEM ===
+function startWave(){
+  waveActive=true;
+  spawnCount=0;
+  spawnMax=Math.min(3+wave,20);
+  spawnTimer=60;
+  waveTimer=0;
+  
+  // Clear countdown
+  document.getElementById('countdown').parentElement.style.display='none';
+}
+
+function nextWave(){
+  wave++;
+  waveActive=false;
+  waveTimer=300; // 5 seconds between waves
+  gold+=10+wave*5;
+  updateHUD();
+  
+  // Show countdown
+  var countdownEl=document.getElementById('countdown');
+  countdownEl.parentElement.style.display='block';
+  var countdown=5;
+  countdownEl.textContent=countdown;
+  
+  var interval=setInterval(function(){
+    countdown--;
+    countdownEl.textContent=countdown;
+    if(countdown<=0){
+      clearInterval(interval);
+      startWave();
+    }
+  },1000);
+}
+
+// === SPAWNING ===
+function spawnZombie(){
+  if(spawnCount>=spawnMax)return;
+  
+  var types=ZOMBIE_TYPES.filter(function(z){return !z.boss||wave>=10});
+  var type=types[Math.floor(Math.random()*types.length)];
+  
+  var zombie={
+    x:0,y:4,pathIndex:0,hp:type.hp*(1+wave*0.1),maxHp:type.hp*(1+wave*0.1),
+    speed:type.speed,emoji:type.emoji,gold:type.gold,points:type.points,
+    boss:type.boss||false,slowTimer:0
+  };
+  zombies.push(zombie);
+  
+  // Create visual element
+  var zombieEl=document.createElement('div');
+  zombieEl.className='zombie'+(zombie.boss?' boss':'');
+  zombieEl.textContent=zombie.emoji;
+  zombieEl.style.left='calc('+(zombie.x/12*100)+'% + 50%)';
+  zombieEl.style.top='calc('+(zombie.y/8*100)+'% + 50%)';
+  zombieEl.style.transform='translate(-50%, -50%)';
+  zombieEl.dataset.id=zombies.length-1;
+  document.getElementById('gameArea').appendChild(zombieEl);
+  
+  spawnCount++;
+}
+
+// === GAME LOOP ===
+function gameLoop(){
+  if(!gameRunning)return;
+  
+  if(!paused){
+    // Wave timer
+    if(!waveActive){
+      waveTimer--;
+      if(waveTimer<=0)startWave();
+    }
+    
+    // Spawn zombies
+    if(waveActive&&spawnCount<spawnMax){
+      spawnTimer--;
+      if(spawnTimer<=0){
+        spawnZombie();
+        spawnTimer=Math.max(30,60-wave*2);
+      }
+    }
+    
+    // Move zombies
+    for(var i=zombies.length-1;i>=0;i--){
+      var zombie=zombies[i];
+      if(zombie.slowTimer>0){zombie.slowTimer--; continue;}
+      
+      var target=PATH[zombie.pathIndex+1];
+      if(!target){
+        // Reached end
+        lives--;
+        removeZombie(i);
+        if(lives<=0)gameOver();
+        continue;
+      }
+      
+      var dx=target.x-zombie.x,dy=target.y-zombie.y;
+      var dist=Math.sqrt(dx*dx+dy*dy);
+      var speed=zombie.speed*0.02;
+      
+      if(dist<0.1){
+        zombie.pathIndex++;
+        zombie.x=target.x;
+        zombie.y=target.y;
+      }else{
+        zombie.x+=dx/dist*speed;
+        zombie.y+=dy/dist*speed;
+      }
+      
+      // Update visual
+      var zombieEl=document.querySelector('.zombie[data-id="'+i+'"]');
+      if(zombieEl){
+        zombieEl.style.left='calc('+(zombie.x/12*100)+'% + 50%)';
+        zombieEl.style.top='calc('+(zombie.y/8*100)+'% + 50%)';
+      }
+    }
+    
+    // Tower shooting
+    for(var i=0;i<towers.length;i++){
+      var tower=towers[i];
+      tower.cooldown--;
+      if(tower.cooldown>0)continue;
+      
+      var def=TOWER_DEFS[tower.type];
+      var closest=null,closestDist=Infinity;
+      
+      for(var j=0;j<zombies.length;j++){
+        var zombie=zombies[j];
+        var dx=zombie.x-tower.x,dy=zombie.y-tower.y;
+        var dist=Math.sqrt(dx*dx+dy*dy);
+        if(dist<def.range/50&&dist<closestDist){
+          closest=zombie;closestDist=dist;
+        }
+      }
+      
+      if(closest){
+        tower.cooldown=def.rate;
+        createProjectile(tower,closest,def);
+      }
+    }
+    
+    // Move projectiles
+    for(var i=projectiles.length-1;i>=0;i--){
+      var proj=projectiles[i];
+      var dx=proj.targetX-proj.x,dy=proj.targetY-proj.y;
+      var dist=Math.sqrt(dx*dx+dy*dy);
+      
+      if(dist<0.2){
+        // Hit target
+        hitTarget(proj);
+        removeProjectile(i);
+      }else{
+        proj.x+=dx/dist*0.1;
+        proj.y+=dy/dist*0.1;
+        
+        // Update visual
+        var projEl=document.querySelector('.projectile[data-id="'+i+'"]');
+        if(projEl){
+          projEl.style.left='calc('+(proj.x/12*100)+'% + 50%)';
+          projEl.style.top='calc('+(proj.y/8*100)+'% + 50%)';
+        }
+      }
+    }
+    
+    // Check wave complete
+    if(waveActive&&spawnCount>=spawnMax&&zombies.length===0){
+      nextWave();
+    }
+    
+    updateHUD();
+  }
+  
+  requestAnimationFrame(gameLoop);
+}
+
+function createProjectile(tower,target,def){
+  var proj={
+    x:tower.x,y:tower.y,targetX:target.x,targetY:target.y,
+    damage:def.damage,color:def.projColor,splash:def.splash||0,slow:def.slow||false
+  };
+  projectiles.push(proj);
+  
+  // Create visual
+  var projEl=document.createElement('div');
+  projEl.className='projectile';
+  projEl.style.backgroundColor=def.projColor;
+  projEl.style.left='calc('+(proj.x/12*100)+'% + 50%)';
+  projEl.style.top='calc('+(proj.y/8*100)+'% + 50%)';
+  projEl.dataset.id=projectiles.length-1;
+  document.getElementById('gameArea').appendChild(projEl);
+}
+
+function hitTarget(proj){
+  if(proj.splash>0){
+    // Splash damage
+    for(var i=0;i<zombies.length;i++){
+      var zombie=zombies[i];
+      var dx=zombie.x-proj.targetX,dy=zombie.y-proj.targetY;
+      var dist=Math.sqrt(dx*dx+dy*dy);
+      if(dist<proj.splash/50){
+        zombie.hp-=proj.damage*(1-dist/(proj.splash/50)*0.5);
+        if(zombie.hp<=0)killZombie(i);
+      }
+    }
+  }else{
+    // Find closest zombie to hit
+    var closest=null,closestDist=Infinity;
+    for(var i=0;i<zombies.length;i++){
+      var zombie=zombies[i];
+      var dx=zombie.x-proj.targetX,dy=zombie.y-proj.targetY;
+      var dist=Math.sqrt(dx*dx+dy*dy);
+      if(dist<closestDist){closest=i;closestDist=dist;}
+    }
+    if(closest!==null){
+      zombies[closest].hp-=proj.damage;
+      if(proj.slow)zombies[closest].slowTimer=180;
+      if(zombies[closest].hp<=0)killZombie(closest);
+    }
+  }
+  sfxHit();
+}
+
+function killZombie(index){
+  var zombie=zombies[index];
+  gold+=zombie.gold;
+  score+=zombie.points;
+  sfxKill();
+  removeZombie(index);
+}
+
+function removeZombie(index){
+  // Remove visual
+  var zombieEl=document.querySelector('.zombie[data-id="'+index+'"]');
+  if(zombieEl)zombieEl.remove();
+  
+  // Update IDs
+  document.querySelectorAll('.zombie').forEach(function(el,i){el.dataset.id=i});
+  
+  zombies.splice(index,1);
+}
+
+function removeProjectile(index){
+  // Remove visual
+  var projEl=document.querySelector('.projectile[data-id="'+index+'"]');
+  if(projEl)projEl.remove();
+  
+  // Update IDs
+  document.querySelectorAll('.projectile').forEach(function(el,i){el.dataset.id=i});
+  
+  projectiles.splice(index,1);
+}
+
+// === GAME OVER ===
+function gameOver(){
+  gameRunning=false;
+  document.getElementById('finalScore').textContent=score;
+  document.getElementById('finalWave').textContent=wave;
+  document.getElementById('deathScreen').style.display='flex';
+  submitScore();
+}
+
+function restartGame(){
+  // Reset game state
+  gameRunning=false;paused=false;gold=100;lives=20;wave=1;score=0;
+  towers=[];zombies=[];projectiles=[];
+  spawnTimer=0;waveTimer=300;waveActive=false;spawnCount=0;spawnMax=0;
+  
+  // Clear visuals
+  document.querySelectorAll('.tower,.zombie,.projectile').forEach(function(el){el.remove()});
+  
+  // Hide screens
+  document.getElementById('deathScreen').style.display='none';
+  document.getElementById('startScreen').style.display='flex';
+  
+  updateHUD();
+}
+
+// === PAUSE ===
+var paused=false;
+function togglePause(){
+  if(!gameRunning)return;
+  paused=!paused;
+  document.getElementById('pauseOverlay').style.display=paused?'flex':'none';
+}
+
+// === LEADERBOARD ===
+var SUPABASE_URL='https://adudgrfxwildzwpcvyil.supabase.co';
+var SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFkdWRncmZ4d2lsZHp3cGN2eWlsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyOTkzODUsImV4cCI6MjA4Nzg3NTM4NX0.-JYXn5r9QUjxbpwckwDMSvCm8w1xRXOp5lP2TWNOC_E';
+var playerName=localStorage.getItem('ajgt_name')||'Anonymous';
+
+function submitScore(){
+  if(score<=0)return;
+  fetch(SUPABASE_URL+'/rest/v1/ajgametime_leaderboard',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY},
+    body:JSON.stringify({player_name:playerName,score:score,game:'tower_defense_html'})
+  }).catch(function(e){console.log('Leaderboard error:',e)});
+}
+
+function showLeaderboard(){
+  fetch(SUPABASE_URL+'/rest/v1/ajgametime_leaderboard?game=eq.tower_defense_html&select=*&order=score.desc&limit=10',{
+    headers:{'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY}
+  }).then(function(r){return r.json()}).then(function(data){
+    var html='<h2 style="color:#fbbf24">🏆 TOP 10 LEADERBOARD</h2>';
+    if(data.length>0){
+      html+='<div style="background:#1a1a2e;padding:15px;border-radius:8px;margin:10px 0">';
+      data.forEach(function(row,i){
+        html+='<div style="display:flex;justify-content:space-between;margin:5px 0;padding:5px;background:'+(i<3?'#2d3748':'#16213e')+';border-radius:4px">';
+        html+='<span>'+(i+1===1?'🥇':i+1===2?'🥈':i+1===3?'🥉':i+1+'.')' '+row.player_name+'</span>';
+        html+='<span style="color:#fbbf24">'+row.score+'</span></div>';
+      });
+      html+='</div>';
+    }else{html+='<div style="color:#94a3b8">No scores yet! Be the first!</div>';}
+    html+='<button class="btn" onclick="closeLeaderboard()">✖️ CLOSE</button>';
+    
+    var overlay=document.createElement('div');
+    overlay.id='leaderboardOverlay';
+    overlay.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.95);display:flex;align-items:center;justify-content:center;z-index:2000;text-align:center';
+    overlay.innerHTML='<div>'+html+'</div>';
+    document.body.appendChild(overlay);
+  }).catch(function(){alert('Failed to load leaderboard')});
+}
+
+function closeLeaderboard(){
+  var overlay=document.getElementById('leaderboardOverlay');
+  if(overlay)overlay.remove();
+}
+
+// === INITIALIZE ===
+window.addEventListener('load',function(){
+  initGame();
+  
+  // Set player name
+  if(!localStorage.getItem('ajgt_name')){
+    var name=prompt('Enter your name for the leaderboard:');
+    if(name&&name.trim())localStorage.setItem('ajgt_name',name.trim());
+  }
+});
+</script>
+</body>
+</html>
