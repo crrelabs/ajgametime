@@ -210,12 +210,7 @@ resize();window.addEventListener('resize',resize);
 // === START GAME (defined early so onclick always works) ===
 function zdStart(){
   try{
-    // Detect Chromebook
-    var isChromebook = navigator.userAgent.includes('CrOS');
-    console.log('zdStart called - starting game... Chromebook:', isChromebook);
-    if(isChromebook) {
-      console.log('🔧 CHROMEBOOK MODE: Using compatibility fixes');
-    }
+    console.log('zdStart called - starting game...');
     
     // Hide start screen
     var startScreen = document.getElementById('startScreen');
@@ -230,19 +225,9 @@ function zdStart(){
       towerBar.style.display = 'block';
     }
     
-    // Enable canvas and ensure it's visible - Chromebook compatible
+    // Enable canvas
     if(typeof canvas !== 'undefined') {
       canvas.style.pointerEvents = 'auto';
-      canvas.style.zIndex = '1';
-      canvas.style.position = 'absolute';
-      canvas.style.top = '0';
-      canvas.style.left = '0';
-      canvas.style.imageRendering = 'pixelated'; // Better for Chromebook
-      
-      // Force canvas size for Chromebook
-      canvas.width = W;
-      canvas.height = H;
-      console.log('Canvas setup for Chromebook - Size:', W, 'x', H);
     }
     
     // Initialize audio
@@ -260,14 +245,13 @@ function zdStart(){
       try { buildTowerBar(); } catch(e) { console.error('buildTowerBar failed:', e); }
     }
     
-    // Set difficulty and map from UI selection
+    // Set difficulty from UI selection
     if(typeof window.currentDiff !== 'undefined' && typeof difficulty !== 'undefined') {
       difficulty = window.currentDiff;
       console.log('Using difficulty:', difficulty);
     }
-    if(typeof window.currentMap !== 'undefined' && typeof currentMap !== 'undefined') {
-      currentMap = window.currentMap;
-      console.log('Using map:', currentMap);
+    if(typeof window.currentMap !== 'undefined') {
+      console.log('Using map:', window.currentMap);
     }
     
     // Initialize game
@@ -418,9 +402,6 @@ function selectDiff(diffId) {
 
 function selectMap(mapId) {
   window.currentMap = mapId;
-  if(typeof currentMap !== 'undefined') {
-    currentMap = mapId; // Also set the global variable
-  }
   console.log('Selected map:', mapId);
   
   // Update button styles
@@ -441,9 +422,6 @@ function selectMap(mapId) {
 // Set defaults
 window.currentDiff = 'easy';
 window.currentMap = 'random';
-// Also set global variables
-if(typeof difficulty !== 'undefined') difficulty = 'easy';
-if(typeof currentMap !== 'undefined') currentMap = 'random';
 
 // === DIFFICULTY & UNLOCK SYSTEM ===
 var DIFF_ORDER=['easy','normal','medium','hard','insane','impossible','freeplay'];
@@ -732,11 +710,7 @@ function generateMapPath(mapId){
   }
 }
 
-function generatePath(){
-  console.log('Generating path for map:', currentMap);
-  generateMapPath(currentMap);
-  console.log('Path generated - length:', path.length, 'pathSet size:', pathSet ? pathSet.size : 'undefined');
-}
+function generatePath(){generateMapPath(currentMap)}
 function isOnPath(c,r){return pathSet.has(c+','+r)}
 function towerAt(c,r){return towers.find(function(t){if(t.size===2)return(c>=t.col&&c<t.col+2&&r>=t.row&&r<t.row+2);return t.col===c&&t.row===r})}
 
@@ -763,18 +737,6 @@ function updateHUD(){
 
 function nextWave(){
   wave++;waveActive=false;waveDelay=120;spawnCount=0;spawnTimer=0;
-  
-  // Calculate spawn max for this wave immediately
-  var ds=DIFF_SETTINGS[difficulty];
-  spawnMax=Math.round((5+wave*2)*ds.zombieMult);
-  
-  console.log('🌊 Next wave setup - Wave:', wave, 'SpawnMax:', spawnMax, 'Delay:', waveDelay);
-  
-  // For wave 1, make delay much shorter to help users
-  if(wave === 1) {
-    waveDelay = 30; // 1 second instead of 4 seconds
-    console.log('Wave 1 fast start - delay reduced to:', waveDelay);
-  }
   var ds=DIFF_SETTINGS[difficulty];
   // Every 10 waves: +2.5% speed and HP
   if(wave>1&&wave%10===1){globalSpeedBuff*=1.025;globalHpBuff*=1.025}
@@ -820,35 +782,13 @@ function update(){
   for(var i=particles.length-1;i>=0;i--){var p=particles[i];p.x+=p.vx;p.y+=p.vy;p.life--;p.vx*=0.95;p.vy*=0.95;if(p.life<=0)particles.splice(i,1)}
   // Bank income — $50 every 2.5 seconds (150 frames), works between waves too
   bankTimer++;
-  if(!waveActive){
-    waveDelay--;
-    console.log('Wave delay countdown:', waveDelay, 'for wave:', wave);
-    if(waveDelay<=0){
-      waveActive=true;
-      // Force spawn max calculation for this wave
-      var ds=DIFF_SETTINGS[difficulty];
-      spawnMax=Math.round((5+wave*2)*ds.zombieMult);
-      spawnTimer=0; // Reset spawn timer
-      console.log('🧟 Wave', wave, 'ACTIVATED! Will spawn', spawnMax, 'zombies');
-    };
+  if(!waveActive){waveDelay--;if(waveDelay<=0)waveActive=true;
     // Still process bank during wave delay
     if(bankTimer>=150){bankTimer=0;var bankPaid=false;towers.forEach(function(t){if(t.type==='bank'){var inc=Math.round(50*(1+t.upgSpeed*0.3)*getSkillMult('bnk_income',0.15));gold+=inc;bankPaid=true;
       particles.push({x:t.col*TILE+TILE/2,y:t.row*TILE+MAP_OFFSET_Y+TILE/2,vx:0,vy:-1,life:40,color:'#fbbf24',size:0,text:'+$'+inc+'💰'})}});if(bankPaid)document.getElementById('goldVal').textContent=gold;}
     return}
-  // FORCE SPAWN ZOMBIES - CHROMEBOOK DEBUG VERSION
-  if(spawnCount<spawnMax){
-    spawnTimer--;
-    console.log('⏰ Spawn timer:', spawnTimer, 'Count:', spawnCount, '/', spawnMax);
-    if(spawnTimer<=0){
-      console.log('🚨 SPAWNING ZOMBIE NOW!');
-      spawnZombie();
-      spawnCount++;
-      spawnTimer=Math.max(10,40-wave*2);
-      console.log('✅ Zombie spawned! Total zombies:', zombies.length, 'Progress:', spawnCount, '/', spawnMax);
-    }
-  } else {
-    console.log('✋ All zombies spawned for wave', wave, '- Active zombies:', zombies.length);
-  }
+  // Spawn
+  if(spawnCount<spawnMax){spawnTimer--;if(spawnTimer<=0){spawnZombie();spawnCount++;spawnTimer=Math.max(10,40-wave*2)}}
   if(bankTimer>=150){
     bankTimer=0;
     towers.forEach(function(t){if(t.type==='bank'){var inc=Math.round(50*(1+t.upgSpeed*0.3)*getSkillMult('bnk_income',0.15));gold+=inc;
@@ -1042,16 +982,6 @@ function update(){
       projectiles.splice(i,1);
     }else{p.x+=(dx/dist)*p.speed;p.y+=(dy/dist)*p.speed}
   }
-  
-  // CHROMEBOOK DEBUG INFO ON SCREEN
-  ctx.fillStyle='#FFFFFF';
-  ctx.font='12px Arial';
-  ctx.textAlign='left';
-  ctx.fillText('Wave: ' + wave + ' Active: ' + waveActive, 10, 50);
-  ctx.fillText('Spawned: ' + spawnCount + '/' + spawnMax, 10, 65);
-  ctx.fillText('Zombies: ' + zombies.length, 10, 80);
-  ctx.fillText('Towers: ' + towers.length, 10, 95);
-  
   // Wave complete
   if(spawnCount>=spawnMax&&zombies.length===0&&waveActive){
     gold+=Math.round((10+wave*5)*DIFF_SETTINGS[difficulty].goldScale);updateHUD();nextWave();
@@ -1062,12 +992,6 @@ function update(){
 function draw(){
   if(!gameRunning)return; // Don't draw if game isn't running
   ctx.clearRect(0,0,W,H);ctx.fillStyle='#1a1a2e';ctx.fillRect(0,0,W,H);
-  
-  // Force draw even if pathSet is missing (emergency fix)
-  if(!pathSet) {
-    console.log('PathSet missing, generating emergency path...');
-    generatePath();
-  }
   if(!gameRunning||!pathSet)return;
   // Grid
   for(var r=0;r<ROWS;r++)for(var c=0;c<COLS;c++){
@@ -1084,61 +1008,30 @@ function draw(){
   for(var i=0;i<traps.length;i++){var tr=traps[i];ctx.font=(TILE*0.5)+'px sans-serif';ctx.globalAlpha=0.7;ctx.fillText(tr.isMine?'💣':'🪤',tr.x,tr.y);ctx.globalAlpha=1}
   // Bananas
   for(var i=0;i<bananas.length;i++){var bn=bananas[i];ctx.font=(TILE*0.45)+'px sans-serif';ctx.globalAlpha=0.6;ctx.fillText('🍌',bn.x,bn.y);ctx.globalAlpha=1}
-  // TOWERS - NUCLEAR SIMPLE RENDERING FOR CHROMEBOOK
+  // Towers
   for(var i=0;i<towers.length;i++){
-    var t=towers[i];
-    var def=TOWER_DEFS[t.type];
-    if(!def) continue;
-    
-    // Position calculation
-    var x = t.col*TILE;
-    var y = t.row*TILE+MAP_OFFSET_Y;
-    
-    // BRIGHT SOLID BACKGROUND - IMPOSSIBLE TO MISS
-    ctx.fillStyle='#FF0000'; // BRIGHT RED
-    ctx.fillRect(x, y, TILE, TILE);
-    
-    // WHITE BORDER
-    ctx.strokeStyle='#FFFFFF';
-    ctx.lineWidth=3;
-    ctx.strokeRect(x, y, TILE, TILE);
-    
-    // GIANT TEXT IN CENTER
-    ctx.fillStyle='#FFFFFF';
-    ctx.font='bold 20px Arial';
-    ctx.textAlign='center';
-    ctx.fillText(def.emoji, x+TILE/2, y+TILE/2+7);
-    
-    // DEBUG TEXT ABOVE
-    ctx.fillStyle='#FFFF00';
-    ctx.font='10px Arial';
-    ctx.fillText('T', x+TILE/2, y-5);
+    var t=towers[i],def=TOWER_DEFS[t.type];
+    var cx,cy;
+    if(t.size===2){cx=t.col*TILE+TILE;cy=t.row*TILE+MAP_OFFSET_Y+TILE;ctx.fillStyle=def.color;ctx.globalAlpha=0.2;ctx.fillRect(t.col*TILE,t.row*TILE+MAP_OFFSET_Y,TILE*2,TILE*2);ctx.globalAlpha=1;ctx.font=TILE*1.2+'px sans-serif'}
+    else{cx=t.col*TILE+TILE/2;cy=t.row*TILE+MAP_OFFSET_Y+TILE/2;ctx.fillStyle=def.color;ctx.globalAlpha=0.3;ctx.beginPath();ctx.arc(cx,cy,TILE*0.4,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;ctx.font=TILE*0.7+'px sans-serif'}
+    ctx.textAlign='center';ctx.fillText(def.emoji,cx,cy+TILE*0.25);
+    // Upgrade stars
+    var totalUpg=t.upgSpeed+t.upgEffect+t.upgMulti;
+    if(totalUpg>0){ctx.fillStyle='#fbbf24';ctx.font='bold '+TILE*0.2+'px sans-serif';ctx.fillText('★'.repeat(Math.min(totalUpg,9)),cx,cy-TILE*0.35)}
+    if(t.selected){ctx.strokeStyle='rgba(251,191,36,0.3)';ctx.lineWidth=1;ctx.beginPath();ctx.arc(cx,cy,def.range*TILE,0,Math.PI*2);ctx.stroke()}
   }
   // Allies
   for(var i=0;i<allies.length;i++){var a=allies[i];ctx.font=TILE*0.6+'px sans-serif';ctx.textAlign='center';ctx.fillText(a.emoji,a.x,a.y+TILE*0.2)}
-  // ZOMBIES - NUCLEAR BRIGHT RENDERING FOR CHROMEBOOK  
+  // Zombies
   for(var i=0;i<zombies.length;i++){
-    var z=zombies[i];
-    
-    // BRIGHT GREEN BACKGROUND CIRCLE - IMPOSSIBLE TO MISS
-    ctx.fillStyle='#00FF00'; // BRIGHT GREEN
-    ctx.fillRect(z.x-15, z.y-15, 30, 30);
-    
-    // WHITE BORDER
-    ctx.strokeStyle='#FFFFFF';
-    ctx.lineWidth=2;
-    ctx.strokeRect(z.x-15, z.y-15, 30, 30);
-    
-    // GIANT ZOMBIE EMOJI
-    ctx.fillStyle='#000000';
-    ctx.font='bold 20px Arial';
-    ctx.textAlign='center';
-    ctx.fillText(z.emoji, z.x, z.y+7);
-    
-    // DEBUG TEXT ABOVE
-    ctx.fillStyle='#FFFF00';
-    ctx.font='8px Arial';
-    ctx.fillText('Z', z.x, z.y-20);
+    var z=zombies[i],fs=z.isBoss?TILE*1.4:TILE*0.75;
+    ctx.font=fs+'px sans-serif';ctx.textAlign='center';
+    if(z.stunTimer>0){ctx.fillStyle='rgba(251,191,36,0.3)';ctx.beginPath();ctx.arc(z.x,z.y,TILE*(z.isBoss?0.7:0.4),0,Math.PI*2);ctx.fill();ctx.font=TILE*0.3+'px sans-serif';ctx.fillText('😵',z.x,z.y-TILE*0.45);ctx.font=fs+'px sans-serif'}
+    if(z.slowTimer>0){ctx.fillStyle='rgba(56,189,248,0.3)';ctx.beginPath();ctx.arc(z.x,z.y,TILE*(z.isBoss?0.7:0.4),0,Math.PI*2);ctx.fill()}
+    if(z.dotTimer>0){ctx.fillStyle='rgba(249,115,22,0.3)';ctx.beginPath();ctx.arc(z.x,z.y,TILE*(z.isBoss?0.6:0.35),0,Math.PI*2);ctx.fill()}
+    if(z.isBoss){ctx.shadowColor='#ef4444';ctx.shadowBlur=20}
+    ctx.fillText(z.emoji,z.x,z.y+fs*0.3);ctx.shadowBlur=0;
+    if(!z.isBoss){var bW=TILE*0.7,bH=4,bX=z.x-bW/2,bY=z.y-TILE*0.45;ctx.fillStyle='#1f2937';ctx.fillRect(bX,bY,bW,bH);var hp=Math.max(0,z.hp/z.maxHp);ctx.fillStyle=hp>0.5?'#22c55e':hp>0.25?'#fbbf24':'#ef4444';ctx.fillRect(bX,bY,bW*hp,bH)}
   }
   // Projectiles
   for(var i=0;i<projectiles.length;i++){var p=projectiles[i];ctx.fillStyle=p.color;ctx.beginPath();ctx.arc(p.x,p.y,3,0,Math.PI*2);ctx.fill()}
@@ -1244,9 +1137,7 @@ function handleCanvasClick(mx,my){
   gold-=cost;towerBuyCount[selectedTower]=(towerBuyCount[selectedTower]||0)+1;sfxPlace();
   var newT={col:col,row:row,type:selectedTower,cooldown:0,upgSpeed:0,upgEffect:0,upgMulti:0,selected:false,abilityCool:0,abilityActive:0,
     size:def.size||1,trapTower:!!def.trapTower,bananaTree:!!def.bananaTree,trapTimer:0,bTimer:0};
-  towers.push(newT);
-  console.log('Tower placed:', selectedTower, 'at', col, row, '- Total towers:', towers.length);
-  updateHUD();
+  towers.push(newT);updateHUD();
 }
 
 canvas.addEventListener('click',function(e){var r=canvas.getBoundingClientRect();handleCanvasClick(e.clientX-r.left,e.clientY-r.top)});
@@ -1428,18 +1319,8 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 setTimeout(initUI, 100); // Backup
 
-// Start game loop LAST - Chromebook compatible
-function gameLoop() {
-  try {
-    loop();
-  } catch(e) {
-    console.error('Game loop error:', e);
-  }
-  requestAnimationFrame(gameLoop);
-}
-// Use both for better Chromebook compatibility
+// Start game loop LAST
 setInterval(loop,1000/30);
-requestAnimationFrame(gameLoop);
 </script>
 
 <div id="prestigeOverlay" style="position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;z-index:100;background:rgba(0,0,0,0.95);overflow-y:auto;padding:20px">
