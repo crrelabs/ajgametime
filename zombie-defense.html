@@ -752,7 +752,12 @@ function updateHUD(){
 
 function nextWave(){
   wave++;waveActive=false;waveDelay=120;spawnCount=0;spawnTimer=0;
-  console.log('Next wave started - wave:', wave, 'delay:', waveDelay);
+  
+  // Calculate spawn max for this wave immediately
+  var ds=DIFF_SETTINGS[difficulty];
+  spawnMax=Math.round((5+wave*2)*ds.zombieMult);
+  
+  console.log('🌊 Next wave setup - Wave:', wave, 'SpawnMax:', spawnMax, 'Delay:', waveDelay);
   
   // For wave 1, make delay much shorter to help users
   if(wave === 1) {
@@ -806,20 +811,29 @@ function update(){
   bankTimer++;
   if(!waveActive){
     waveDelay--;
+    console.log('Wave delay countdown:', waveDelay, 'for wave:', wave);
     if(waveDelay<=0){
       waveActive=true;
-      console.log('Wave', wave, 'is now active!');
       // Force spawn max calculation for this wave
       var ds=DIFF_SETTINGS[difficulty];
       spawnMax=Math.round((5+wave*2)*ds.zombieMult);
-      console.log('Wave', wave, 'will spawn', spawnMax, 'zombies');
+      spawnTimer=0; // Reset spawn timer
+      console.log('🧟 Wave', wave, 'ACTIVATED! Will spawn', spawnMax, 'zombies');
     };
     // Still process bank during wave delay
     if(bankTimer>=150){bankTimer=0;var bankPaid=false;towers.forEach(function(t){if(t.type==='bank'){var inc=Math.round(50*(1+t.upgSpeed*0.3)*getSkillMult('bnk_income',0.15));gold+=inc;bankPaid=true;
       particles.push({x:t.col*TILE+TILE/2,y:t.row*TILE+MAP_OFFSET_Y+TILE/2,vx:0,vy:-1,life:40,color:'#fbbf24',size:0,text:'+$'+inc+'💰'})}});if(bankPaid)document.getElementById('goldVal').textContent=gold;}
     return}
-  // Spawn
-  if(spawnCount<spawnMax){spawnTimer--;if(spawnTimer<=0){spawnZombie();spawnCount++;spawnTimer=Math.max(10,40-wave*2)}}
+  // Spawn zombies during active wave
+  if(spawnCount<spawnMax){
+    spawnTimer--;
+    if(spawnTimer<=0){
+      spawnZombie();
+      spawnCount++;
+      spawnTimer=Math.max(10,40-wave*2);
+      console.log('🧟 Spawned zombie', spawnCount, '/', spawnMax, 'for wave', wave);
+    }
+  }
   if(bankTimer>=150){
     bankTimer=0;
     towers.forEach(function(t){if(t.type==='bank'){var inc=Math.round(50*(1+t.upgSpeed*0.3)*getSkillMult('bnk_income',0.15));gold+=inc;
@@ -1045,18 +1059,57 @@ function draw(){
   for(var i=0;i<traps.length;i++){var tr=traps[i];ctx.font=(TILE*0.5)+'px sans-serif';ctx.globalAlpha=0.7;ctx.fillText(tr.isMine?'💣':'🪤',tr.x,tr.y);ctx.globalAlpha=1}
   // Bananas
   for(var i=0;i<bananas.length;i++){var bn=bananas[i];ctx.font=(TILE*0.45)+'px sans-serif';ctx.globalAlpha=0.6;ctx.fillText('🍌',bn.x,bn.y);ctx.globalAlpha=1}
-  // Towers
+  // TOWERS - Force bright rendering
+  ctx.save();
   for(var i=0;i<towers.length;i++){
     var t=towers[i],def=TOWER_DEFS[t.type];
-    var cx,cy;
-    if(t.size===2){cx=t.col*TILE+TILE;cy=t.row*TILE+MAP_OFFSET_Y+TILE;ctx.fillStyle=def.color;ctx.globalAlpha=0.2;ctx.fillRect(t.col*TILE,t.row*TILE+MAP_OFFSET_Y,TILE*2,TILE*2);ctx.globalAlpha=1;ctx.font=TILE*1.2+'px sans-serif'}
-    else{cx=t.col*TILE+TILE/2;cy=t.row*TILE+MAP_OFFSET_Y+TILE/2;ctx.fillStyle=def.color;ctx.globalAlpha=0.3;ctx.beginPath();ctx.arc(cx,cy,TILE*0.4,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;ctx.font=TILE*0.7+'px sans-serif'}
-    ctx.textAlign='center';ctx.fillText(def.emoji,cx,cy+TILE*0.25);
+    if(!def) continue;
+    
+    // Calculate position
+    var cx = t.col*TILE+TILE/2;
+    var cy = t.row*TILE+MAP_OFFSET_Y+TILE/2;
+    
+    // Draw colored background circle/square
+    ctx.fillStyle=def.color;
+    ctx.globalAlpha=0.6; // More visible background
+    if(t.size===2){
+      ctx.fillRect(t.col*TILE,t.row*TILE+MAP_OFFSET_Y,TILE*2,TILE*2);
+      cx = t.col*TILE+TILE; // Center for 2x2
+      cy = t.row*TILE+MAP_OFFSET_Y+TILE;
+    } else {
+      ctx.beginPath();
+      ctx.arc(cx,cy,TILE*0.45,0,Math.PI*2);
+      ctx.fill();
+    }
+    ctx.globalAlpha=1;
+    
+    // Draw tower emoji with bright white and shadow for visibility
+    ctx.fillStyle = '#ffffff';
+    ctx.textAlign='center';
+    ctx.font = (t.size===2 ? TILE*1.2 : TILE*0.8) + 'px sans-serif';
+    ctx.shadowColor = '#000000';
+    ctx.shadowBlur = 3;
+    ctx.fillText(def.emoji, cx, cy+TILE*0.3);
+    ctx.shadowBlur = 0;
+    
     // Upgrade stars
     var totalUpg=t.upgSpeed+t.upgEffect+t.upgMulti;
-    if(totalUpg>0){ctx.fillStyle='#fbbf24';ctx.font='bold '+TILE*0.2+'px sans-serif';ctx.fillText('★'.repeat(Math.min(totalUpg,9)),cx,cy-TILE*0.35)}
-    if(t.selected){ctx.strokeStyle='rgba(251,191,36,0.3)';ctx.lineWidth=1;ctx.beginPath();ctx.arc(cx,cy,def.range*TILE,0,Math.PI*2);ctx.stroke()}
+    if(totalUpg>0){
+      ctx.fillStyle='#fbbf24';
+      ctx.font='bold '+TILE*0.25+'px sans-serif';
+      ctx.fillText('★'.repeat(Math.min(totalUpg,3)),cx,cy-TILE*0.3);
+    }
+    
+    // Selection circle
+    if(t.selected){
+      ctx.strokeStyle='#fbbf24';
+      ctx.lineWidth=2;
+      ctx.beginPath();
+      ctx.arc(cx,cy,TILE*0.6,0,Math.PI*2);
+      ctx.stroke();
+    }
   }
+  ctx.restore();
   // Allies
   for(var i=0;i<allies.length;i++){var a=allies[i];ctx.font=TILE*0.6+'px sans-serif';ctx.textAlign='center';ctx.fillText(a.emoji,a.x,a.y+TILE*0.2)}
   // Zombies
