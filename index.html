@@ -1077,14 +1077,30 @@ function initStreak() {
 }
 
 // === VISITOR COUNTER ===
-function initVisitorCounter() {
-  var today = new Date().toISOString().slice(0, 10);
-  var vc = JSON.parse(localStorage.getItem('ajgt_visitors') || '{"date":"","count":0}');
-  if (vc.date !== today) { vc.date = today; vc.count = Math.floor(Math.random() * 300) + 150; }
-  vc.count++;
-  localStorage.setItem('ajgt_visitors', JSON.stringify(vc));
+async function initVisitorCounter() {
   var el = document.getElementById('visitorCount');
-  if (el) el.textContent = vc.count.toLocaleString();
+  if (!el) return;
+  var SUPA_URL = 'https://adudgrfxwildzwpcvyil.supabase.co/rest/v1';
+  var SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFkdWRncmZ4d2lsZHp3cGN2eWlsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyOTkzODUsImV4cCI6MjA4Nzg3NTM4NX0.-JYXn5r9QUjxbpwckwDMSvCm8w1xRXOp5lP2TWNOC_E';
+  var headers = {'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=minimal'};
+  try {
+    // Get or create device ID
+    var deviceId = localStorage.getItem('ajgt_device_id');
+    if (!deviceId) { deviceId = 'dev_' + Math.random().toString(36).slice(2) + Date.now().toString(36); localStorage.setItem('ajgt_device_id', deviceId); }
+    // Log this visit (upsert - only counts once per device per day)
+    var today = new Date().toISOString().slice(0, 10);
+    await fetch(SUPA_URL + '/ajgametime_visitors', {
+      method: 'POST', headers: Object.assign({}, headers, {'Prefer': 'resolution=merge-duplicates,return=minimal'}),
+      body: JSON.stringify({device_id: deviceId, visit_date: today})
+    });
+    // Count unique visitors today
+    var resp = await fetch(SUPA_URL + '/ajgametime_visitors?visit_date=eq.' + today + '&select=id', {headers: {'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY, 'Prefer': 'count=exact'}, method: 'HEAD'});
+    var count = parseInt(resp.headers.get('content-range').split('/')[1]) || 0;
+    el.textContent = count.toLocaleString();
+  } catch(e) {
+    // Fallback to localStorage if Supabase fails
+    el.textContent = '...';
+  }
 }
 
 // === TOP PLAYERS ===
