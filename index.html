@@ -1089,7 +1089,7 @@ async function initVisitorCounter() {
     if (!deviceId) { deviceId = 'dev_' + Math.random().toString(36).slice(2) + Date.now().toString(36); localStorage.setItem('ajgt_device_id', deviceId); }
     // Log this visit (upsert - only counts once per device per day)
     var today = new Date().toISOString().slice(0, 10);
-    await fetch(SUPA_URL + '/ajgametime_visitors', {
+    await fetch(SUPA_URL + '/ajgametime_visitors?on_conflict=device_id,visit_date', {
       method: 'POST', headers: Object.assign({}, headers, {'Prefer': 'resolution=merge-duplicates,return=minimal'}),
       body: JSON.stringify({device_id: deviceId, visit_date: today})
     });
