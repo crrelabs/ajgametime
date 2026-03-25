@@ -268,9 +268,19 @@ function checkGuess(guess){
   return result;
 }
 
-function nextLevel(){
+async function nextLevel(){
   level++;
+  // Pick a word and verify it's a real dictionary word
   var info=getWordForLevel(level);
+  var attempts=0;
+  while(attempts<10){
+    try{
+      var r=await fetch('https://api.dictionaryapi.dev/api/v2/entries/en/'+info.word.toLowerCase());
+      if(r.ok)break; // word is valid
+      info=getWordForLevel(level); // pick another
+      attempts++;
+    }catch(e){break;} // API down, just use it
+  }
   currentWord=info.word;currentLength=info.word.length;
   guesses=[];currentGuess='';keyStates={};
   document.getElementById('levelTitle').textContent='Level '+level;
