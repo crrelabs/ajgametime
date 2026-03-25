@@ -169,6 +169,10 @@ function handleKey(key){
   }
   if(key==='ENTER'){
     if(currentGuess.length!==currentLength){shakeRow();showMsg('Not enough letters!');return;}
+    // Check if it's a real word
+    var guessLower=currentGuess.toLowerCase();
+    var allWords=currentLength===4?WORDS_4:currentLength===5?WORDS_5:currentLength===6?WORDS_6:WORDS_7;
+    if(allWords.indexOf(guessLower)<0){shakeRow();showMsg('Not a valid word!');return;}
     submitGuess();return;
   }
   if(currentGuess.length<currentLength){
