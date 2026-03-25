@@ -169,11 +169,17 @@ function handleKey(key){
   }
   if(key==='ENTER'){
     if(currentGuess.length!==currentLength){shakeRow();showMsg('Not enough letters!');return;}
-    // Check if it's a real word
+    // Check if it's a real word via dictionary API
     var guessLower=currentGuess.toLowerCase();
+    // First check our own list (instant)
     var allWords=currentLength===4?WORDS_4:currentLength===5?WORDS_5:currentLength===6?WORDS_6:WORDS_7;
-    if(allWords.indexOf(guessLower)<0){shakeRow();showMsg('Not a valid word!');return;}
-    submitGuess();return;
+    if(allWords.indexOf(guessLower)>=0){submitGuess();return;}
+    // Otherwise check dictionary API
+    showMsg('Checking word...');
+    fetch('https://api.dictionaryapi.dev/api/v2/entries/en/'+guessLower)
+      .then(function(r){if(r.ok){document.getElementById('message').style.display='none';submitGuess();}else{shakeRow();showMsg('Not a valid word!');}})
+      .catch(function(){submitGuess();}); // If API fails, allow it
+    return;
   }
   if(currentGuess.length<currentLength){
     currentGuess+=key;updateBoard();
