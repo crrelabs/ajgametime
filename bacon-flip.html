@@ -4,7 +4,7 @@
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-2GR7STT4B9"></script>
 <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date());gtag("config","G-2GR7STT4B9");</script>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="description" content="Play Bacon Flip - flip bacon onto random objects and enjoy opera music! Free endless browser game.">
 <meta name="robots" content="index, follow">
 <link rel="canonical" href="https://ajgametime.com/bacon-flip.html">
@@ -16,88 +16,166 @@
 <title>Bacon Flip — AJ GameTime</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body {
-  min-height: 100vh; display: flex; flex-direction: column; align-items: center;
+html, body {
+  width: 100%; height: 100%; overflow: hidden;
   font-family: 'Segoe UI', -apple-system, sans-serif;
-  background: linear-gradient(180deg, #1a0a2e 0%, #2d1b4e 100%);
-  color: #e2e8f0; overflow: hidden; user-select: none;
+  background: #1a0a2e; color: #e2e8f0;
+  user-select: none; -webkit-user-select: none;
   -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+#gameArea {
+  position: fixed; inset: 0;
+  background: linear-gradient(180deg, #1a0a2e 0%, #2d1b4e 50%, #1e293b 100%);
+  overflow: hidden;
+}
+
+/* Ground */
+#ground {
+  position: absolute; bottom: 0; left: 0; right: 0; height: 40px;
+  background: #1e293b; border-top: 2px solid #334155;
 }
 
 #header {
-  width: 100%; padding: 0.75rem 1.5rem;
-  display: flex; justify-content: space-between; align-items: center;
-  z-index: 10; position: fixed; top: 0;
+  position: absolute; top: 0; left: 0; right: 0;
+  padding: 12px 16px; display: flex; justify-content: space-between; align-items: center;
+  z-index: 50;
 }
 #header a { color: #64748b; text-decoration: none; font-size: 0.85rem; }
 #header a:hover { color: #e2e8f0; }
-
-#hud { display: flex; gap: 1.5rem; align-items: center; }
+#hud { display: flex; gap: 20px; align-items: center; }
 .stat { text-align: center; }
 .stat-val { font-size: 1.5rem; font-weight: 800; }
-.stat-label { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.1em; color: #64748b; }
+.stat-label { font-size: 0.55rem; text-transform: uppercase; letter-spacing: 0.1em; color: #64748b; }
 #levelVal { color: #fbbf24; }
 #scoreVal { color: #f97316; }
 #streakVal { color: #ef4444; }
 
-canvas { display: block; touch-action: none; }
-
-#startScreen, #gameOver {
-  position: fixed; inset: 0; background: rgba(26,10,46,0.95);
-  display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 30;
+/* Bacon */
+#bacon {
+  position: absolute; z-index: 10;
+  font-size: 50px; line-height: 1;
+  transition: none;
+  filter: drop-shadow(0 4px 8px rgba(0,0,0,0.5));
 }
-#startScreen.hidden, #gameOver.hidden { display: none; }
-#startScreen h1, #gameOver h2 { font-size: 2.5rem; margin-bottom: 0.5rem; }
-#startScreen .emoji, #gameOver .emoji { font-size: 5rem; margin-bottom: 1rem; }
-#startScreen p, #gameOver p { color: #94a3b8; margin-bottom: 0.5rem; font-size: 0.95rem; text-align: center; max-width: 320px; }
-.controls-hint { color: #64748b !important; font-size: 0.8rem !important; margin-top: 0.5rem; }
-button.play-btn {
-  margin-top: 1.5rem; padding: 1rem 2.5rem; font-size: 1.1rem; font-weight: 700;
+
+/* Target */
+#target {
+  position: absolute; z-index: 5;
+  text-align: center;
+  filter: drop-shadow(0 4px 12px rgba(0,0,0,0.4));
+}
+#targetEmoji {
+  font-size: 60px; line-height: 1; display: block;
+}
+#targetName {
+  font-size: 11px; color: #64748b; margin-top: 4px;
+}
+#targetPlatform {
+  position: absolute; bottom: -8px; left: 50%; transform: translateX(-50%);
+  width: 100px; height: 12px; border-radius: 6px;
+  background: rgba(100,116,139,0.3); border: 1px solid rgba(148,163,184,0.3);
+}
+
+/* Tap hint */
+#tapHint {
+  position: absolute; z-index: 15;
+  text-align: center; color: #94a3b8;
+  font-size: 16px; font-weight: 600;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 0.5; transform: translate(-50%, -50%) scale(1); }
+  50% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+}
+
+/* Guide line */
+#guideLine {
+  position: absolute; z-index: 3;
+  border-left: 2px dashed rgba(251,191,36,0.2);
+  pointer-events: none;
+}
+
+/* Overlays */
+.overlay {
+  position: fixed; inset: 0; z-index: 100;
+  background: rgba(26,10,46,0.95);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+}
+.overlay.hidden { display: none; }
+.overlay .emoji { font-size: 80px; margin-bottom: 16px; }
+.overlay h1, .overlay h2 { font-size: 2.2rem; margin-bottom: 8px; }
+.overlay p { color: #94a3b8; margin-bottom: 6px; font-size: 0.95rem; text-align: center; max-width: 320px; }
+.overlay .hint { color: #64748b; font-size: 0.8rem; margin-top: 8px; }
+.play-btn {
+  margin-top: 20px; padding: 14px 36px; font-size: 1.1rem; font-weight: 700;
   background: linear-gradient(135deg, #ef4444, #f97316); color: white;
-  border: none; border-radius: 12px; cursor: pointer; transition: 0.2s;
+  border: none; border-radius: 12px; cursor: pointer;
+  transition: transform 0.2s, filter 0.2s;
+  -webkit-appearance: none;
 }
-button.play-btn:hover { transform: scale(1.05); filter: brightness(1.1); }
+.play-btn:hover { transform: scale(1.05); filter: brightness(1.1); }
+.play-btn:active { transform: scale(0.98); }
 
-#perfectText {
-  position: fixed; top: 40%; left: 50%; transform: translate(-50%, -50%);
-  font-size: 3rem; font-weight: 900; color: #fbbf24;
-  text-shadow: 0 0 20px rgba(251,191,36,0.5);
-  opacity: 0; z-index: 20; pointer-events: none;
-  transition: opacity 0.3s;
+/* Floating text */
+#floatText {
+  position: fixed; top: 35%; left: 50%; transform: translate(-50%,-50%);
+  font-size: 2.5rem; font-weight: 900; color: #fbbf24;
+  text-shadow: 0 0 30px rgba(251,191,36,0.6), 0 0 60px rgba(251,191,36,0.3);
+  z-index: 80; pointer-events: none;
+  opacity: 0; transition: opacity 0.3s;
 }
-#perfectText.show { opacity: 1; }
+#floatText.show { opacity: 1; }
 
-#operaNote {
-  position: fixed; bottom: 15%; left: 50%; transform: translateX(-50%);
-  font-size: 1.2rem; color: #c084fc; opacity: 0; z-index: 20; pointer-events: none;
-  font-style: italic;
+#operaText {
+  position: fixed; bottom: 20%; left: 50%; transform: translateX(-50%);
+  font-size: 1rem; color: #c084fc; font-style: italic;
+  z-index: 80; pointer-events: none;
+  opacity: 0; transition: opacity 0.5s;
 }
-#operaNote.show { opacity: 1; transition: opacity 0.5s; }
+#operaText.show { opacity: 1; }
+
+/* Particles */
+.particle {
+  position: absolute; border-radius: 50%; z-index: 20; pointer-events: none;
+}
 </style>
 </head>
 <body>
 
-<div id="header">
-  <a href="index.html">← AJ GameTime</a>
-  <div id="hud">
-    <div class="stat"><div class="stat-val" id="levelVal">1</div><div class="stat-label">Level</div></div>
-    <div class="stat"><div class="stat-val" id="scoreVal">0</div><div class="stat-label">Score</div></div>
-    <div class="stat"><div class="stat-val" id="streakVal">0</div><div class="stat-label">Streak</div></div>
+<div id="gameArea">
+  <div id="ground"></div>
+  
+  <div id="header">
+    <a href="index.html">← AJ GameTime</a>
+    <div id="hud">
+      <div class="stat"><div class="stat-val" id="levelVal">1</div><div class="stat-label">Level</div></div>
+      <div class="stat"><div class="stat-val" id="scoreVal">0</div><div class="stat-label">Score</div></div>
+      <div class="stat"><div class="stat-val" id="streakVal">0</div><div class="stat-label">Streak</div></div>
+    </div>
   </div>
+
+  <div id="bacon">🥓</div>
+  <div id="target">
+    <span id="targetEmoji"></span>
+    <span id="targetName"></span>
+    <div id="targetPlatform"></div>
+  </div>
+  <div id="tapHint">👆 TAP TO FLIP!</div>
+  <div id="guideLine"></div>
 </div>
 
-<canvas id="game"></canvas>
-
-<div id="startScreen">
+<div class="overlay" id="startScreen">
   <div class="emoji">🥓</div>
   <h1>Bacon Flip</h1>
   <p>Tap to flip the bacon onto random objects!</p>
   <p>Land it perfectly for bonus points 🎵</p>
-  <p class="controls-hint">Tap / Click / Spacebar to flip</p>
+  <p class="hint">Tap / Click / Spacebar to flip</p>
   <button class="play-btn" id="startBtn">🥓 Let's Flip!</button>
 </div>
 
-<div id="gameOver" class="hidden">
+<div class="overlay hidden" id="gameOver">
   <div class="emoji">😵</div>
   <h2>Splat!</h2>
   <p>You missed the landing!</p>
@@ -107,134 +185,120 @@ button.play-btn:hover { transform: scale(1.05); filter: brightness(1.1); }
   <button class="play-btn" id="restartBtn">🥓 Try Again</button>
 </div>
 
-<div id="perfectText">🎵 BRAVO! 🎵</div>
-<div id="operaNote"></div>
+<div id="floatText"></div>
+<div id="operaText"></div>
 
 <script>
-const canvas = document.getElementById('game');
-const ctx = canvas.getContext('2d');
-
-// Audio context for opera sounds
+// === AUDIO ===
 let audioCtx = null;
 function ensureAudio() {
   if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   if (audioCtx.state === 'suspended') audioCtx.resume();
 }
 
-// Opera music generator - dramatic vibrato notes
 function playOpera(perfect) {
   ensureAudio();
   const now = audioCtx.currentTime;
-  const duration = perfect ? 2.5 : 1.5;
-
-  // Choose random opera "phrase"
+  const dur = perfect ? 2.5 : 1.5;
   const phrases = [
-    [523.25, 659.25, 783.99],      // C5 E5 G5 - triumphant
-    [440, 554.37, 659.25],          // A4 C#5 E5 - dramatic
-    [392, 493.88, 587.33],          // G4 B4 D5 - heroic
-    [349.23, 440, 523.25],          // F4 A4 C5 - warm
-    [329.63, 415.30, 523.25],      // E4 G#4 C5 - mysterious
-    [293.66, 369.99, 440],          // D4 F#4 A4 - bold
+    [523.25, 659.25, 783.99],
+    [440, 554.37, 659.25],
+    [392, 493.88, 587.33],
+    [349.23, 440, 523.25],
+    [329.63, 415.30, 523.25],
+    [293.66, 369.99, 440],
   ];
   const phrase = phrases[Math.floor(Math.random() * phrases.length)];
-
   phrase.forEach((freq, i) => {
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
-    const vibrato = audioCtx.createOscillator();
-    const vibratoGain = audioCtx.createGain();
-
-    // Vibrato for opera feel
-    vibrato.frequency.value = 5.5;
-    vibratoGain.gain.value = freq * 0.02;
-    vibrato.connect(vibratoGain);
-    vibratoGain.connect(osc.frequency);
-
-    osc.type = 'sine';
-    osc.frequency.value = freq;
-
-    gain.gain.setValueAtTime(0, now + i * 0.15);
-    gain.gain.linearRampToValueAtTime(perfect ? 0.15 : 0.1, now + i * 0.15 + 0.1);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
-
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
-
-    osc.start(now + i * 0.15);
-    vibrato.start(now + i * 0.15);
-    osc.stop(now + duration + 0.1);
-    vibrato.stop(now + duration + 0.1);
+    const vib = audioCtx.createOscillator();
+    const vibG = audioCtx.createGain();
+    vib.frequency.value = 5.5; vibG.gain.value = freq * 0.02;
+    vib.connect(vibG); vibG.connect(osc.frequency);
+    osc.type = 'sine'; osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0, now + i*0.15);
+    gain.gain.linearRampToValueAtTime(perfect ? 0.15 : 0.1, now + i*0.15 + 0.1);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + dur);
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.start(now + i*0.15); vib.start(now + i*0.15);
+    osc.stop(now + dur + 0.1); vib.stop(now + dur + 0.1);
   });
-
-  // Add a low "bass" note for drama
   if (perfect) {
-    const bass = audioCtx.createOscillator();
-    const bassGain = audioCtx.createGain();
-    bass.type = 'sine';
-    bass.frequency.value = phrase[0] / 2;
-    bassGain.gain.setValueAtTime(0, now);
-    bassGain.gain.linearRampToValueAtTime(0.12, now + 0.2);
-    bassGain.gain.exponentialRampToValueAtTime(0.001, now + duration + 0.5);
-    bass.connect(bassGain);
-    bassGain.connect(audioCtx.destination);
-    bass.start(now);
-    bass.stop(now + duration + 0.6);
+    const b = audioCtx.createOscillator(), bg = audioCtx.createGain();
+    b.type='sine'; b.frequency.value=phrase[0]/2;
+    bg.gain.setValueAtTime(0,now); bg.gain.linearRampToValueAtTime(0.12,now+0.2);
+    bg.gain.exponentialRampToValueAtTime(0.001,now+dur+0.5);
+    b.connect(bg); bg.connect(audioCtx.destination);
+    b.start(now); b.stop(now+dur+0.6);
   }
+}
+
+function playFlip() {
+  ensureAudio();
+  const now = audioCtx.currentTime;
+  const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+  o.type='sine'; o.frequency.setValueAtTime(400,now);
+  o.frequency.linearRampToValueAtTime(200,now+0.15);
+  g.gain.setValueAtTime(0.06,now); g.gain.exponentialRampToValueAtTime(0.001,now+0.15);
+  o.connect(g); g.connect(audioCtx.destination);
+  o.start(now); o.stop(now+0.2);
 }
 
 function playMiss() {
   ensureAudio();
   const now = audioCtx.currentTime;
-  const osc = audioCtx.createOscillator();
-  const gain = audioCtx.createGain();
-  osc.type = 'sawtooth';
-  osc.frequency.setValueAtTime(200, now);
-  osc.frequency.linearRampToValueAtTime(80, now + 0.5);
-  gain.gain.setValueAtTime(0.1, now);
-  gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
-  osc.connect(gain);
-  gain.connect(audioCtx.destination);
-  osc.start(now);
-  osc.stop(now + 0.6);
+  const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+  o.type='sawtooth'; o.frequency.setValueAtTime(200,now);
+  o.frequency.linearRampToValueAtTime(80,now+0.5);
+  g.gain.setValueAtTime(0.08,now); g.gain.exponentialRampToValueAtTime(0.001,now+0.5);
+  o.connect(g); g.connect(audioCtx.destination);
+  o.start(now); o.stop(now+0.6);
 }
 
-// Game state
-let W, H;
-let state = 'start'; // start, ready, flipping, landed, miss, gameover
-let level = 1;
-let score = 0;
-let streak = 0;
-let bestStreak = 0;
-let bacon, target, particles;
-let flipPower = 0;
-let gravity = 0.4;
+// === GAME ===
+const baconEl = document.getElementById('bacon');
+const targetEl = document.getElementById('target');
+const targetEmoji = document.getElementById('targetEmoji');
+const targetNameEl = document.getElementById('targetName');
+const targetPlatform = document.getElementById('targetPlatform');
+const tapHint = document.getElementById('tapHint');
+const guideLine = document.getElementById('guideLine');
+const floatText = document.getElementById('floatText');
+const operaText = document.getElementById('operaText');
+const gameArea = document.getElementById('gameArea');
 
-// Objects the bacon can land on
-const landingObjects = [
-  { name: 'Frying Pan', emoji: '🍳', w: 90, h: 30, color: '#374151' },
-  { name: 'Trampoline', emoji: '🟦', w: 100, h: 20, color: '#3b82f6' },
-  { name: 'Cat', emoji: '🐱', w: 70, h: 50, color: '#f59e0b' },
-  { name: 'Toilet', emoji: '🚽', w: 65, h: 55, color: '#e2e8f0' },
-  { name: 'Dog', emoji: '🐕', w: 80, h: 50, color: '#92400e' },
-  { name: 'Cactus', emoji: '🌵', w: 50, h: 70, color: '#22c55e' },
-  { name: 'Piano', emoji: '🎹', w: 100, h: 40, color: '#1e293b' },
-  { name: 'Volcano', emoji: '🌋', w: 90, h: 60, color: '#dc2626' },
-  { name: 'UFO', emoji: '🛸', w: 85, h: 35, color: '#8b5cf6' },
-  { name: 'Rocket', emoji: '🚀', w: 50, h: 70, color: '#f97316' },
-  { name: 'Ice Cream', emoji: '🍦', w: 50, h: 65, color: '#fbbf24' },
-  { name: 'Crown', emoji: '👑', w: 70, h: 45, color: '#fbbf24' },
-  { name: 'Shoe', emoji: '👟', w: 80, h: 35, color: '#6366f1' },
-  { name: 'Book', emoji: '📚', w: 75, h: 30, color: '#059669' },
-  { name: 'Globe', emoji: '🌍', w: 65, h: 65, color: '#0ea5e9' },
-  { name: 'Turtle', emoji: '🐢', w: 75, h: 45, color: '#16a34a' },
-  { name: 'Donut', emoji: '🍩', w: 60, h: 60, color: '#f472b6' },
-  { name: 'Alarm Clock', emoji: '⏰', w: 55, h: 55, color: '#ef4444' },
-  { name: 'Football', emoji: '🏈', w: 65, h: 45, color: '#92400e' },
-  { name: 'Sombrero', emoji: '👒', w: 85, h: 35, color: '#ca8a04' },
-  { name: 'Penguin', emoji: '🐧', w: 55, h: 60, color: '#1e293b' },
-  { name: 'Mailbox', emoji: '📮', w: 50, h: 65, color: '#3b82f6' },
-  { name: 'Dinosaur', emoji: '🦕', w: 90, h: 60, color: '#22c55e' },
-  { name: 'Robot', emoji: '🤖', w: 60, h: 65, color: '#94a3b8' },
+const objects = [
+  { emoji: '🍳', name: 'Frying Pan' },
+  { emoji: '🐱', name: 'Cat' },
+  { emoji: '🚽', name: 'Toilet' },
+  { emoji: '🐕', name: 'Dog' },
+  { emoji: '🌵', name: 'Cactus' },
+  { emoji: '🎹', name: 'Piano' },
+  { emoji: '🌋', name: 'Volcano' },
+  { emoji: '🛸', name: 'UFO' },
+  { emoji: '🚀', name: 'Rocket' },
+  { emoji: '🍦', name: 'Ice Cream' },
+  { emoji: '👑', name: 'Crown' },
+  { emoji: '👟', name: 'Shoe' },
+  { emoji: '📚', name: 'Book' },
+  { emoji: '🌍', name: 'Globe' },
+  { emoji: '🐢', name: 'Turtle' },
+  { emoji: '🍩', name: 'Donut' },
+  { emoji: '⏰', name: 'Alarm Clock' },
+  { emoji: '🏈', name: 'Football' },
+  { emoji: '🐧', name: 'Penguin' },
+  { emoji: '🦕', name: 'Dinosaur' },
+  { emoji: '🤖', name: 'Robot' },
+  { emoji: '🎸', name: 'Guitar' },
+  { emoji: '🧲', name: 'Magnet' },
+  { emoji: '🪣', name: 'Bucket' },
+  { emoji: '🛒', name: 'Shopping Cart' },
+  { emoji: '🧸', name: 'Teddy Bear' },
+  { emoji: '🎯', name: 'Dartboard' },
+  { emoji: '🏀', name: 'Basketball' },
+  { emoji: '🪤', name: 'Mouse Trap' },
+  { emoji: '🧊', name: 'Ice Cube' },
 ];
 
 const operaPhrases = [
@@ -243,398 +307,247 @@ const operaPhrases = [
   "GRANDIOSO!", "DIVINO!", "SUBLIME!", "BRILLANTE!"
 ];
 
-function resize() {
-  W = canvas.width = window.innerWidth;
-  H = canvas.height = window.innerHeight;
-}
-window.addEventListener('resize', resize);
-resize();
+let state = 'start';
+let level = 1, score = 0, streak = 0, bestStreak = 0;
+let bx, by, bvx, bvy, brot, brotSpeed;
+let tx, ty;
+let animFrame;
+const GRAVITY = 0.5;
+const GROUND_Y = 40; // from bottom
+
+function getW() { return window.innerWidth; }
+function getH() { return window.innerHeight; }
 
 function initLevel() {
-  const obj = landingObjects[Math.floor(Math.random() * landingObjects.length)];
+  const obj = objects[Math.floor(Math.random() * objects.length)];
+  const W = getW(), H = getH();
   
-  // As levels increase, target gets smaller and further away
-  const shrink = Math.max(0.6, 1 - level * 0.01);
-  const objW = Math.max(60, obj.w * shrink * 1.2);
-  const objH = Math.max(40, obj.h * shrink * 1.2);
+  // Target: random x, above ground
+  tx = 40 + Math.random() * (W - 80);
+  ty = H - GROUND_Y - 80;
   
-  // Target position - random horizontal, always near bottom
-  const minX = objW / 2 + 30;
-  const maxX = W - objW / 2 - 30;
-  const targetX = minX + Math.random() * (maxX - minX);
+  targetEmoji.textContent = obj.emoji;
+  targetNameEl.textContent = obj.name;
+  targetEl.style.left = tx + 'px';
+  targetEl.style.top = ty + 'px';
+  targetEl.style.transform = 'translate(-50%, -50%)';
+  targetEl.style.display = 'block';
   
-  target = {
-    x: targetX,
-    y: H - 80 - objH / 2,
-    w: objW,
-    h: objH,
-    emoji: obj.emoji,
-    name: obj.name,
-    color: obj.color,
-  };
+  // Bacon: top center
+  bx = W / 2;
+  by = 90;
+  bvx = 0; bvy = 0; brot = 0; brotSpeed = 0;
   
-  // Bacon starts at top
-  bacon = {
-    x: W / 2,
-    y: 120,
-    w: 80,
-    h: 28,
-    vx: 0,
-    vy: 0,
-    rotation: 0,
-    rotSpeed: 0,
-    flipping: false,
-    landed: false,
-  };
+  baconEl.style.left = bx + 'px';
+  baconEl.style.top = by + 'px';
+  baconEl.style.transform = 'translate(-50%, -50%) rotate(0deg)';
+  baconEl.style.display = 'block';
+  baconEl.style.opacity = '1';
   
-  particles = [];
+  // Tap hint
+  tapHint.style.left = bx + 'px';
+  tapHint.style.top = (by - 45) + 'px';
+  tapHint.style.transform = 'translate(-50%, -50%)';
+  tapHint.style.display = 'block';
+  
+  // Guide line
+  guideLine.style.left = (bx + tx) / 2 + 'px';
+  guideLine.style.top = by + 25 + 'px';
+  guideLine.style.height = (ty - by - 60) + 'px';
+  guideLine.style.display = 'block';
+  guideLine.style.transformOrigin = 'top center';
+  const angle = Math.atan2(tx - bx, ty - by);
+  guideLine.style.transform = 'rotate(' + (angle * 180/Math.PI * -1) + 'deg)';
+  // actually simpler: just draw from bacon to target
+  guideLine.style.left = bx + 'px';
+  guideLine.style.top = (by + 30) + 'px';
+  const dist = Math.sqrt((tx-bx)**2 + (ty-by-60)**2);
+  guideLine.style.height = dist + 'px';
+  const lineAngle = Math.atan2(tx - bx, ty - by - 30);
+  guideLine.style.transform = 'rotate(' + (-lineAngle * 180/Math.PI) + 'deg)';
+  guideLine.style.transformOrigin = 'top center';
+  
   state = 'ready';
 }
 
 function flip() {
   if (state !== 'ready') return;
   ensureAudio();
+  playFlip();
   
   state = 'flipping';
+  tapHint.style.display = 'none';
+  guideLine.style.display = 'none';
   
-  // Calculate direction toward target with some physics
-  const dx = target.x - bacon.x;
-  const dy = target.y - bacon.y;
-  const dist = Math.sqrt(dx * dx + dy * dy);
-  
-  // Add randomness so it's not auto-aim
+  // Flip toward target with some randomness
+  const dx = tx - bx;
+  const dy = ty - by;
+  const dist = Math.sqrt(dx*dx + dy*dy);
+  const speed = Math.min(14, 7 + level * 0.2);
   const angle = Math.atan2(dy, dx);
-  const speed = Math.min(12, 6 + level * 0.3);
   
-  bacon.vx = Math.cos(angle) * speed + (Math.random() - 0.5) * 3;
-  bacon.vy = Math.abs(Math.sin(angle) * speed * 0.5); // initial upward
-  bacon.vy = -speed * 0.6; // go up first
-  bacon.rotSpeed = (Math.random() - 0.5) * 0.3 + 0.15;
+  bvx = Math.cos(angle) * speed + (Math.random() - 0.5) * 2.5;
+  bvy = -speed * 0.55; // launch upward first
+  brotSpeed = (Math.random() - 0.5) * 15 + 8; // degrees per frame
   
-  // Play a little whoosh
-  const osc = audioCtx.createOscillator();
-  const g = audioCtx.createGain();
-  osc.type = 'sine';
-  osc.frequency.setValueAtTime(400, audioCtx.currentTime);
-  osc.frequency.linearRampToValueAtTime(200, audioCtx.currentTime + 0.2);
-  g.gain.setValueAtTime(0.05, audioCtx.currentTime);
-  g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.2);
-  osc.connect(g); g.connect(audioCtx.destination);
-  osc.start(); osc.stop(audioCtx.currentTime + 0.3);
+  if (!animFrame) gameLoop();
 }
 
-function spawnParticles(x, y, color, count) {
+function spawnParticles(x, y, colors, count) {
   for (let i = 0; i < count; i++) {
-    particles.push({
-      x, y,
-      vx: (Math.random() - 0.5) * 8,
-      vy: (Math.random() - 0.5) * 8 - 3,
-      life: 1,
-      color,
-      size: Math.random() * 6 + 2,
-    });
+    const p = document.createElement('div');
+    p.className = 'particle';
+    const size = 4 + Math.random() * 8;
+    p.style.width = size + 'px';
+    p.style.height = size + 'px';
+    p.style.background = colors[Math.floor(Math.random() * colors.length)];
+    p.style.left = x + 'px';
+    p.style.top = y + 'px';
+    p.style.opacity = '1';
+    gameArea.appendChild(p);
+    
+    const vx = (Math.random() - 0.5) * 12;
+    const vy = -Math.random() * 10 - 2;
+    let px = x, py = y, pvy = vy, op = 1;
+    
+    function animP() {
+      px += vx; py += pvy; pvy += 0.3; op -= 0.025;
+      if (op <= 0) { p.remove(); return; }
+      p.style.left = px + 'px';
+      p.style.top = py + 'px';
+      p.style.opacity = op;
+      requestAnimationFrame(animP);
+    }
+    requestAnimationFrame(animP);
   }
 }
 
-function checkLanding() {
-  // Check if bacon overlaps with target
-  const bL = bacon.x - bacon.w / 2;
-  const bR = bacon.x + bacon.w / 2;
-  const bB = bacon.y + bacon.h / 2;
-  const bT = bacon.y - bacon.h / 2;
+function gameLoop() {
+  if (state !== 'flipping') { animFrame = null; return; }
   
-  const tL = target.x - target.w / 2;
-  const tR = target.x + target.w / 2;
-  const tT = target.y - target.h / 2;
+  bvy += GRAVITY;
+  bx += bvx;
+  by += bvy;
+  brot += brotSpeed;
   
-  // Landed on top of target
-  if (bB >= tT && bT < tT && bR > tL && bL < tR) {
-    bacon.y = tT - bacon.h / 2;
-    bacon.vy = 0;
-    bacon.vx = 0;
-    bacon.rotSpeed = 0;
-    bacon.landed = true;
+  const W = getW(), H = getH();
+  
+  // Bounce off walls
+  if (bx < 25) { bx = 25; bvx *= -0.7; }
+  if (bx > W - 25) { bx = W - 25; bvx *= -0.7; }
+  
+  baconEl.style.left = bx + 'px';
+  baconEl.style.top = by + 'px';
+  baconEl.style.transform = 'translate(-50%,-50%) rotate(' + brot + 'deg)';
+  
+  // Check landing - is bacon near the target?
+  const hitDist = 50; // landing zone radius
+  const dx = Math.abs(bx - tx);
+  const dy = by - ty;
+  
+  if (dy > -20 && dy < 40 && dx < hitDist && bvy > 0) {
+    // LANDED!
     state = 'landed';
+    bvy = 0; bvx = 0;
+    by = ty - 30;
+    baconEl.style.left = bx + 'px';
+    baconEl.style.top = by + 'px';
+    baconEl.style.transform = 'translate(-50%,-50%) rotate(0deg)';
     
-    // Check how centered the landing is
-    const centerDiff = Math.abs(bacon.x - target.x);
-    const perfect = centerDiff < target.w * 0.2;
-    
-    // Score
-    const basePoints = 10;
-    const perfectBonus = perfect ? 25 : 0;
-    const levelBonus = level * 2;
-    score += basePoints + perfectBonus + levelBonus;
+    const perfect = dx < 20;
+    const pts = 10 + (perfect ? 25 : 0) + level * 2;
+    score += pts;
     streak++;
     if (streak > bestStreak) bestStreak = streak;
     
-    // Update HUD
-    document.getElementById('levelVal').textContent = level;
     document.getElementById('scoreVal').textContent = score;
     document.getElementById('streakVal').textContent = streak;
     
-    // OPERA TIME! 🎵
+    // OPERA! 🎵
     playOpera(perfect);
     
-    // Show text
-    const pText = document.getElementById('perfectText');
-    const phrase = perfect ? operaPhrases[Math.floor(Math.random() * operaPhrases.length)] : '🎵 LANDED! 🎵';
-    pText.textContent = perfect ? `🎵 ${phrase} 🎵` : phrase;
-    pText.classList.add('show');
+    const phrase = perfect
+      ? operaPhrases[Math.floor(Math.random() * operaPhrases.length)]
+      : '🎵 LANDED! 🎵';
+    floatText.textContent = perfect ? '🎵 ' + phrase + ' 🎵' : phrase;
+    floatText.classList.add('show');
     
-    // Opera note
-    const note = document.getElementById('operaNote');
-    note.textContent = perfect ? `♫ The bacon graces the ${target.name}! ♫` : `♪ On the ${target.name}! ♪`;
-    note.classList.add('show');
+    operaText.textContent = perfect
+      ? '♫ The bacon graces the ' + targetNameEl.textContent + '! ♫'
+      : '♪ On the ' + targetNameEl.textContent + '! ♪';
+    operaText.classList.add('show');
     
-    // Particles!
-    spawnParticles(bacon.x, bacon.y, '#fbbf24', perfect ? 30 : 15);
-    if (perfect) spawnParticles(bacon.x, bacon.y, '#f97316', 20);
+    spawnParticles(bx, by, ['#fbbf24','#f97316','#ef4444'], perfect ? 25 : 12);
     
-    // Next level after delay
     setTimeout(() => {
-      pText.classList.remove('show');
-      note.classList.remove('show');
+      floatText.classList.remove('show');
+      operaText.classList.remove('show');
       level++;
       document.getElementById('levelVal').textContent = level;
       initLevel();
-    }, perfect ? 2000 : 1500);
+    }, perfect ? 2000 : 1400);
     
-    return true;
+    animFrame = null;
+    return;
   }
   
-  // Missed - fell off screen or hit ground without hitting target
-  if (bacon.y > H + 50 || (bB >= H - 30 && state === 'flipping')) {
+  // Missed - hit ground or off screen
+  if (by > H - GROUND_Y - 10) {
     state = 'gameover';
     playMiss();
-    streak = 0;
     
-    spawnParticles(bacon.x, Math.min(bacon.y, H - 50), '#ef4444', 20);
+    spawnParticles(bx, H - GROUND_Y - 10, ['#ef4444','#991b1b'], 15);
+    
+    baconEl.style.opacity = '0.5';
+    baconEl.style.top = (H - GROUND_Y - 20) + 'px';
     
     setTimeout(() => {
       document.getElementById('finalScore').textContent = score;
       document.getElementById('finalStreak').textContent = bestStreak;
       document.getElementById('finalLevel').textContent = level;
       document.getElementById('gameOver').classList.remove('hidden');
-    }, 500);
+    }, 600);
     
-    return true;
+    animFrame = null;
+    return;
   }
   
-  return false;
+  animFrame = requestAnimationFrame(gameLoop);
 }
 
-function update() {
-  if (state === 'flipping') {
-    bacon.vy += gravity;
-    bacon.x += bacon.vx;
-    bacon.y += bacon.vy;
-    bacon.rotation += bacon.rotSpeed;
-    
-    // Bounce off walls
-    if (bacon.x < 20 || bacon.x > W - 20) {
-      bacon.vx *= -0.7;
-      bacon.x = Math.max(20, Math.min(W - 20, bacon.x));
-    }
-    
-    checkLanding();
-  }
-  
-  // Update particles
-  for (let i = particles.length - 1; i >= 0; i--) {
-    const p = particles[i];
-    p.x += p.vx;
-    p.y += p.vy;
-    p.vy += 0.15;
-    p.life -= 0.02;
-    if (p.life <= 0) particles.splice(i, 1);
-  }
-}
-
-function roundedRect(ctx, x, y, w, h, r) {
-  ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.lineTo(x + w - r, y);
-  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-  ctx.lineTo(x + w, y + h - r);
-  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-  ctx.lineTo(x + r, y + h);
-  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-  ctx.lineTo(x, y + r);
-  ctx.quadraticCurveTo(x, y, x + r, y);
-  ctx.closePath();
-}
-
-function drawBacon(x, y, w, h, rot) {
-  ctx.save();
-  ctx.translate(x, y);
-  ctx.rotate(rot);
-  
-  // Bacon strip
-  ctx.fillStyle = '#dc2626';
-  roundedRect(ctx, -w/2, -h/2, w, h, 6);
-  ctx.fill();
-  
-  // Fat stripes
-  ctx.fillStyle = '#fca5a5';
-  for (let i = 0; i < 3; i++) {
-    const sx = -w/2 + 8 + i * (w/3);
-    ctx.fillRect(sx, -h/2 + 3, w/5, h - 6);
-  }
-  
-  // Crispy edges
-  ctx.strokeStyle = '#991b1b';
-  ctx.lineWidth = 1.5;
-  roundedRect(ctx, -w/2, -h/2, w, h, 6);
-  ctx.stroke();
-  
-  // Bacon emoji on top for extra visibility
-  ctx.font = `${h + 10}px serif`;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText('🥓', 0, 0);
-  
-  ctx.restore();
-}
-
-function drawTarget() {
-  // Shadow
-  ctx.fillStyle = 'rgba(0,0,0,0.3)';
-  ctx.beginPath();
-  ctx.ellipse(target.x, target.y + target.h/2 + 8, target.w/2 + 5, 8, 0, 0, Math.PI * 2);
-  ctx.fill();
-  
-  // Object platform
-  ctx.fillStyle = 'rgba(100, 116, 139, 0.3)';
-  roundedRect(ctx, target.x - target.w/2, target.y - target.h/2, target.w, target.h, 8);
-  ctx.fill();
-  ctx.strokeStyle = 'rgba(148, 163, 184, 0.5)';
-  ctx.lineWidth = 2;
-  roundedRect(ctx, target.x - target.w/2, target.y - target.h/2, target.w, target.h, 8);
-  ctx.stroke();
-  
-  // Object emoji
-  ctx.font = `${Math.max(40, target.w * 0.8)}px serif`;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(target.emoji, target.x, target.y);
-  
-  // Name label
-  ctx.font = '12px sans-serif';
-  ctx.fillStyle = '#64748b';
-  ctx.fillText(target.name, target.x, target.y + target.h/2 + 22);
-}
-
-function drawGround() {
-  ctx.fillStyle = '#1e293b';
-  ctx.fillRect(0, H - 30, W, 30);
-  ctx.fillStyle = '#334155';
-  ctx.fillRect(0, H - 30, W, 2);
-}
-
-function drawPowerHint() {
-  if (state === 'ready') {
-    ctx.save();
-    ctx.globalAlpha = 0.5 + Math.sin(Date.now() / 300) * 0.3;
-    ctx.font = '16px sans-serif';
-    ctx.fillStyle = '#94a3b8';
-    ctx.textAlign = 'center';
-    ctx.fillText('TAP TO FLIP!', bacon.x, bacon.y - 30);
-    ctx.restore();
-    
-    // Arrow pointing down toward target
-    ctx.save();
-    ctx.globalAlpha = 0.3;
-    ctx.strokeStyle = '#fbbf24';
-    ctx.lineWidth = 2;
-    ctx.setLineDash([5, 5]);
-    ctx.beginPath();
-    ctx.moveTo(bacon.x, bacon.y + 15);
-    ctx.lineTo(target.x, target.y - target.h/2 - 10);
-    ctx.stroke();
-    ctx.setLineDash([]);
-    ctx.restore();
-  }
-}
-
-function drawParticles() {
-  particles.forEach(p => {
-    ctx.globalAlpha = p.life;
-    ctx.fillStyle = p.color;
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-    ctx.fill();
-  });
-  ctx.globalAlpha = 1;
-}
-
-function drawBackground() {
-  // Subtle grid
-  ctx.strokeStyle = 'rgba(100, 116, 139, 0.05)';
-  ctx.lineWidth = 1;
-  for (let x = 0; x < W; x += 40) {
-    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
-  }
-  for (let y = 0; y < H; y += 40) {
-    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
-  }
-}
-
-function draw() {
-  ctx.clearRect(0, 0, W, H);
-  drawBackground();
-  drawGround();
-  
-  if (state !== 'start' && state !== 'gameover') {
-    drawTarget();
-    drawPowerHint();
-    drawBacon(bacon.x, bacon.y, bacon.w, bacon.h, bacon.rotation);
-    drawParticles();
-  }
-}
-
-function loop() {
-  update();
-  draw();
-  requestAnimationFrame(loop);
-}
-
-// Input
-function handleInput(e) {
+// === INPUT ===
+gameArea.addEventListener('pointerdown', (e) => {
   e.preventDefault();
   if (state === 'ready') flip();
-}
+});
 
-canvas.addEventListener('pointerdown', handleInput);
 document.addEventListener('keydown', (e) => {
-  if (e.code === 'Space' || e.key === ' ') {
+  if ((e.code === 'Space' || e.key === ' ') && state === 'ready') {
     e.preventDefault();
-    if (state === 'ready') flip();
+    flip();
   }
 });
 
-// Start button
-document.getElementById('startBtn').addEventListener('click', () => {
+// === START / RESTART ===
+document.getElementById('startBtn').addEventListener('click', (e) => {
+  e.stopPropagation();
   document.getElementById('startScreen').classList.add('hidden');
   level = 1; score = 0; streak = 0; bestStreak = 0;
-  document.getElementById('levelVal').textContent = level;
-  document.getElementById('scoreVal').textContent = score;
-  document.getElementById('streakVal').textContent = streak;
+  document.getElementById('levelVal').textContent = 1;
+  document.getElementById('scoreVal').textContent = 0;
+  document.getElementById('streakVal').textContent = 0;
   initLevel();
 });
 
-// Restart button
-document.getElementById('restartBtn').addEventListener('click', () => {
+document.getElementById('restartBtn').addEventListener('click', (e) => {
+  e.stopPropagation();
   document.getElementById('gameOver').classList.add('hidden');
   level = 1; score = 0; streak = 0;
-  document.getElementById('levelVal').textContent = level;
-  document.getElementById('scoreVal').textContent = score;
-  document.getElementById('streakVal').textContent = streak;
+  document.getElementById('levelVal').textContent = 1;
+  document.getElementById('scoreVal').textContent = 0;
+  document.getElementById('streakVal').textContent = 0;
   initLevel();
 });
-
-// Start render loop
-loop();
 </script>
 </body>
 </html>
