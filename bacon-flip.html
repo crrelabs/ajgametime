@@ -254,9 +254,9 @@ function initLevel() {
   const obj = landingObjects[Math.floor(Math.random() * landingObjects.length)];
   
   // As levels increase, target gets smaller and further away
-  const shrink = Math.max(0.5, 1 - level * 0.015);
-  const objW = obj.w * shrink;
-  const objH = obj.h * shrink;
+  const shrink = Math.max(0.6, 1 - level * 0.01);
+  const objW = Math.max(60, obj.w * shrink * 1.2);
+  const objH = Math.max(40, obj.h * shrink * 1.2);
   
   // Target position - random horizontal, always near bottom
   const minX = objW / 2 + 30;
@@ -277,8 +277,8 @@ function initLevel() {
   bacon = {
     x: W / 2,
     y: 120,
-    w: 60,
-    h: 20,
+    w: 80,
+    h: 28,
     vx: 0,
     vy: 0,
     rotation: 0,
@@ -451,6 +451,20 @@ function update() {
   }
 }
 
+function roundedRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
 function drawBacon(x, y, w, h, rot) {
   ctx.save();
   ctx.translate(x, y);
@@ -458,8 +472,7 @@ function drawBacon(x, y, w, h, rot) {
   
   // Bacon strip
   ctx.fillStyle = '#dc2626';
-  ctx.beginPath();
-  ctx.roundRect(-w/2, -h/2, w, h, 6);
+  roundedRect(ctx, -w/2, -h/2, w, h, 6);
   ctx.fill();
   
   // Fat stripes
@@ -472,9 +485,14 @@ function drawBacon(x, y, w, h, rot) {
   // Crispy edges
   ctx.strokeStyle = '#991b1b';
   ctx.lineWidth = 1.5;
-  ctx.beginPath();
-  ctx.roundRect(-w/2, -h/2, w, h, 6);
+  roundedRect(ctx, -w/2, -h/2, w, h, 6);
   ctx.stroke();
+  
+  // Bacon emoji on top for extra visibility
+  ctx.font = `${h + 10}px serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('🥓', 0, 0);
   
   ctx.restore();
 }
@@ -486,8 +504,17 @@ function drawTarget() {
   ctx.ellipse(target.x, target.y + target.h/2 + 8, target.w/2 + 5, 8, 0, 0, Math.PI * 2);
   ctx.fill();
   
+  // Object platform
+  ctx.fillStyle = 'rgba(100, 116, 139, 0.3)';
+  roundedRect(ctx, target.x - target.w/2, target.y - target.h/2, target.w, target.h, 8);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(148, 163, 184, 0.5)';
+  ctx.lineWidth = 2;
+  roundedRect(ctx, target.x - target.w/2, target.y - target.h/2, target.w, target.h, 8);
+  ctx.stroke();
+  
   // Object emoji
-  ctx.font = `${Math.max(30, target.w * 0.7)}px serif`;
+  ctx.font = `${Math.max(40, target.w * 0.8)}px serif`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText(target.emoji, target.x, target.y);
