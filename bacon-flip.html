@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-2GR7STT4B9"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date());gtag("config","G-2GR7STT4B9");</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="description" content="Play Bacon Flip - flip bacon onto random objects and enjoy opera music! Free endless browser game.">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://ajgametime.com/bacon-flip.html">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://ajgametime.com/bacon-flip.html">
+<meta property="og:title" content="Bacon Flip — AJ GameTime">
+<meta property="og:description" content="Flip bacon onto random objects and enjoy opera music! Free endless browser game.">
+<meta property="og:site_name" content="AJ GameTime">
+<title>Bacon Flip — AJ GameTime</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  min-height: 100vh; display: flex; flex-direction: column; align-items: center;
+  font-family: 'Segoe UI', -apple-system, sans-serif;
+  background: linear-gradient(180deg, #1a0a2e 0%, #2d1b4e 100%);
+  color: #e2e8f0; overflow: hidden; user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#header {
+  width: 100%; padding: 0.75rem 1.5rem;
+  display: flex; justify-content: space-between; align-items: center;
+  z-index: 10; position: fixed; top: 0;
+}
+#header a { color: #64748b; text-decoration: none; font-size: 0.85rem; }
+#header a:hover { color: #e2e8f0; }
+
+#hud { display: flex; gap: 1.5rem; align-items: center; }
+.stat { text-align: center; }
+.stat-val { font-size: 1.5rem; font-weight: 800; }
+.stat-label { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.1em; color: #64748b; }
+#levelVal { color: #fbbf24; }
+#scoreVal { color: #f97316; }
+#streakVal { color: #ef4444; }
+
+canvas { display: block; touch-action: none; }
+
+#startScreen, #gameOver {
+  position: fixed; inset: 0; background: rgba(26,10,46,0.95);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 30;
+}
+#startScreen.hidden, #gameOver.hidden { display: none; }
+#startScreen h1, #gameOver h2 { font-size: 2.5rem; margin-bottom: 0.5rem; }
+#startScreen .emoji, #gameOver .emoji { font-size: 5rem; margin-bottom: 1rem; }
+#startScreen p, #gameOver p { color: #94a3b8; margin-bottom: 0.5rem; font-size: 0.95rem; text-align: center; max-width: 320px; }
+.controls-hint { color: #64748b !important; font-size: 0.8rem !important; margin-top: 0.5rem; }
+button.play-btn {
+  margin-top: 1.5rem; padding: 1rem 2.5rem; font-size: 1.1rem; font-weight: 700;
+  background: linear-gradient(135deg, #ef4444, #f97316); color: white;
+  border: none; border-radius: 12px; cursor: pointer; transition: 0.2s;
+}
+button.play-btn:hover { transform: scale(1.05); filter: brightness(1.1); }
+
+#perfectText {
+  position: fixed; top: 40%; left: 50%; transform: translate(-50%, -50%);
+  font-size: 3rem; font-weight: 900; color: #fbbf24;
+  text-shadow: 0 0 20px rgba(251,191,36,0.5);
+  opacity: 0; z-index: 20; pointer-events: none;
+  transition: opacity 0.3s;
+}
+#perfectText.show { opacity: 1; }
+
+#operaNote {
+  position: fixed; bottom: 15%; left: 50%; transform: translateX(-50%);
+  font-size: 1.2rem; color: #c084fc; opacity: 0; z-index: 20; pointer-events: none;
+  font-style: italic;
+}
+#operaNote.show { opacity: 1; transition: opacity 0.5s; }
+</style>
+</head>
+<body>
+
+<div id="header">
+  <a href="index.html">← AJ GameTime</a>
+  <div id="hud">
+    <div class="stat"><div class="stat-val" id="levelVal">1</div><div class="stat-label">Level</div></div>
+    <div class="stat"><div class="stat-val" id="scoreVal">0</div><div class="stat-label">Score</div></div>
+    <div class="stat"><div class="stat-val" id="streakVal">0</div><div class="stat-label">Streak</div></div>
+  </div>
+</div>
+
+<canvas id="game"></canvas>
+
+<div id="startScreen">
+  <div class="emoji">🥓</div>
+  <h1>Bacon Flip</h1>
+  <p>Tap to flip the bacon onto random objects!</p>
+  <p>Land it perfectly for bonus points 🎵</p>
+  <p class="controls-hint">Tap / Click / Spacebar to flip</p>
+  <button class="play-btn" id="startBtn">🥓 Let's Flip!</button>
+</div>
+
+<div id="gameOver" class="hidden">
+  <div class="emoji">😵</div>
+  <h2>Splat!</h2>
+  <p>You missed the landing!</p>
+  <p>Score: <span id="finalScore">0</span></p>
+  <p>Best Streak: <span id="finalStreak">0</span></p>
+  <p>Level: <span id="finalLevel">0</span></p>
+  <button class="play-btn" id="restartBtn">🥓 Try Again</button>
+</div>
+
+<div id="perfectText">🎵 BRAVO! 🎵</div>
+<div id="operaNote"></div>
+
+<script>
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+
+// Audio context for opera sounds
+let audioCtx = null;
+function ensureAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+}
+
+// Opera music generator - dramatic vibrato notes
+function playOpera(perfect) {
+  ensureAudio();
+  const now = audioCtx.currentTime;
+  const duration = perfect ? 2.5 : 1.5;
+
+  // Choose random opera "phrase"
+  const phrases = [
+    [523.25, 659.25, 783.99],      // C5 E5 G5 - triumphant
+    [440, 554.37, 659.25],          // A4 C#5 E5 - dramatic
+    [392, 493.88, 587.33],          // G4 B4 D5 - heroic
+    [349.23, 440, 523.25],          // F4 A4 C5 - warm
+    [329.63, 415.30, 523.25],      // E4 G#4 C5 - mysterious
+    [293.66, 369.99, 440],          // D4 F#4 A4 - bold
+  ];
+  const phrase = phrases[Math.floor(Math.random() * phrases.length)];
+
+  phrase.forEach((freq, i) => {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    const vibrato = audioCtx.createOscillator();
+    const vibratoGain = audioCtx.createGain();
+
+    // Vibrato for opera feel
+    vibrato.frequency.value = 5.5;
+    vibratoGain.gain.value = freq * 0.02;
+    vibrato.connect(vibratoGain);
+    vibratoGain.connect(osc.frequency);
+
+    osc.type = 'sine';
+    osc.frequency.value = freq;
+
+    gain.gain.setValueAtTime(0, now + i * 0.15);
+    gain.gain.linearRampToValueAtTime(perfect ? 0.15 : 0.1, now + i * 0.15 + 0.1);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+
+    osc.start(now + i * 0.15);
+    vibrato.start(now + i * 0.15);
+    osc.stop(now + duration + 0.1);
+    vibrato.stop(now + duration + 0.1);
+  });
+
+  // Add a low "bass" note for drama
+  if (perfect) {
+    const bass = audioCtx.createOscillator();
+    const bassGain = audioCtx.createGain();
+    bass.type = 'sine';
+    bass.frequency.value = phrase[0] / 2;
+    bassGain.gain.setValueAtTime(0, now);
+    bassGain.gain.linearRampToValueAtTime(0.12, now + 0.2);
+    bassGain.gain.exponentialRampToValueAtTime(0.001, now + duration + 0.5);
+    bass.connect(bassGain);
+    bassGain.connect(audioCtx.destination);
+    bass.start(now);
+    bass.stop(now + duration + 0.6);
+  }
+}
+
+function playMiss() {
+  ensureAudio();
+  const now = audioCtx.currentTime;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = 'sawtooth';
+  osc.frequency.setValueAtTime(200, now);
+  osc.frequency.linearRampToValueAtTime(80, now + 0.5);
+  gain.gain.setValueAtTime(0.1, now);
+  gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  osc.start(now);
+  osc.stop(now + 0.6);
+}
+
+// Game state
+let W, H;
+let state = 'start'; // start, ready, flipping, landed, miss, gameover
+let level = 1;
+let score = 0;
+let streak = 0;
+let bestStreak = 0;
+let bacon, target, particles;
+let flipPower = 0;
+let gravity = 0.4;
+
+// Objects the bacon can land on
+const landingObjects = [
+  { name: 'Frying Pan', emoji: '🍳', w: 90, h: 30, color: '#374151' },
+  { name: 'Trampoline', emoji: '🟦', w: 100, h: 20, color: '#3b82f6' },
+  { name: 'Cat', emoji: '🐱', w: 70, h: 50, color: '#f59e0b' },
+  { name: 'Toilet', emoji: '🚽', w: 65, h: 55, color: '#e2e8f0' },
+  { name: 'Dog', emoji: '🐕', w: 80, h: 50, color: '#92400e' },
+  { name: 'Cactus', emoji: '🌵', w: 50, h: 70, color: '#22c55e' },
+  { name: 'Piano', emoji: '🎹', w: 100, h: 40, color: '#1e293b' },
+  { name: 'Volcano', emoji: '🌋', w: 90, h: 60, color: '#dc2626' },
+  { name: 'UFO', emoji: '🛸', w: 85, h: 35, color: '#8b5cf6' },
+  { name: 'Rocket', emoji: '🚀', w: 50, h: 70, color: '#f97316' },
+  { name: 'Ice Cream', emoji: '🍦', w: 50, h: 65, color: '#fbbf24' },
+  { name: 'Crown', emoji: '👑', w: 70, h: 45, color: '#fbbf24' },
+  { name: 'Shoe', emoji: '👟', w: 80, h: 35, color: '#6366f1' },
+  { name: 'Book', emoji: '📚', w: 75, h: 30, color: '#059669' },
+  { name: 'Globe', emoji: '🌍', w: 65, h: 65, color: '#0ea5e9' },
+  { name: 'Turtle', emoji: '🐢', w: 75, h: 45, color: '#16a34a' },
+  { name: 'Donut', emoji: '🍩', w: 60, h: 60, color: '#f472b6' },
+  { name: 'Alarm Clock', emoji: '⏰', w: 55, h: 55, color: '#ef4444' },
+  { name: 'Football', emoji: '🏈', w: 65, h: 45, color: '#92400e' },
+  { name: 'Sombrero', emoji: '👒', w: 85, h: 35, color: '#ca8a04' },
+  { name: 'Penguin', emoji: '🐧', w: 55, h: 60, color: '#1e293b' },
+  { name: 'Mailbox', emoji: '📮', w: 50, h: 65, color: '#3b82f6' },
+  { name: 'Dinosaur', emoji: '🦕', w: 90, h: 60, color: '#22c55e' },
+  { name: 'Robot', emoji: '🤖', w: 60, h: 65, color: '#94a3b8' },
+];
+
+const operaPhrases = [
+  "MAGNIFICO!", "BELLISSIMO!", "BRAVO!", "PERFETTO!",
+  "STUPENDO!", "FANTASTICO!", "MERAVIGLIOSO!", "ECCELLENTE!",
+  "GRANDIOSO!", "DIVINO!", "SUBLIME!", "BRILLANTE!"
+];
+
+function resize() {
+  W = canvas.width = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resize);
+resize();
+
+function initLevel() {
+  const obj = landingObjects[Math.floor(Math.random() * landingObjects.length)];
+  
+  // As levels increase, target gets smaller and further away
+  const shrink = Math.max(0.5, 1 - level * 0.015);
+  const objW = obj.w * shrink;
+  const objH = obj.h * shrink;
+  
+  // Target position - random horizontal, always near bottom
+  const minX = objW / 2 + 30;
+  const maxX = W - objW / 2 - 30;
+  const targetX = minX + Math.random() * (maxX - minX);
+  
+  target = {
+    x: targetX,
+    y: H - 80 - objH / 2,
+    w: objW,
+    h: objH,
+    emoji: obj.emoji,
+    name: obj.name,
+    color: obj.color,
+  };
+  
+  // Bacon starts at top
+  bacon = {
+    x: W / 2,
+    y: 120,
+    w: 60,
+    h: 20,
+    vx: 0,
+    vy: 0,
+    rotation: 0,
+    rotSpeed: 0,
+    flipping: false,
+    landed: false,
+  };
+  
+  particles = [];
+  state = 'ready';
+}
+
+function flip() {
+  if (state !== 'ready') return;
+  ensureAudio();
+  
+  state = 'flipping';
+  
+  // Calculate direction toward target with some physics
+  const dx = target.x - bacon.x;
+  const dy = target.y - bacon.y;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+  
+  // Add randomness so it's not auto-aim
+  const angle = Math.atan2(dy, dx);
+  const speed = Math.min(12, 6 + level * 0.3);
+  
+  bacon.vx = Math.cos(angle) * speed + (Math.random() - 0.5) * 3;
+  bacon.vy = Math.abs(Math.sin(angle) * speed * 0.5); // initial upward
+  bacon.vy = -speed * 0.6; // go up first
+  bacon.rotSpeed = (Math.random() - 0.5) * 0.3 + 0.15;
+  
+  // Play a little whoosh
+  const osc = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(400, audioCtx.currentTime);
+  osc.frequency.linearRampToValueAtTime(200, audioCtx.currentTime + 0.2);
+  g.gain.setValueAtTime(0.05, audioCtx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.2);
+  osc.connect(g); g.connect(audioCtx.destination);
+  osc.start(); osc.stop(audioCtx.currentTime + 0.3);
+}
+
+function spawnParticles(x, y, color, count) {
+  for (let i = 0; i < count; i++) {
+    particles.push({
+      x, y,
+      vx: (Math.random() - 0.5) * 8,
+      vy: (Math.random() - 0.5) * 8 - 3,
+      life: 1,
+      color,
+      size: Math.random() * 6 + 2,
+    });
+  }
+}
+
+function checkLanding() {
+  // Check if bacon overlaps with target
+  const bL = bacon.x - bacon.w / 2;
+  const bR = bacon.x + bacon.w / 2;
+  const bB = bacon.y + bacon.h / 2;
+  const bT = bacon.y - bacon.h / 2;
+  
+  const tL = target.x - target.w / 2;
+  const tR = target.x + target.w / 2;
+  const tT = target.y - target.h / 2;
+  
+  // Landed on top of target
+  if (bB >= tT && bT < tT && bR > tL && bL < tR) {
+    bacon.y = tT - bacon.h / 2;
+    bacon.vy = 0;
+    bacon.vx = 0;
+    bacon.rotSpeed = 0;
+    bacon.landed = true;
+    state = 'landed';
+    
+    // Check how centered the landing is
+    const centerDiff = Math.abs(bacon.x - target.x);
+    const perfect = centerDiff < target.w * 0.2;
+    
+    // Score
+    const basePoints = 10;
+    const perfectBonus = perfect ? 25 : 0;
+    const levelBonus = level * 2;
+    score += basePoints + perfectBonus + levelBonus;
+    streak++;
+    if (streak > bestStreak) bestStreak = streak;
+    
+    // Update HUD
+    document.getElementById('levelVal').textContent = level;
+    document.getElementById('scoreVal').textContent = score;
+    document.getElementById('streakVal').textContent = streak;
+    
+    // OPERA TIME! 🎵
+    playOpera(perfect);
+    
+    // Show text
+    const pText = document.getElementById('perfectText');
+    const phrase = perfect ? operaPhrases[Math.floor(Math.random() * operaPhrases.length)] : '🎵 LANDED! 🎵';
+    pText.textContent = perfect ? `🎵 ${phrase} 🎵` : phrase;
+    pText.classList.add('show');
+    
+    // Opera note
+    const note = document.getElementById('operaNote');
+    note.textContent = perfect ? `♫ The bacon graces the ${target.name}! ♫` : `♪ On the ${target.name}! ♪`;
+    note.classList.add('show');
+    
+    // Particles!
+    spawnParticles(bacon.x, bacon.y, '#fbbf24', perfect ? 30 : 15);
+    if (perfect) spawnParticles(bacon.x, bacon.y, '#f97316', 20);
+    
+    // Next level after delay
+    setTimeout(() => {
+      pText.classList.remove('show');
+      note.classList.remove('show');
+      level++;
+      document.getElementById('levelVal').textContent = level;
+      initLevel();
+    }, perfect ? 2000 : 1500);
+    
+    return true;
+  }
+  
+  // Missed - fell off screen or hit ground without hitting target
+  if (bacon.y > H + 50 || (bB >= H - 30 && state === 'flipping')) {
+    state = 'gameover';
+    playMiss();
+    streak = 0;
+    
+    spawnParticles(bacon.x, Math.min(bacon.y, H - 50), '#ef4444', 20);
+    
+    setTimeout(() => {
+      document.getElementById('finalScore').textContent = score;
+      document.getElementById('finalStreak').textContent = bestStreak;
+      document.getElementById('finalLevel').textContent = level;
+      document.getElementById('gameOver').classList.remove('hidden');
+    }, 500);
+    
+    return true;
+  }
+  
+  return false;
+}
+
+function update() {
+  if (state === 'flipping') {
+    bacon.vy += gravity;
+    bacon.x += bacon.vx;
+    bacon.y += bacon.vy;
+    bacon.rotation += bacon.rotSpeed;
+    
+    // Bounce off walls
+    if (bacon.x < 20 || bacon.x > W - 20) {
+      bacon.vx *= -0.7;
+      bacon.x = Math.max(20, Math.min(W - 20, bacon.x));
+    }
+    
+    checkLanding();
+  }
+  
+  // Update particles
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.x += p.vx;
+    p.y += p.vy;
+    p.vy += 0.15;
+    p.life -= 0.02;
+    if (p.life <= 0) particles.splice(i, 1);
+  }
+}
+
+function drawBacon(x, y, w, h, rot) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(rot);
+  
+  // Bacon strip
+  ctx.fillStyle = '#dc2626';
+  ctx.beginPath();
+  ctx.roundRect(-w/2, -h/2, w, h, 6);
+  ctx.fill();
+  
+  // Fat stripes
+  ctx.fillStyle = '#fca5a5';
+  for (let i = 0; i < 3; i++) {
+    const sx = -w/2 + 8 + i * (w/3);
+    ctx.fillRect(sx, -h/2 + 3, w/5, h - 6);
+  }
+  
+  // Crispy edges
+  ctx.strokeStyle = '#991b1b';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.roundRect(-w/2, -h/2, w, h, 6);
+  ctx.stroke();
+  
+  ctx.restore();
+}
+
+function drawTarget() {
+  // Shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.3)';
+  ctx.beginPath();
+  ctx.ellipse(target.x, target.y + target.h/2 + 8, target.w/2 + 5, 8, 0, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // Object emoji
+  ctx.font = `${Math.max(30, target.w * 0.7)}px serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(target.emoji, target.x, target.y);
+  
+  // Name label
+  ctx.font = '12px sans-serif';
+  ctx.fillStyle = '#64748b';
+  ctx.fillText(target.name, target.x, target.y + target.h/2 + 22);
+}
+
+function drawGround() {
+  ctx.fillStyle = '#1e293b';
+  ctx.fillRect(0, H - 30, W, 30);
+  ctx.fillStyle = '#334155';
+  ctx.fillRect(0, H - 30, W, 2);
+}
+
+function drawPowerHint() {
+  if (state === 'ready') {
+    ctx.save();
+    ctx.globalAlpha = 0.5 + Math.sin(Date.now() / 300) * 0.3;
+    ctx.font = '16px sans-serif';
+    ctx.fillStyle = '#94a3b8';
+    ctx.textAlign = 'center';
+    ctx.fillText('TAP TO FLIP!', bacon.x, bacon.y - 30);
+    ctx.restore();
+    
+    // Arrow pointing down toward target
+    ctx.save();
+    ctx.globalAlpha = 0.3;
+    ctx.strokeStyle = '#fbbf24';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([5, 5]);
+    ctx.beginPath();
+    ctx.moveTo(bacon.x, bacon.y + 15);
+    ctx.lineTo(target.x, target.y - target.h/2 - 10);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.restore();
+  }
+}
+
+function drawParticles() {
+  particles.forEach(p => {
+    ctx.globalAlpha = p.life;
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+    ctx.fill();
+  });
+  ctx.globalAlpha = 1;
+}
+
+function drawBackground() {
+  // Subtle grid
+  ctx.strokeStyle = 'rgba(100, 116, 139, 0.05)';
+  ctx.lineWidth = 1;
+  for (let x = 0; x < W; x += 40) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+  }
+  for (let y = 0; y < H; y += 40) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+  }
+}
+
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+  drawBackground();
+  drawGround();
+  
+  if (state !== 'start' && state !== 'gameover') {
+    drawTarget();
+    drawPowerHint();
+    drawBacon(bacon.x, bacon.y, bacon.w, bacon.h, bacon.rotation);
+    drawParticles();
+  }
+}
+
+function loop() {
+  update();
+  draw();
+  requestAnimationFrame(loop);
+}
+
+// Input
+function handleInput(e) {
+  e.preventDefault();
+  if (state === 'ready') flip();
+}
+
+canvas.addEventListener('pointerdown', handleInput);
+document.addEventListener('keydown', (e) => {
+  if (e.code === 'Space' || e.key === ' ') {
+    e.preventDefault();
+    if (state === 'ready') flip();
+  }
+});
+
+// Start button
+document.getElementById('startBtn').addEventListener('click', () => {
+  document.getElementById('startScreen').classList.add('hidden');
+  level = 1; score = 0; streak = 0; bestStreak = 0;
+  document.getElementById('levelVal').textContent = level;
+  document.getElementById('scoreVal').textContent = score;
+  document.getElementById('streakVal').textContent = streak;
+  initLevel();
+});
+
+// Restart button
+document.getElementById('restartBtn').addEventListener('click', () => {
+  document.getElementById('gameOver').classList.add('hidden');
+  level = 1; score = 0; streak = 0;
+  document.getElementById('levelVal').textContent = level;
+  document.getElementById('scoreVal').textContent = score;
+  document.getElementById('streakVal').textContent = streak;
+  initLevel();
+});
+
+// Start render loop
+loop();
+</script>
+</body>
+</html>
