@@ -80,16 +80,49 @@ html, body {
   background: rgba(100,116,139,0.3); border: 1px solid rgba(148,163,184,0.3);
 }
 
-/* Tap hint */
-#tapHint {
+/* Drag hint */
+#dragHint {
   position: absolute; z-index: 15;
   text-align: center; color: #94a3b8;
-  font-size: 16px; font-weight: 600;
+  font-size: 14px; font-weight: 600;
   animation: pulse 1.5s ease-in-out infinite;
 }
 @keyframes pulse {
   0%, 100% { opacity: 0.5; transform: translate(-50%, -50%) scale(1); }
   50% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+}
+
+/* Power indicator */
+#powerMeter {
+  position: absolute; z-index: 15;
+  width: 6px; background: rgba(59,130,246,0.3);
+  border-radius: 3px; border: 1px solid rgba(59,130,246,0.5);
+  transform-origin: bottom center;
+  display: none;
+}
+#powerFill {
+  width: 100%; background: linear-gradient(0deg, #22c55e, #fbbf24, #ef4444);
+  border-radius: 2px; transition: height 0.1s;
+}
+
+/* Drag line */
+#dragLine {
+  position: absolute; z-index: 12;
+  border: 2px solid #3b82f6; border-radius: 1px;
+  transform-origin: left center; display: none;
+  box-shadow: 0 0 10px rgba(59,130,246,0.4);
+}
+
+/* Double flip indicator */
+#flipIndicator {
+  position: absolute; top: 50px; right: 20px; z-index: 50;
+  background: rgba(0,0,0,0.4); border: 2px solid #22c55e;
+  border-radius: 12px; padding: 8px 12px;
+  color: #22c55e; font-weight: 700; font-size: 14px;
+  display: none;
+}
+#flipIndicator.used {
+  border-color: #64748b; color: #64748b;
 }
 
 /* Guide line */
@@ -167,16 +200,19 @@ html, body {
     <span id="targetName"></span>
     <div id="targetPlatform"></div>
   </div>
-  <div id="tapHint">👆 TAP TO FLIP!</div>
+  <div id="dragHint">🎯 DRAG TO AIM & POWER!</div>
+  <div id="powerMeter"><div id="powerFill"></div></div>
+  <div id="dragLine"></div>
+  <div id="flipIndicator">DOUBLE FLIP READY</div>
   <div id="guideLine"></div>
 </div>
 
 <div class="overlay" id="startScreen">
   <div class="emoji">🥓</div>
   <h1>Bacon Flip</h1>
-  <p>Tap to flip the bacon onto random objects!</p>
-  <p>Land it perfectly for bonus points 🎵</p>
-  <p class="hint">Tap / Click / Spacebar to flip</p>
+  <p>Drag to aim and power your bacon flip!</p>
+  <p>Double flip in air for extra control! 🎵</p>
+  <p class="hint">Drag from bacon • Double-tap for air flip</p>
   <button class="play-btn" id="startBtn">🥓 Let's Flip!</button>
 </div>
 
@@ -267,7 +303,11 @@ const targetEl = document.getElementById('target');
 const targetEmoji = document.getElementById('targetEmoji');
 const targetNameEl = document.getElementById('targetName');
 const targetPlatform = document.getElementById('targetPlatform');
-const tapHint = document.getElementById('tapHint');
+const dragHint = document.getElementById('dragHint');
+const powerMeter = document.getElementById('powerMeter');
+const powerFill = document.getElementById('powerFill');
+const dragLine = document.getElementById('dragLine');
+const flipIndicator = document.getElementById('flipIndicator');
 const guideLine = document.getElementById('guideLine');
 const floatText = document.getElementById('floatText');
 const operaText = document.getElementById('operaText');
@@ -315,10 +355,14 @@ const operaPhrases = [
 let state = 'start';
 let level = 1, score = 0, streak = 0, bestStreak = 0;
 let bx, by, bvx, bvy, brot, brotSpeed;
-let tx, ty;
+let tx, ty, targetSize;
 let animFrame;
+let dragStartX, dragStartY, isDragging = false;
+let doubleFlipUsed = false;
 const GRAVITY = 0.5;
 const GROUND_Y = 40; // from bottom
+const BASE_TARGET_SIZE = 80; // Starting size for targets
+const MIN_TARGET_SIZE = 35; // Minimum target size at higher levels
 
 function getW() { return window.innerWidth; }
 function getH() { return window.innerHeight; }
@@ -327,21 +371,30 @@ function initLevel() {
   const obj = objects[Math.floor(Math.random() * objects.length)];
   const W = getW(), H = getH();
   
+  // Dynamic target size - gets smaller each level
+  const sizeReduction = Math.min((level - 1) * 3, BASE_TARGET_SIZE - MIN_TARGET_SIZE);
+  targetSize = BASE_TARGET_SIZE - sizeReduction;
+  
   // Target: random x, above ground
-  tx = 40 + Math.random() * (W - 80);
+  tx = targetSize/2 + 20 + Math.random() * (W - targetSize - 40);
   ty = H - GROUND_Y - 80;
   
   targetEmoji.textContent = obj.emoji;
   targetNameEl.textContent = obj.name;
+  targetEmoji.style.fontSize = targetSize + 'px';
   targetEl.style.left = tx + 'px';
   targetEl.style.top = ty + 'px';
   targetEl.style.transform = 'translate(-50%, -50%)';
   targetEl.style.display = 'block';
   
+  // Update platform size too
+  targetPlatform.style.width = (targetSize * 1.2) + 'px';
+  
   // Bacon: top center
   bx = W / 2;
   by = 90;
   bvx = 0; bvy = 0; brot = 0; brotSpeed = 0;
+  doubleFlipUsed = false;
   
   baconEl.style.left = bx + 'px';
   baconEl.style.top = by + 'px';
@@ -349,53 +402,124 @@ function initLevel() {
   baconEl.style.display = 'block';
   baconEl.style.opacity = '1';
   
-  // Tap hint
-  tapHint.style.left = bx + 'px';
-  tapHint.style.top = (by - 45) + 'px';
-  tapHint.style.transform = 'translate(-50%, -50%)';
-  tapHint.style.display = 'block';
+  // Drag hint
+  dragHint.style.left = bx + 'px';
+  dragHint.style.top = (by - 45) + 'px';
+  dragHint.style.transform = 'translate(-50%, -50%)';
+  dragHint.style.display = 'block';
+  
+  // Double flip indicator
+  flipIndicator.style.display = 'none';
+  flipIndicator.classList.remove('used');
+  
+  // Hide power meter and drag line initially
+  powerMeter.style.display = 'none';
+  dragLine.style.display = 'none';
   
   // Guide line
-  guideLine.style.left = (bx + tx) / 2 + 'px';
-  guideLine.style.top = by + 25 + 'px';
-  guideLine.style.height = (ty - by - 60) + 'px';
-  guideLine.style.display = 'block';
-  guideLine.style.transformOrigin = 'top center';
-  const angle = Math.atan2(tx - bx, ty - by);
-  guideLine.style.transform = 'rotate(' + (angle * 180/Math.PI * -1) + 'deg)';
-  // actually simpler: just draw from bacon to target
   guideLine.style.left = bx + 'px';
   guideLine.style.top = (by + 30) + 'px';
-  const dist = Math.sqrt((tx-bx)**2 + (ty-by-60)**2);
+  const dist = Math.sqrt((tx-bx)**2 + (ty-by-30)**2);
   guideLine.style.height = dist + 'px';
   const lineAngle = Math.atan2(tx - bx, ty - by - 30);
   guideLine.style.transform = 'rotate(' + (-lineAngle * 180/Math.PI) + 'deg)';
   guideLine.style.transformOrigin = 'top center';
+  guideLine.style.display = 'block';
   
   state = 'ready';
 }
 
-function flip() {
+function startDrag(clientX, clientY) {
   if (state !== 'ready') return;
+  
+  isDragging = true;
+  dragStartX = clientX;
+  dragStartY = clientY;
+  
+  // Show power meter
+  powerMeter.style.left = (bx + 40) + 'px';
+  powerMeter.style.top = (by - 50) + 'px';
+  powerMeter.style.height = '80px';
+  powerMeter.style.display = 'block';
+  
+  dragHint.style.display = 'none';
+}
+
+function updateDrag(clientX, clientY) {
+  if (!isDragging || state !== 'ready') return;
+  
+  const dx = clientX - dragStartX;
+  const dy = clientY - dragStartY;
+  const dragDist = Math.sqrt(dx*dx + dy*dy);
+  const maxDrag = 150;
+  const power = Math.min(dragDist / maxDrag, 1);
+  
+  // Update power meter
+  powerFill.style.height = (power * 100) + '%';
+  
+  // Show drag line
+  dragLine.style.left = bx + 'px';
+  dragLine.style.top = by + 'px';
+  dragLine.style.width = Math.min(dragDist, maxDrag) + 'px';
+  const angle = Math.atan2(dy, dx);
+  dragLine.style.transform = 'rotate(' + (angle * 180/Math.PI) + 'deg)';
+  dragLine.style.display = 'block';
+}
+
+function endDrag(clientX, clientY) {
+  if (!isDragging || state !== 'ready') return;
+  
+  isDragging = false;
+  const dx = clientX - dragStartX;
+  const dy = clientY - dragStartY;
+  const dragDist = Math.sqrt(dx*dx + dy*dy);
+  
+  if (dragDist < 20) {
+    // Too short - show hint and return to ready
+    powerMeter.style.display = 'none';
+    dragLine.style.display = 'none';
+    dragHint.style.display = 'block';
+    return;
+  }
+  
   ensureAudio();
   playFlip();
   
   state = 'flipping';
-  tapHint.style.display = 'none';
+  powerMeter.style.display = 'none';
+  dragLine.style.display = 'none';
   guideLine.style.display = 'none';
+  flipIndicator.style.display = 'block';
   
-  // Flip toward target with some randomness
-  const dx = tx - bx;
-  const dy = ty - by;
-  const dist = Math.sqrt(dx*dx + dy*dy);
-  const speed = Math.min(14, 7 + level * 0.2);
+  // Calculate launch velocity based on drag
+  const maxDrag = 150;
+  const power = Math.min(dragDist / maxDrag, 1);
+  const speed = 6 + power * 12; // 6-18 speed range
   const angle = Math.atan2(dy, dx);
   
-  bvx = Math.cos(angle) * speed + (Math.random() - 0.5) * 2.5;
-  bvy = -speed * 0.55; // launch upward first
-  brotSpeed = (Math.random() - 0.5) * 15 + 8; // degrees per frame
+  bvx = Math.cos(angle) * speed;
+  bvy = Math.sin(angle) * speed - 3; // Add some upward boost
+  brotSpeed = (Math.random() - 0.5) * 20 + 10;
   
   if (!animFrame) gameLoop();
+}
+
+function doubleFlip() {
+  if (state !== 'flipping' || doubleFlipUsed) return;
+  
+  ensureAudio();
+  playFlip();
+  
+  doubleFlipUsed = true;
+  flipIndicator.classList.add('used');
+  flipIndicator.textContent = 'DOUBLE FLIP USED';
+  
+  // Add upward boost and spin
+  bvy -= 6;
+  brotSpeed += (Math.random() - 0.5) * 20;
+  
+  // Visual effect
+  spawnParticles(bx, by, ['#3b82f6','#22c55e','#fbbf24'], 8);
 }
 
 function spawnParticles(x, y, colors, count) {
@@ -445,8 +569,8 @@ function gameLoop() {
   baconEl.style.top = by + 'px';
   baconEl.style.transform = 'translate(-50%,-50%) rotate(' + brot + 'deg)';
   
-  // Check landing - is bacon near the target?
-  const hitDist = 50; // landing zone radius
+  // Check landing - is bacon near the target? (adjusted for dynamic size)
+  const hitDist = targetSize * 0.8; // landing zone based on target size
   const dx = Math.abs(bx - tx);
   const dy = by - ty;
   
@@ -489,6 +613,9 @@ function gameLoop() {
       operaText.classList.remove('show');
       level++;
       document.getElementById('levelVal').textContent = level;
+      // Reset flip indicator
+      flipIndicator.textContent = 'DOUBLE FLIP READY';
+      flipIndicator.classList.remove('used');
       initLevel();
     }, perfect ? 2000 : 1400);
     
@@ -521,20 +648,69 @@ function gameLoop() {
 }
 
 // === INPUT ===
-// Touch + mouse support for iPad
+let lastTapTime = 0;
+
+// Touch events
 gameArea.addEventListener('touchstart', (e) => {
   e.preventDefault();
-  if (state === 'ready') flip();
+  const touch = e.touches[0];
+  
+  // Double tap detection for double flip
+  const now = Date.now();
+  if (now - lastTapTime < 300 && state === 'flipping') {
+    doubleFlip();
+    return;
+  }
+  lastTapTime = now;
+  
+  startDrag(touch.clientX, touch.clientY);
 }, { passive: false });
+
+gameArea.addEventListener('touchmove', (e) => {
+  e.preventDefault();
+  if (!isDragging) return;
+  const touch = e.touches[0];
+  updateDrag(touch.clientX, touch.clientY);
+}, { passive: false });
+
+gameArea.addEventListener('touchend', (e) => {
+  e.preventDefault();
+  if (!isDragging) return;
+  const touch = e.changedTouches[0];
+  endDrag(touch.clientX, touch.clientY);
+}, { passive: false });
+
+// Mouse events
+let lastClickTime = 0;
 gameArea.addEventListener('mousedown', (e) => {
   e.preventDefault();
-  if (state === 'ready') flip();
+  
+  // Double click detection for double flip
+  const now = Date.now();
+  if (now - lastClickTime < 300 && state === 'flipping') {
+    doubleFlip();
+    return;
+  }
+  lastClickTime = now;
+  
+  startDrag(e.clientX, e.clientY);
 });
 
+gameArea.addEventListener('mousemove', (e) => {
+  if (!isDragging) return;
+  updateDrag(e.clientX, e.clientY);
+});
+
+gameArea.addEventListener('mouseup', (e) => {
+  if (!isDragging) return;
+  endDrag(e.clientX, e.clientY);
+});
+
+// Keyboard support
 document.addEventListener('keydown', (e) => {
-  if ((e.code === 'Space' || e.key === ' ') && state === 'ready') {
+  if (e.code === 'Space' && state === 'flipping' && !doubleFlipUsed) {
     e.preventDefault();
-    flip();
+    doubleFlip();
   }
 });
 
@@ -543,9 +719,14 @@ document.getElementById('startBtn').addEventListener('click', function(e) {
   e.stopPropagation();
   document.getElementById('startScreen').classList.add('hidden');
   level = 1; score = 0; streak = 0; bestStreak = 0;
+  isDragging = false; doubleFlipUsed = false;
   document.getElementById('levelVal').textContent = 1;
   document.getElementById('scoreVal').textContent = 0;
   document.getElementById('streakVal').textContent = 0;
+  // Hide all UI elements
+  powerMeter.style.display = 'none';
+  dragLine.style.display = 'none';
+  flipIndicator.style.display = 'none';
   initLevel();
 });
 
@@ -553,9 +734,14 @@ document.getElementById('restartBtn').addEventListener('click', function(e) {
   e.stopPropagation();
   document.getElementById('gameOver').classList.add('hidden');
   level = 1; score = 0; streak = 0;
+  isDragging = false; doubleFlipUsed = false;
   document.getElementById('levelVal').textContent = 1;
   document.getElementById('scoreVal').textContent = 0;
   document.getElementById('streakVal').textContent = 0;
+  // Hide all UI elements
+  powerMeter.style.display = 'none';
+  dragLine.style.display = 'none';
+  flipIndicator.style.display = 'none';
   initLevel();
 });
 </script>
