@@ -707,7 +707,26 @@ function togglePause(){if(!gameRunning)return;paused=!paused;document.getElement
     // Collision
     if (bird.x + bird.size - 6 > p.x && bird.x - bird.size + 6 < p.x + PIPE_W) {
       if (bird.y - bird.size + 6 < p.gapY || bird.y + bird.size - 6 > p.gapY + GAP) {
-        if(fpShield>0){fpShield=0}else{die();return}
+        if(fpShield>0){
+          fpShield=0;
+          sfxShieldBreak(); // Cool sound effect!
+          // Make pipe disappear with cool explosion effect!
+          for (var pi=0;pi<15;pi++) {
+            particles.push({
+              x:p.x+PIPE_W/2,y:bird.y,
+              vx:(Math.random()-0.5)*8,vy:(Math.random()-0.5)*8,
+              life:20,maxLife:20,color:'#3b82f6',size:3+Math.random()*3
+            });
+          }
+          // Bonus points for destroying pipe with shield!
+          score += 3;
+          totalCoins += 3;
+          saveShop();
+          document.getElementById('score-display').textContent = score;
+          pipes.splice(i,1);
+          i--; // adjust index since we removed a pipe
+          continue;
+        }else{die();return}
       }
     }
   }
@@ -1404,6 +1423,22 @@ function sfxCrash() {
     g2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25);
     o.connect(g2); g2.connect(fpSfxGain||ctx.destination);
     o.start(); o.stop(ctx.currentTime + 0.25);
+  } catch(e){}
+}
+
+function sfxShieldBreak() {
+  try {
+    const ctx = getAudioCtx();
+    // Cool zap sound when shield breaks pipe
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type = 'square';
+    o.frequency.setValueAtTime(800, ctx.currentTime);
+    o.frequency.exponentialRampToValueAtTime(200, ctx.currentTime + 0.15);
+    g.gain.setValueAtTime(0.18, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
+    o.connect(g); g.connect(fpSfxGain||ctx.destination);
+    o.start(); o.stop(ctx.currentTime + 0.15);
   } catch(e){}
 }
 
