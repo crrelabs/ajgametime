@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>New Games — AJ GameTime</title>
+<meta name="description" content="Brand new browser games coming soon to AJ GameTime. Built by AJ & Ignacio Rovira.">
+<link rel="canonical" href="https://ajgametime.com/new-games.html">
+<meta name="robots" content="index, follow">
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@400;600;700;800&display=swap');
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --purple: #7c3aed;
+  --blue: #3b82f6;
+  --cyan: #06b6d4;
+  --pink: #ec4899;
+  --orange: #f97316;
+  --green: #22c55e;
+  --dark: #0c0a1a;
+  --card: #16132a;
+}
+
+body {
+  font-family: 'Nunito', sans-serif;
+  background: var(--dark);
+  color: #e2e8f0;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+.bg-glow {
+  position: fixed; top: -50%; left: -50%; width: 200%; height: 200%;
+  background: radial-gradient(circle at 30% 40%, rgba(34,197,94,0.12) 0%, transparent 50%),
+              radial-gradient(circle at 70% 60%, rgba(59,130,246,0.1) 0%, transparent 50%),
+              radial-gradient(circle at 50% 80%, rgba(236,72,153,0.08) 0%, transparent 50%);
+  animation: bgFloat 20s ease-in-out infinite; z-index: 0;
+}
+@keyframes bgFloat {
+  0%, 100% { transform: translate(0,0); }
+  33% { transform: translate(-2%,1%); }
+  66% { transform: translate(1%,-2%); }
+}
+
+.container { position: relative; z-index: 1; max-width: 1000px; margin: 0 auto; padding: 0 1.5rem; }
+
+/* Nav */
+.top-nav {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 1.25rem 0; gap: 1rem; flex-wrap: wrap;
+}
+.logo {
+  font-family: 'Lilita One', cursive; font-size: 1.5rem;
+  background: linear-gradient(135deg, var(--purple), var(--blue), var(--cyan));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  text-decoration: none;
+}
+.nav-links { display: flex; gap: 0.6rem; flex-wrap: wrap; }
+.nav-btn {
+  padding: 0.45rem 1rem; border-radius: 50px; font-size: 0.85rem; font-weight: 700;
+  text-decoration: none; transition: all 0.2s; font-family: 'Nunito', sans-serif;
+  border: 1.5px solid rgba(124,58,237,0.3); color: #94a3b8; background: rgba(22,19,42,0.6);
+}
+.nav-btn:hover { border-color: var(--purple); color: #e2e8f0; }
+.nav-btn.active { background: var(--green); border-color: var(--green); color: white; }
+.nav-btn.old { border-color: rgba(249,115,22,0.4); color: #fb923c; }
+.nav-btn.old:hover { background: rgba(249,115,22,0.12); color: #fdba74; }
+
+/* Hero */
+.hero { text-align: center; padding: 3rem 0 2rem; }
+.hero-emoji { font-size: 3.5rem; display: block; margin-bottom: 0.75rem; animation: bounce 2s ease-in-out infinite; }
+@keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
+.hero h1 {
+  font-family: 'Lilita One', cursive;
+  font-size: clamp(2.2rem, 7vw, 3.5rem);
+  background: linear-gradient(135deg, #22c55e, #06b6d4, #3b82f6);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  margin-bottom: 0.5rem;
+}
+.hero p { color: #94a3b8; font-size: 1.1rem; font-weight: 600; max-width: 480px; margin: 0 auto; line-height: 1.5; }
+
+/* Empty state */
+.empty-state {
+  text-align: center;
+  margin: 2rem auto 4rem;
+  max-width: 520px;
+  padding: 3rem 2rem;
+  background: rgba(22,19,42,0.7);
+  border: 2px dashed rgba(34,197,94,0.25);
+  border-radius: 24px;
+}
+.empty-state .big-emoji { font-size: 4rem; margin-bottom: 1rem; }
+.empty-state h2 {
+  font-family: 'Lilita One', cursive;
+  font-size: 1.6rem;
+  color: #e2e8f0;
+  margin-bottom: 0.75rem;
+}
+.empty-state p {
+  color: #64748b;
+  font-size: 1rem;
+  line-height: 1.6;
+  margin-bottom: 1.5rem;
+}
+.empty-state .hint {
+  display: inline-block;
+  padding: 0.5rem 1.2rem;
+  background: rgba(34,197,94,0.12);
+  border: 1px solid rgba(34,197,94,0.3);
+  border-radius: 50px;
+  color: #4ade80;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+/* Future games placeholder grid (ready for later) */
+.games-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1.5rem;
+  padding-bottom: 3rem;
+  display: none; /* hidden until we have games */
+}
+
+footer { text-align: center; padding: 2rem 0 3rem; color: #334155; font-size: 0.75rem; }
+footer a { color: #475569; text-decoration: none; }
+footer a:hover { color: #94a3b8; }
+</style>
+</head>
+<body>
+<div class="bg-glow"></div>
+
+<div class="container">
+  <nav class="top-nav">
+    <a href="/" class="logo">AJ GameTime</a>
+    <div class="nav-links">
+      <a href="/" class="nav-btn">Home</a>
+      <a href="old-games.html" class="nav-btn old">Old Games</a>
+      <a href="new-games.html" class="nav-btn active">New Games</a>
+    </div>
+  </nav>
+
+  <div class="hero">
+    <span class="hero-emoji">🚀</span>
+    <h1>New Games</h1>
+    <p>This is where the brand new games will live. We’re cooking them up right now!</p>
+  </div>
+
+  <div class="empty-state">
+    <div class="big-emoji">🛠️✨</div>
+    <h2>Coming Very Soon</h2>
+    <p>
+      AJ & Ignacio are building fresh games exclusively for this page.<br>
+      Check back soon — the first new titles are on the way!
+    </p>
+    <span class="hint">New games will appear here</span>
+  </div>
+
+  <!-- This grid will be used once we start adding new games -->
+  <div class="games-grid" id="gamesGrid"></div>
+</div>
+
+<footer>
+  <p>Designed by <strong>AJ & Ignacio Rovira</strong> · <a href="/">AJ GameTime</a></p>
+</footer>
+
+<script>
+// Ready for new games. When we add them, put them in this array and show the grid.
+const NEW_GAMES = [];
+
+// Future rendering logic can go here.
+</script>
+</body>
+</html>
