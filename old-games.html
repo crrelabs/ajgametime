@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Old Games — AJ GameTime</title>
+<meta name="description" content="All the classic free browser games at AJ GameTime. Play 30+ games — no downloads needed!">
+<link rel="canonical" href="https://ajgametime.com/old-games.html">
+<meta name="robots" content="index, follow">
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@400;600;700;800&display=swap');
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --purple: #7c3aed;
+  --blue: #3b82f6;
+  --cyan: #06b6d4;
+  --pink: #ec4899;
+  --orange: #f97316;
+  --green: #22c55e;
+  --dark: #0c0a1a;
+  --card: #16132a;
+}
+
+body {
+  font-family: 'Nunito', sans-serif;
+  background: var(--dark);
+  color: #e2e8f0;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+.bg-glow {
+  position: fixed; top: -50%; left: -50%; width: 200%; height: 200%;
+  background: radial-gradient(circle at 30% 40%, rgba(124,58,237,0.15) 0%, transparent 50%),
+              radial-gradient(circle at 70% 60%, rgba(59,130,246,0.1) 0%, transparent 50%),
+              radial-gradient(circle at 50% 80%, rgba(236,72,153,0.08) 0%, transparent 50%);
+  animation: bgFloat 20s ease-in-out infinite; z-index: 0;
+}
+@keyframes bgFloat {
+  0%, 100% { transform: translate(0,0); }
+  33% { transform: translate(-2%,1%); }
+  66% { transform: translate(1%,-2%); }
+}
+
+.container { position: relative; z-index: 1; max-width: 1000px; margin: 0 auto; padding: 0 1.5rem; }
+
+/* Nav */
+.top-nav {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 1.25rem 0; gap: 1rem; flex-wrap: wrap;
+}
+.logo {
+  font-family: 'Lilita One', cursive; font-size: 1.5rem;
+  background: linear-gradient(135deg, var(--purple), var(--blue), var(--cyan));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  text-decoration: none;
+}
+.nav-links { display: flex; gap: 0.6rem; flex-wrap: wrap; }
+.nav-btn {
+  padding: 0.45rem 1rem; border-radius: 50px; font-size: 0.85rem; font-weight: 700;
+  text-decoration: none; transition: all 0.2s; font-family: 'Nunito', sans-serif;
+  border: 1.5px solid rgba(124,58,237,0.3); color: #94a3b8; background: rgba(22,19,42,0.6);
+}
+.nav-btn:hover { border-color: var(--purple); color: #e2e8f0; }
+.nav-btn.active { background: var(--purple); border-color: var(--purple); color: white; }
+.nav-btn.new { border-color: rgba(34,197,94,0.4); color: #4ade80; }
+.nav-btn.new:hover { background: rgba(34,197,94,0.15); color: #86efac; }
+
+/* Hero */
+.hero { text-align: center; padding: 2.5rem 0 1.5rem; }
+.hero h1 {
+  font-family: 'Lilita One', cursive;
+  font-size: clamp(2rem, 6vw, 3.2rem);
+  background: linear-gradient(135deg, #f59e0b, #f97316, #ef4444);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  margin-bottom: 0.4rem;
+}
+.hero p { color: #94a3b8; font-size: 1.05rem; font-weight: 600; }
+
+/* Controls */
+.controls { margin: 0 0 1.5rem; display: flex; flex-direction: column; gap: 0.75rem; }
+.search-bar {
+  display: flex; align-items: center; gap: 0.75rem;
+  background: rgba(22,19,42,0.8); border: 2px solid rgba(124,58,237,0.2);
+  border-radius: 16px; padding: 0.5rem 1rem; transition: border-color 0.2s;
+}
+.search-bar:focus-within { border-color: var(--purple); }
+.search-bar .icon { font-size: 1.3rem; opacity: 0.5; }
+.search-bar input {
+  flex: 1; background: none; border: none; outline: none;
+  color: #e2e8f0; font-family: 'Nunito', sans-serif; font-size: 1rem;
+}
+.search-bar input::placeholder { color: #4a4560; }
+.search-bar .count { font-size: 0.8rem; color: #4a4560; white-space: nowrap; }
+
+.filter-row { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
+.filter-label { font-size: 0.75rem; color: #4a4560; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 800; margin-right: 0.25rem; }
+.filter-btn {
+  padding: 0.35rem 0.85rem; border-radius: 50px; border: 1.5px solid rgba(124,58,237,0.2);
+  background: rgba(22,19,42,0.6); color: #94a3b8; font-size: 0.78rem; font-weight: 700;
+  cursor: pointer; transition: all 0.15s; font-family: 'Nunito', sans-serif;
+}
+.filter-btn:hover { border-color: var(--purple); color: #e2e8f0; }
+.filter-btn.active { background: var(--purple); border-color: var(--purple); color: white; }
+
+/* Games Grid */
+.games-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1.5rem; padding-bottom: 3rem;
+}
+.game-card {
+  background: var(--card); border: 2px solid rgba(124,58,237,0.15);
+  border-radius: 20px; overflow: hidden; text-decoration: none;
+  transition: all 0.3s; position: relative;
+}
+.game-card:hover { border-color: var(--purple); transform: translateY(-8px); box-shadow: 0 20px 60px rgba(124,58,237,0.2); }
+.card-preview {
+  height: 150px; display: flex; align-items: center; justify-content: center;
+  font-size: 3.8rem; position: relative; overflow: hidden;
+}
+.card-body { padding: 1.25rem; }
+.card-body h3 { font-family: 'Lilita One', cursive; font-size: 1.25rem; color: #e2e8f0; margin-bottom: 0.25rem; }
+.card-body p { color: #64748b; font-size: 0.85rem; line-height: 1.4; }
+.card-tag {
+  display: inline-block; margin-top: 0.75rem; padding: 0.25rem 0.75rem;
+  border-radius: 50px; font-size: 0.7rem; font-weight: 800;
+  text-transform: uppercase; letter-spacing: 0.05em;
+}
+.play-btn {
+  display: block; margin: 0.75rem 1.25rem 1.25rem; padding: 0.6rem;
+  text-align: center; border-radius: 12px; font-weight: 800;
+  font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em;
+  transition: all 0.2s; color: white;
+}
+.play-btn:hover { filter: brightness(1.15); transform: scale(1.02); }
+
+.cat-header {
+  font-family: 'Lilita One', cursive; font-size: 1.3rem; color: #94a3b8;
+  padding: 0.8rem 0 0.3rem; grid-column: 1 / -1;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+.no-results {
+  text-align: center; padding: 3rem 0; color: #4a4560; font-size: 1.1rem; display: none;
+  grid-column: 1 / -1;
+}
+.no-results.visible { display: block; }
+
+footer { text-align: center; padding: 2rem 0 3rem; color: #334155; font-size: 0.75rem; }
+footer a { color: #475569; text-decoration: none; }
+footer a:hover { color: #94a3b8; }
+</style>
+</head>
+<body>
+<div class="bg-glow"></div>
+
+<div class="container">
+  <nav class="top-nav">
+    <a href="/" class="logo">AJ GameTime</a>
+    <div class="nav-links">
+      <a href="/" class="nav-btn">Home</a>
+      <a href="old-games.html" class="nav-btn active">Old Games</a>
+      <a href="new-games.html" class="nav-btn new">New Games</a>
+    </div>
+  </nav>
+
+  <div class="hero">
+    <h1>🕹️ Old Games</h1>
+    <p>All the classic games — still free, still fun</p>
+  </div>
+
+  <div class="controls">
+    <div class="search-bar">
+      <span class="icon">🔍</span>
+      <input type="text" id="searchInput" placeholder="Search games..." autocomplete="off">
+      <span class="count" id="gameCount">33 games</span>
+    </div>
+    <div class="filter-row">
+      <span class="filter-label">Filter</span>
+      <button class="filter-btn active" data-filter="all">All</button>
+      <button class="filter-btn" data-filter="Arcade">Arcade</button>
+      <button class="filter-btn" data-filter="Action">Action</button>
+      <button class="filter-btn" data-filter="Puzzle">Puzzle</button>
+      <button class="filter-btn" data-filter="Sports">Sports</button>
+      <button class="filter-btn" data-filter="Adventure">Adventure</button>
+      <button class="filter-btn" data-filter="Tycoon">Tycoon</button>
+      <button class="filter-btn" data-filter="Racing">Racing</button>
+      <button class="filter-btn" data-filter="Strategy">Strategy</button>
+      <button class="filter-btn" data-filter="Shooter">Shooter</button>
+      <button class="filter-btn" data-filter="Board Game">Board Game</button>
+    </div>
+  </div>
+
+  <div class="games-grid" id="gamesGrid"></div>
+  <div class="no-results" id="noResults">
+    <div style="font-size:2.5rem;margin-bottom:0.5rem">🤔</div>
+    No games match your search. Try a different keyword!
+  </div>
+</div>
+
+<footer>
+  <p>Designed by <strong>AJ & Ignacio Rovira</strong> · <a href="/">AJ GameTime</a></p>
+</footer>
+
+<script>
+const GAMES = [
+  {
+    id: 'mining-tycoon', name: 'Mining Tycoon', href: 'mining-tycoon.html',
+    desc: 'Dig deep underground! Find rare ores, sell for cash, upgrade your pickaxe!',
+    category: 'Tycoon', emoji: '⛏️',
+    bg: 'linear-gradient(135deg, #78350f, #d97706)',
+    tagBg: 'rgba(245,158,11,0.2)', tagColor: '#fbbf24',
+    btnBg: 'linear-gradient(135deg, #f59e0b, #d97706)'
+  },
+  {
+    id: 'pac-chomp', name: 'Pac Chomp', href: 'pac-chomp.html',
+    desc: 'Eat all the dots, grab power pellets to chomp ghosts! Classic arcade maze action with 4 ghost AI types.',
+    category: 'Arcade', emoji: '😀',
+    bg: 'linear-gradient(135deg, #1a1a2e, #fbbf24)',
+    tagBg: 'rgba(251,191,36,0.2)', tagColor: '#fbbf24',
+    btnBg: 'linear-gradient(135deg, #fbbf24, #f59e0b)'
+  },
+  {
+    id: 'tiny-pool', name: 'Tiny Pool', href: 'tiny-pool.html',
+    desc: 'Pocket all the balls! Drag to aim & set power. Fewer shots = more points. Full shop with cues, tables & ball sets!',
+    category: 'Sports', emoji: '🎱',
+    bg: 'linear-gradient(135deg, #052e16, #16a34a)',
+    tagBg: 'rgba(34,197,94,0.2)', tagColor: '#4ade80',
+    btnBg: 'linear-gradient(135deg, #22c55e, #16a34a)'
+  },
+  {
+    id: 'pirate-ship-battle', name: 'Pirate Ship Battle', href: 'pirate-ship-battle.html',
+    desc: 'Sail the seas and blast enemy ships! Boss battles every 10 waves. Collect gold, upgrade your ship!',
+    category: 'Action', emoji: '🏴‍☠️',
+    bg: 'linear-gradient(135deg, #451a03, #d97706)',
+    tagBg: 'rgba(249,115,22,0.2)', tagColor: '#fb923c',
+    btnBg: 'linear-gradient(135deg, #f59e0b, #d97706)'
+  },
+  {
+    id: 'wordchain', name: 'Word Chain', href: 'wordle.html',
+    desc: 'Endless Wordle! Guess words that get harder and harder — 4 to 7 letters!',
+    category: 'Puzzle', emoji: '🔤',
+    bg: 'linear-gradient(135deg, #1e1b4b, #8b5cf6)',
+    tagBg: 'rgba(139,92,246,0.2)', tagColor: '#a78bfa',
+    btnBg: 'linear-gradient(135deg, #8b5cf6, #6d28d9)'
+  },
+  {
+    id: 'snake', name: 'Snake', href: 'snake.html',
+    desc: "Eat food to grow! Don't hit yourself or the walls. Power-ups, coins, and a full shop!",
+    category: 'Arcade', emoji: '🐍',
+    bg: 'linear-gradient(135deg, #052e16, #22c55e)',
+    tagBg: 'rgba(34,197,94,0.2)', tagColor: '#4ade80',
+    btnBg: 'linear-gradient(135deg, #22c55e, #16a34a)'
+  },
+  {
+    id: 'tictactoe', name: 'Tic Tac Toe', href: 'tictactoe.html',
+    desc: "The classic strategy game. Challenge a friend and prove you're the master!",
+    category: 'Strategy', emoji: '❌⭕',
+    bg: 'linear-gradient(135deg, #1e1b4b, #312e81)',
+    tagBg: 'rgba(124,58,237,0.2)', tagColor: '#a78bfa',
+    btnBg: 'linear-gradient(135deg, #7c3aed, #3b82f6)'
+  },
+  {
+    id: 'hoops', name: 'Shooting Hoops', href: 'hoops.html',
+    desc: '30 seconds on the clock — how many baskets can you drain? Build streaks for bonus points!',
+    category: 'Action', emoji: '🏀',
+    bg: 'linear-gradient(135deg, #431407, #7c2d12)',
+    tagBg: 'rgba(249,115,22,0.2)', tagColor: '#fb923c',
+    btnBg: 'linear-gradient(135deg, #f97316, #ef4444)'
+  },
+  {
+    id: 'tacorun', name: 'Taco Run!', href: 'taco-run.html',
+    desc: 'Run through the desert as a taco, collect peppers and dodge cacti! How far can you go?',
+    category: 'Action', emoji: '🌮🌶️',
+    bg: 'linear-gradient(135deg, #7c2d12, #d97706)',
+    tagBg: 'rgba(249,115,22,0.2)', tagColor: '#fb923c',
+    btnBg: 'linear-gradient(135deg, #d97706, #ef4444)'
+  },
+  {
+    id: 'roadracer', name: 'Road Racer', href: 'road-racer.html',
+    desc: 'Dodge traffic, collect coins, and floor it down the highway! How far can you drive?',
+    category: 'Racing', emoji: '🏎️💨',
+    bg: 'linear-gradient(135deg, #1e293b, #334155)',
+    tagBg: 'rgba(59,130,246,0.2)', tagColor: '#60a5fa',
+    btnBg: 'linear-gradient(135deg, #3b82f6, #8b5cf6)'
+  },
+  {
+    id: 'mousechase', name: 'Mouse Chase!', href: 'mouse-chase.html',
+    desc: "You're a mouse on the run! Collect moldy cheese while dodging traps, cats, and an angry human with a broom!",
+    category: 'Adventure', emoji: '🐭🧀',
+    bg: 'linear-gradient(135deg, #2a2230, #3d2f4a)',
+    tagBg: 'rgba(167,139,250,0.2)', tagColor: '#c4b5fd',
+    btnBg: 'linear-gradient(135deg, #a78bfa, #ec4899)'
+  },
+  {
+    id: 'lavaleap', name: 'Lava Leap', href: 'lava-leap.html',
+    desc: 'Jump across platforms over bubbling lava! Timing is everything.',
+    category: 'Action', emoji: '🌋',
+    bg: 'linear-gradient(135deg, #7c2d12, #ef4444)',
+    tagBg: 'rgba(239,68,68,0.2)', tagColor: '#f87171',
+    btnBg: 'linear-gradient(135deg, #ef4444, #f97316)'
+  },
+  {
+    id: 'hauntedhotel', name: 'Haunted Hotel', href: 'haunted-hotel.html',
+    desc: 'Explore a spooky hotel full of ghosts and secrets. Can you escape?',
+    category: 'Adventure', emoji: '👻🏨',
+    bg: 'linear-gradient(135deg, #1e1b4b, #312e81)',
+    tagBg: 'rgba(124,58,237,0.2)', tagColor: '#a78bfa',
+    btnBg: 'linear-gradient(135deg, #7c3aed, #6366f1)'
+  },
+  {
+    id: 'crabdash', name: 'Crab Dash', href: 'crab-dash.html',
+    desc: 'Dash across the beach as a speedy crab! Avoid obstacles and collect treasures.',
+    category: 'Action', emoji: '🦀',
+    bg: 'linear-gradient(135deg, #9a3412, #ea580c)',
+    tagBg: 'rgba(249,115,22,0.2)', tagColor: '#fb923c',
+    btnBg: 'linear-gradient(135deg, #ea580c, #f97316)'
+  },
+  {
+    id: 'skeletonbrawl', name: 'Skeleton Brawl', href: 'skeleton-brawl.html',
+    desc: 'Fight waves of skeletons in this action-packed brawler!',
+    category: 'Action', emoji: '💀⚔️',
+    bg: 'linear-gradient(135deg, #1c1917, #44403c)',
+    tagBg: 'rgba(161,161,170,0.2)', tagColor: '#a1a1aa',
+    btnBg: 'linear-gradient(135deg, #52525b, #71717a)'
+  },
+  {
+    id: 'ghostcatcher', name: 'Ghost Catcher!', href: 'ghost-catcher.html',
+    desc: 'Catch mischievous ghosts before they escape! Quick reflexes required.',
+    category: 'Action', emoji: '👻🎯',
+    bg: 'linear-gradient(135deg, #1e1b4b, #4c1d95)',
+    tagBg: 'rgba(139,92,246,0.2)', tagColor: '#a78bfa',
+    btnBg: 'linear-gradient(135deg, #7c3aed, #8b5cf6)'
+  },
+  {
+    id: 'oregontrail', name: 'Oregon Trail', href: 'oregon-trail.html',
+    desc: 'Relive the classic pioneer adventure! Hunt, ford rivers, and survive the journey west.',
+    category: 'Adventure', emoji: '🤠🐂',
+    bg: 'linear-gradient(135deg, #422006, #854d0e)',
+    tagBg: 'rgba(202,138,4,0.2)', tagColor: '#fbbf24',
+    btnBg: 'linear-gradient(135deg, #ca8a04, #eab308)'
+  },
+  {
+    id: 'numbermunchers', name: 'Number Munchers', href: 'number-munchers.html',
+    desc: 'Munch the right numbers! Classic educational arcade fun with multiples, factors & more.',
+    category: 'Puzzle', emoji: '🔢👾',
+    bg: 'linear-gradient(135deg, #14532d, #166534)',
+    tagBg: 'rgba(34,197,94,0.2)', tagColor: '#4ade80',
+    btnBg: 'linear-gradient(135deg, #16a34a, #22c55e)'
+  },
+  {
+    id: 'crossyroad', name: 'Crossy Road', href: 'crossy-road.html',
+    desc: "Hop across busy roads, rivers, and train tracks! Dodge cars, ride logs, and don't get squished.",
+    category: 'Arcade', emoji: '🐔🚗',
+    bg: 'linear-gradient(135deg, #166534, #22c55e)',
+    tagBg: 'rgba(34,197,94,0.2)', tagColor: '#4ade80',
+    btnBg: 'linear-gradient(135deg, #16a34a, #22c55e)'
+  },
+  {
+    id: 'balloonpop', name: 'Balloon Pop', href: 'balloon-pop.html',
+    desc: 'Pop colorful balloons as fast as you can! Tap them before they float away!',
+    category: 'Action', emoji: '🎈💥',
+    bg: 'linear-gradient(135deg, #9d174d, #ec4899)',
+    tagBg: 'rgba(236,72,153,0.2)', tagColor: '#f472b6',
+    btnBg: 'linear-gradient(135deg, #ec4899, #f97316)'
+  },
+  {
+    id: 'blocks', name: 'Block Stack', href: 'blocks.html',
+    desc: 'Stack the blocks as high as you can! Perfect timing required.',
+    category: 'Arcade', emoji: '🧱',
+    bg: 'linear-gradient(135deg, #1e3a8a, #3b82f6)',
+    tagBg: 'rgba(59,130,246,0.2)', tagColor: '#60a5fa',
+    btnBg: 'linear-gradient(135deg, #2563eb, #3b82f6)'
+  },
+  {
+    id: 'coconutcatch', name: 'Coconut Catch', href: 'coconut-catch.html',
+    desc: 'Catch falling coconuts in your basket! Watch out for the rotten ones!',
+    category: 'Action', emoji: '🥥🧺',
+    bg: 'linear-gradient(135deg, #422006, #854d0e)',
+    tagBg: 'rgba(180,83,9,0.2)', tagColor: '#fbbf24',
+    btnBg: 'linear-gradient(135deg, #b45309, #d97706)'
+  },
+  {
+    id: 'flagcollector', name: 'Flag Collector', href: 'flag-collector.html',
+    desc: 'Race around collecting flags! How many can you grab before time runs out?',
+    category: 'Action', emoji: '🚩',
+    bg: 'linear-gradient(135deg, #1e3a8a, #1d4ed8)',
+    tagBg: 'rgba(59,130,246,0.2)', tagColor: '#60a5fa',
+    btnBg: 'linear-gradient(135deg, #2563eb, #3b82f6)'
+  },
+  {
+    id: 'flappyparrot', name: 'Flappy Parrot', href: 'flappy-parrot.html',
+    desc: 'Flap through the jungle! Tap to fly and dodge the pipes. How far can you go?',
+    category: 'Arcade', emoji: '🦜🌴',
+    bg: 'linear-gradient(135deg, #14532d, #15803d)',
+    tagBg: 'rgba(34,197,94,0.2)', tagColor: '#4ade80',
+    btnBg: 'linear-gradient(135deg, #16a34a, #22c55e)'
+  },
+  {
+    id: 'housebuilder', name: 'House Builder', href: 'house-builder.html',
+    desc: 'Build your dream house piece by piece! Place walls, roofs, and decorations.',
+    category: 'Puzzle', emoji: '🏡',
+    bg: 'linear-gradient(135deg, #44403c, #78716c)',
+    tagBg: 'rgba(168,162,158,0.2)', tagColor: '#d6d3d1',
+    btnBg: 'linear-gradient(135deg, #57534e, #78716c)'
+  },
+  {
+    id: 'junglesurvival', name: 'Jungle Survival', href: 'jungle-survival.html',
+    desc: 'Survive in the wild jungle! Gather resources and avoid dangerous animals.',
+    category: 'Adventure', emoji: '🌴🦁',
+    bg: 'linear-gradient(135deg, #14532d, #166534)',
+    tagBg: 'rgba(34,197,94,0.2)', tagColor: '#4ade80',
+    btnBg: 'linear-gradient(135deg, #15803d, #16a34a)'
+  },
+  {
+    id: 'lawnmower', name: 'Lawn Mower', href: 'lawn-mower.html',
+    desc: 'Mow the entire lawn before time runs out! Watch out for rocks and garden gnomes!',
+    category: 'Action', emoji: '🏡🌱',
+    bg: 'linear-gradient(135deg, #166534, #65a30d)',
+    tagBg: 'rgba(101,163,13,0.2)', tagColor: '#a3e635',
+    btnBg: 'linear-gradient(135deg, #166534, #65a30d)'
+  },
+  {
+    id: 'spaceblasters', name: 'Space Blasters', href: 'space-blasters.html',
+    desc: 'Blast alien invaders in deep space! Collect power-ups and fight bosses!',
+    category: 'Shooter', emoji: '🚀👾',
+    bg: 'linear-gradient(135deg, #0c0a1a, #1e1b4b)',
+    tagBg: 'rgba(124,58,237,0.2)', tagColor: '#a78bfa',
+    btnBg: 'linear-gradient(135deg, #7c3aed, #ec4899)'
+  },
+  {
+    id: 'fruitninja', name: 'Fruit Ninja', href: 'fruit-ninja.html',
+    desc: "Swipe to slice fruit and avoid bombs! Build combos for massive points. 3 strikes and you're out!",
+    category: 'Action', emoji: '🍉🔪',
+    bg: 'linear-gradient(135deg, #7c2d12, #ef4444)',
+    tagBg: 'rgba(239,68,68,0.2)', tagColor: '#ef4444',
+    btnBg: 'linear-gradient(135deg, #ef4444, #f97316)'
+  },
+  {
+    id: 'brickbreaker', name: 'Brick Breaker', href: 'brick-breaker.html',
+    desc: 'Smash bricks with a bouncing ball! Power-ups, combos, fire ball, multi ball!',
+    category: 'Arcade', emoji: '🧱💥',
+    bg: 'linear-gradient(135deg, #ef4444, #f59e0b)',
+    tagBg: 'rgba(239,68,68,0.2)', tagColor: '#ef4444',
+    btnBg: 'linear-gradient(135deg, #ef4444, #f59e0b)'
+  },
+  {
+    id: 'wreckingball', name: 'Wrecking Ball', href: 'wrecking-ball.html',
+    desc: 'Swing a wrecking ball to demolish buildings! Time your release and smash every block!',
+    category: 'Arcade', emoji: '🏗️💥',
+    bg: 'linear-gradient(135deg, #1c1917, #f97316)',
+    tagBg: 'rgba(249,115,22,0.2)', tagColor: '#fb923c',
+    btnBg: 'linear-gradient(135deg, #f97316, #ef4444)'
+  },
+  {
+    id: 'snakesladders', name: 'Snakes & Ladders', href: 'snakes-ladders.html',
+    desc: 'Classic board game! Roll dice, climb ladders, avoid snakes. Race to square 100!',
+    category: 'Board Game', emoji: '🐍🪜',
+    bg: 'linear-gradient(135deg, #667eea, #764ba2)',
+    tagBg: 'rgba(102,126,234,0.2)', tagColor: '#818cf8',
+    btnBg: 'linear-gradient(135deg, #667eea, #764ba2)'
+  },
+  {
+    id: 'baconflip', name: 'Bacon Flip', href: 'bacon-flip.html',
+    desc: 'Flip bacon onto random objects and enjoy opera music when you land! Endless levels of crispy fun.',
+    category: 'Arcade', emoji: '🥓🎵',
+    bg: 'linear-gradient(135deg, #7c2d12, #c2410c)',
+    tagBg: 'rgba(249,115,22,0.2)', tagColor: '#fb923c',
+    btnBg: 'linear-gradient(135deg, #ea580c, #f97316)'
+  }
+];
+
+let currentFilter = 'all';
+
+function renderGames() {
+  const query = document.getElementById('searchInput').value.toLowerCase().trim();
+  let games = GAMES.filter(g => {
+    if (currentFilter !== 'all' && g.category !== currentFilter) return false;
+    if (query) {
+      const haystack = (g.name + ' ' + g.desc + ' ' + g.category).toLowerCase();
+      return haystack.includes(query);
+    }
+    return true;
+  });
+
+  document.getElementById('gameCount').textContent = `${games.length} game${games.length !== 1 ? 's' : ''}`;
+
+  const grid = document.getElementById('gamesGrid');
+  const noResults = document.getElementById('noResults');
+
+  if (games.length === 0) {
+    grid.innerHTML = '';
+    noResults.classList.add('visible');
+    return;
+  }
+  noResults.classList.remove('visible');
+
+  if (currentFilter === 'all' && !query) {
+    const cats = {};
+    games.forEach(g => {
+      if (!cats[g.category]) cats[g.category] = [];
+      cats[g.category].push(g);
+    });
+    const catEmojis = {
+      'Puzzle':'🧠','Racing':'🚗','Arcade':'🎯','Action':'⚡','Sports':'🏀',
+      'Adventure':'🗺️','Strategy':'♟️','Tycoon':'💰','Shooter':'🚀','Board Game':'🎲'
+    };
+    let html = '';
+    Object.keys(cats).sort().forEach(cat => {
+      html += `<div class="cat-header">${catEmojis[cat]||'🎮'} ${cat} Games</div>`;
+      cats[cat].forEach(g => {
+        html += cardHTML(g);
+      });
+    });
+    grid.innerHTML = html;
+  } else {
+    grid.innerHTML = games.map(cardHTML).join('');
+  }
+}
+
+function cardHTML(g) {
+  return `
+    <a href="${g.href}" class="game-card">
+      <div class="card-preview" style="background:${g.bg}">${g.emoji}</div>
+      <div class="card-body">
+        <h3>${g.name}</h3>
+        <p>${g.desc}</p>
+        <span class="card-tag" style="background:${g.tagBg};color:${g.tagColor}">${g.category}</span>
+      </div>
+      <div class="play-btn" style="background:${g.btnBg}">▶ Play Now</div>
+    </a>`;
+}
+
+document.getElementById('searchInput').addEventListener('input', renderGames);
+
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentFilter = btn.dataset.filter;
+    renderGames();
+  });
+});
+
+renderGames();
+</script>
+</body>
+</html>
