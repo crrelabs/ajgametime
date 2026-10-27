@@ -7,6 +7,7 @@
 <meta name="description" content="Brand new browser games at AJ GameTime. Play Agent Ops and more!">
 <link rel="canonical" href="https://ajgametime.com/new-games.html">
 <meta name="robots" content="index, follow">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@400;600;700;800&display=swap');
@@ -17,8 +18,6 @@
   --purple: #7c3aed;
   --blue: #3b82f6;
   --cyan: #06b6d4;
-  --pink: #ec4899;
-  --orange: #f97316;
   --green: #22c55e;
   --dark: #0c0a1a;
   --card: #16132a;
@@ -35,8 +34,7 @@ body {
 .bg-glow {
   position: fixed; top: -50%; left: -50%; width: 200%; height: 200%;
   background: radial-gradient(circle at 30% 40%, rgba(34,197,94,0.12) 0%, transparent 50%),
-              radial-gradient(circle at 70% 60%, rgba(59,130,246,0.1) 0%, transparent 50%),
-              radial-gradient(circle at 50% 80%, rgba(236,72,153,0.08) 0%, transparent 50%);
+              radial-gradient(circle at 70% 60%, rgba(59,130,246,0.1) 0%, transparent 50%);
   animation: bgFloat 20s ease-in-out infinite; z-index: 0;
 }
 @keyframes bgFloat {
@@ -66,7 +64,6 @@ body {
 .nav-btn:hover { border-color: var(--purple); color: #e2e8f0; }
 .nav-btn.active { background: var(--green); border-color: var(--green); color: white; }
 .nav-btn.old { border-color: rgba(249,115,22,0.4); color: #fb923c; }
-.nav-btn.old:hover { background: rgba(249,115,22,0.12); color: #fdba74; }
 
 .hero { text-align: center; padding: 2.5rem 0 1.5rem; }
 .hero-emoji { font-size: 3rem; display: block; margin-bottom: 0.5rem; }
@@ -94,6 +91,7 @@ body {
   text-decoration: none;
   transition: all 0.3s;
   display: block;
+  position: relative;
 }
 .game-card:hover {
   border-color: var(--green);
@@ -137,10 +135,7 @@ body {
   font-size: 0.9rem;
   color: white;
   background: linear-gradient(135deg, #22c55e, #06b6d4);
-  transition: filter 0.2s;
 }
-.play-btn:hover { filter: brightness(1.12); }
-
 .new-badge {
   position: absolute;
   top: 12px;
@@ -155,7 +150,6 @@ body {
 
 footer { text-align: center; padding: 2rem 0 3rem; color: #334155; font-size: 0.75rem; }
 footer a { color: #475569; text-decoration: none; }
-footer a:hover { color: #94a3b8; }
 </style>
 </head>
 <body>
@@ -178,7 +172,7 @@ footer a:hover { color: #94a3b8; }
   </div>
 
   <div class="games-grid">
-    <a href="agent-ops.html" class="game-card" style="position:relative;">
+    <a href="agent-ops.html" class="game-card">
       <span class="new-badge">NEW</span>
       <div class="card-preview">🕵️</div>
       <div class="card-body">
