@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>New Games — AJ GameTime</title>
-<meta name="description" content="Brand new browser games coming soon to AJ GameTime. Built by AJ & Ignacio Rovira.">
+<meta name="description" content="Brand new browser games at AJ GameTime. Play Agent Ops and more!">
 <link rel="canonical" href="https://ajgametime.com/new-games.html">
 <meta name="robots" content="index, follow">
 
@@ -47,7 +47,6 @@ body {
 
 .container { position: relative; z-index: 1; max-width: 1000px; margin: 0 auto; padding: 0 1.5rem; }
 
-/* Nav */
 .top-nav {
   display: flex; justify-content: space-between; align-items: center;
   padding: 1.25rem 0; gap: 1rem; flex-wrap: wrap;
@@ -69,60 +68,89 @@ body {
 .nav-btn.old { border-color: rgba(249,115,22,0.4); color: #fb923c; }
 .nav-btn.old:hover { background: rgba(249,115,22,0.12); color: #fdba74; }
 
-/* Hero */
-.hero { text-align: center; padding: 3rem 0 2rem; }
-.hero-emoji { font-size: 3.5rem; display: block; margin-bottom: 0.75rem; animation: bounce 2s ease-in-out infinite; }
-@keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
+.hero { text-align: center; padding: 2.5rem 0 1.5rem; }
+.hero-emoji { font-size: 3rem; display: block; margin-bottom: 0.5rem; }
 .hero h1 {
   font-family: 'Lilita One', cursive;
-  font-size: clamp(2.2rem, 7vw, 3.5rem);
+  font-size: clamp(2rem, 6vw, 3rem);
   background: linear-gradient(135deg, #22c55e, #06b6d4, #3b82f6);
   -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.4rem;
 }
-.hero p { color: #94a3b8; font-size: 1.1rem; font-weight: 600; max-width: 480px; margin: 0 auto; line-height: 1.5; }
+.hero p { color: #94a3b8; font-size: 1.05rem; font-weight: 600; }
 
-/* Empty state */
-.empty-state {
-  text-align: center;
-  margin: 2rem auto 4rem;
-  max-width: 520px;
-  padding: 3rem 2rem;
-  background: rgba(22,19,42,0.7);
-  border: 2px dashed rgba(34,197,94,0.25);
-  border-radius: 24px;
-}
-.empty-state .big-emoji { font-size: 4rem; margin-bottom: 1rem; }
-.empty-state h2 {
-  font-family: 'Lilita One', cursive;
-  font-size: 1.6rem;
-  color: #e2e8f0;
-  margin-bottom: 0.75rem;
-}
-.empty-state p {
-  color: #64748b;
-  font-size: 1rem;
-  line-height: 1.6;
-  margin-bottom: 1.5rem;
-}
-.empty-state .hint {
-  display: inline-block;
-  padding: 0.5rem 1.2rem;
-  background: rgba(34,197,94,0.12);
-  border: 1px solid rgba(34,197,94,0.3);
-  border-radius: 50px;
-  color: #4ade80;
-  font-size: 0.85rem;
-  font-weight: 700;
-}
-
-/* Future games placeholder grid (ready for later) */
 .games-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 1.5rem;
   padding-bottom: 3rem;
-  display: none; /* hidden until we have games */
+}
+
+.game-card {
+  background: var(--card);
+  border: 2px solid rgba(34,197,94,0.25);
+  border-radius: 20px;
+  overflow: hidden;
+  text-decoration: none;
+  transition: all 0.3s;
+  display: block;
+}
+.game-card:hover {
+  border-color: var(--green);
+  transform: translateY(-8px);
+  box-shadow: 0 20px 50px rgba(34,197,94,0.2);
+}
+.card-preview {
+  height: 160px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 4.5rem;
+  background: linear-gradient(135deg, #0c0a1a, #14532d);
+}
+.card-body { padding: 1.25rem; }
+.card-body h3 {
+  font-family: 'Lilita One', cursive;
+  font-size: 1.4rem;
+  color: #e2e8f0;
+  margin-bottom: 0.35rem;
+}
+.card-body p { color: #64748b; font-size: 0.9rem; line-height: 1.45; }
+.card-tag {
+  display: inline-block;
+  margin-top: 0.75rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 50px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  background: rgba(34,197,94,0.2);
+  color: #4ade80;
+}
+.play-btn {
+  display: block;
+  margin: 0.9rem 1.25rem 1.25rem;
+  padding: 0.7rem;
+  text-align: center;
+  border-radius: 12px;
+  font-weight: 800;
+  font-size: 0.9rem;
+  color: white;
+  background: linear-gradient(135deg, #22c55e, #06b6d4);
+  transition: filter 0.2s;
+}
+.play-btn:hover { filter: brightness(1.12); }
+
+.new-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: #22c55e;
+  color: white;
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 3px 10px;
+  border-radius: 20px;
 }
 
 footer { text-align: center; padding: 2rem 0 3rem; color: #334155; font-size: 0.75rem; }
@@ -146,32 +174,25 @@ footer a:hover { color: #94a3b8; }
   <div class="hero">
     <span class="hero-emoji">🚀</span>
     <h1>New Games</h1>
-    <p>This is where the brand new games will live. We’re cooking them up right now!</p>
+    <p>Brand new games built just for AJ GameTime</p>
   </div>
 
-  <div class="empty-state">
-    <div class="big-emoji">🛠️✨</div>
-    <h2>Coming Very Soon</h2>
-    <p>
-      AJ & Ignacio are building fresh games exclusively for this page.<br>
-      Check back soon — the first new titles are on the way!
-    </p>
-    <span class="hint">New games will appear here</span>
+  <div class="games-grid">
+    <a href="agent-ops.html" class="game-card" style="position:relative;">
+      <span class="new-badge">NEW</span>
+      <div class="card-preview">🕵️</div>
+      <div class="card-body">
+        <h3>Agent Ops</h3>
+        <p>First-person spy shooter inspired by GoldenEye. Infiltrate the facility, eliminate targets, and complete the mission!</p>
+        <span class="card-tag">3D FPS</span>
+      </div>
+      <div class="play-btn">▶ Play Now</div>
+    </a>
   </div>
-
-  <!-- This grid will be used once we start adding new games -->
-  <div class="games-grid" id="gamesGrid"></div>
 </div>
 
 <footer>
   <p>Designed by <strong>AJ & Ignacio Rovira</strong> · <a href="/">AJ GameTime</a></p>
 </footer>
-
-<script>
-// Ready for new games. When we add them, put them in this array and show the grid.
-const NEW_GAMES = [];
-
-// Future rendering logic can go here.
-</script>
 </body>
 </html>
