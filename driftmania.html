@@ -1,20 +1,18 @@
 <!DOCTYPE html>
-<html><head><meta charset="UTF-8"><title>DriftMania — AJ GameTime</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-</head><body style="margin:0;background:#0a0a12;color:#0ff;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh">
+<html lang="en"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>DriftMania — AJ GameTime</title>
+</head><body style="margin:0;background:#0a0a12;color:#0ff;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh">
 <div id="s">Loading DriftMania…</div>
 <script>
-(async () => {
-  const parts = 4;
-  let html = '';
-  for (let i = 0; i < parts; i++) {
-    const r = await fetch('driftmania-part' + i + '.txt');
-    if (!r.ok) { document.getElementById('s').textContent = 'Failed loading part ' + i; return; }
-    html += await r.text();
-  }
-  document.open();
-  document.write(html);
-  document.close();
-})();
+(async()=>{
+  const b64="H4sIAIsG4moC/819XXPbyLLYu38FVrsrEhJIAeCHKFKQjyzLXt9j2Yok754tl+ssSIIk1iDBA4CWtLKq7kvynEqlkrzlL+Qp9/3+lPML8hPS3fOBGQCkZO9uKufetYhBT89MT39NT8/g8Jvnb0+ufj4/NWbZPDp6coh/jMhfTL2tYLGFBYE/hj/zIPON0cxP0iDztt5dvWj0tkTxwp8H3tanMLhexkm2ZYziRRYsAOw6HGczbxx8CkdBgx4sI1yEWehHjXTkR4HnNG3LmPs34Xw1V4tWaZDQsz+EokWMbWVhFgVHz5Nwkp35i9A3/vmv/9U4/hfjJTR/Fc6Dwz0G8eQwzW7xr2H8JZxjl4xVEtVrsyxbpv29vQl0L21O43gaBf4yTJujeL43SlP36cSfh9Gt9zYZhlkSL/rX01n2l45tD/bhvwPb3uYAF/6v4xl0IQfoMqDtcZguI//WS6/9Zc0cQBd2jDsYYDINF33DHhhLfzwOF1P4=";
+  const bin=Uint8Array.from(atob(b64),c=>c.charCodeAt(0));
+  const ds=new DecompressionStream("gzip");
+  const stream=new Response(bin).body.pipeThrough(ds);
+  const html=await new Response(stream).text();
+  document.open();document.write(html);document.close();
+})().catch(e=>{document.getElementById("s").textContent="Load error: "+e;});
 </script>
 </body></html>
