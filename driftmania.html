@@ -8,8 +8,8 @@
 <script>
 (async()=>{
   try {
-    const base = 'https://cdn.jsdelivr.net/gh/crrelabs/ajgametime@93c7b1a2ef4350c9be4b9c96e4ab8e3ec37e79b5/';
-    const files = ['c0.txt','c1.txt','c2.txt','c3.txt','c4.txt','c5.txt','c6.txt','c7.txt'];
+    const base = 'https://cdn.jsdelivr.net/gh/crrelabs/ajgametime@main/';
+    const files = ['c0.txt','c1.txt','c2.txt','c3.txt','c4.txt','c5.txt','c6.txt','c7.txt','c8.txt','c9.txt'];
     let b64 = '';
     for (const f of files) {
       const r = await fetch(base + f + '?t=' + Date.now());
