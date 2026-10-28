@@ -8,10 +8,11 @@
 <script>
 (async()=>{
   try {
+    const base = 'https://cdn.jsdelivr.net/gh/crrelabs/ajgametime@main/';
     const files = ['x0a.txt','x0b.txt','x1a.txt','x1b.txt','x2a.txt','x2b.txt'];
     let b64 = '';
     for (const f of files) {
-      const r = await fetch(f);
+      const r = await fetch(base + f);
       if (!r.ok) throw new Error(f + ' missing');
       b64 += (await r.text()).trim();
     }
