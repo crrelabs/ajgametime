@@ -7,13 +7,23 @@
 <div id="s">Loading DriftMania…</div>
 <script>
 (async()=>{
-  const a=await (await fetch("dm-a.txt")).text();
-  const b=await (await fetch("dm-b.txt")).text();
-  const bin=Uint8Array.from(atob(a+b),c=>c.charCodeAt(0));
-  const ds=new DecompressionStream("gzip");
-  const stream=new Response(bin).body.pipeThrough(ds);
-  const html=await new Response(stream).text();
-  document.open();document.write(html);document.close();
-})().catch(e=>{document.getElementById("s").textContent="Load error: "+e;});
+  try {
+    let b64 = '';
+    for (let i = 0; i < 3; i++) {
+      const r = await fetch('dm_p' + i + '.txt');
+      if (!r.ok) throw new Error('part ' + i + ' missing');
+      b64 += (await r.text()).trim();
+    }
+    const bin = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+    const ds = new DecompressionStream('gzip');
+    const stream = new Response(bin).body.pipeThrough(ds);
+    const html = await new Response(stream).text();
+    document.open();
+    document.write(html);
+    document.close();
+  } catch (e) {
+    document.getElementById('s').textContent = 'Load error: ' + e;
+  }
+})();
 </script>
 </body></html>
