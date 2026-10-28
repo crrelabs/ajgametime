@@ -8,14 +8,9 @@
 <script>
 (async()=>{
   try {
-    const base = 'https://cdn.jsdelivr.net/gh/crrelabs/ajgametime@8ca4348a4b9b5389edb9a2d4a583c239285163e6/';
-    const files = ['c0.txt','c1.txt','c2.txt','c3.txt','c4.txt','c5.txt','c6.txt','c7.txt','c8.txt','c9.txt'];
-    let b64 = '';
-    for (const f of files) {
-      const r = await fetch(base + f + '?t=' + Date.now());
-      if (!r.ok) throw new Error(f + ' missing');
-      b64 += (await r.text()).trim();
-    }
+    const r = await fetch('https://cdn.jsdelivr.net/gh/crrelabs/ajgametime@main/dm.b64.txt?t=' + Date.now());
+    if (!r.ok) throw new Error('missing game data');
+    const b64 = (await r.text()).trim();
     const bin = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
     const ds = new DecompressionStream('gzip');
     const stream = new Response(bin).body.pipeThrough(ds);
