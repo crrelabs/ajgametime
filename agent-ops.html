@@ -33,9 +33,9 @@ canvas{display:block;width:100%;height:100%}
 .controls-hint{margin-top:1.2rem;font-size:.8rem;color:#64748b;line-height:1.6}
 #mobile-controls{display:none;position:absolute;inset:0;pointer-events:none;z-index:15}
 #mobile-controls.show{display:block}
-.joy-base{position:absolute;bottom:28px;left:24px;width:130px;height:130px;border-radius:50%;background:rgba(255,255,255,.1);border:2px solid rgba(255,255,255,.2);pointer-events:auto;touch-action:none}
-.joy-stick{position:absolute;width:56px;height:56px;border-radius:50%;background:rgba(255,255,255,.4);top:37px;left:37px;pointer-events:none}
-.fire-btn{position:absolute;bottom:36px;right:28px;width:88px;height:88px;border-radius:50%;background:rgba(239,68,68,.55);border:3px solid #ef4444;pointer-events:auto;display:flex;align-items:center;justify-content:center;font-size:1.1rem;color:#fff;font-weight:800;touch-action:none;user-select:none}
+.joy-base{position:absolute;bottom:28px;left:24px;width:150px;height:150px;border-radius:50%;background:rgba(255,255,255,.1);border:2px solid rgba(255,255,255,.2);pointer-events:auto;touch-action:none}
+.joy-stick{position:absolute;width:56px;height:56px;border-radius:50%;background:rgba(255,255,255,.4);top:47px;left:47px;pointer-events:none}
+.fire-btn{position:absolute;bottom:36px;right:28px;width:100px;height:100px;border-radius:50%;background:rgba(239,68,68,.55);border:3px solid #ef4444;pointer-events:auto;display:flex;align-items:center;justify-content:center;font-size:1.1rem;color:#fff;font-weight:800;touch-action:none;user-select:none}
 .look-hint{position:absolute;top:50%;right:20px;transform:translateY(-50%);writing-mode:vertical-rl;font-size:.7rem;color:rgba(255,255,255,.25);pointer-events:none;letter-spacing:1px}
 </style>
 </head>
@@ -66,15 +66,26 @@ canvas{display:block;width:100%;height:100%}
     <button class="btn secondary" id="m2">MISSION 2</button>
     <button class="btn secondary" id="m3">MISSION 3</button>
   </div>
+  <div style="margin:8px 0">
+    <button class="btn secondary" id="dEasy">EASY</button>
+    <button class="btn" id="dNorm">NORMAL</button>
+    <button class="btn secondary" id="dHard">HARD</button>
+  </div>
   <button class="btn" id="startBtn">START MISSION</button>
+  <div id="bestLine" style="margin-top:8px;font-size:.75rem;color:#94a3b8"></div>
   <div class="controls-hint" id="controlsHint">
-    <b>Keyboard:</b> WASD move · Mouse look (click to lock) · Space shoot · R reload · 1/2/3 weapons · Arrow keys look<br>
+    <b>Keyboard:</b> WASD move · Mouse look (click to lock) · Space shoot · R reload · 1/2/3 weapons · Arrow keys look · C crouch<br>
     <b>Touch:</b> Drag screen to look · Left stick move · FIRE button
   </div>
 </div>
 <div class="overlay" id="endScreen" style="display:none">
   <h1 id="endTitle">MISSION COMPLETE</h1>
   <p id="endText">Score: 0</p>
+  <div style="margin:10px 0">
+    <button class="btn secondary" id="upH">+HEALTH (100)</button>
+    <button class="btn secondary" id="upD">+DAMAGE (150)</button>
+    <button class="btn secondary" id="upS">+SPEED (120)</button>
+  </div>
   <button class="btn" id="retryBtn">NEXT / RETRY</button>
 </div>
 </div>
@@ -98,6 +109,17 @@ let audioCtx;
 function ensureAudio(){if(!audioCtx)audioCtx=new (window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();return audioCtx;}
 function beep(freq,dur,type,vol,slide){try{const ctx=ensureAudio();const o=ctx.createOscillator();const g=ctx.createGain();o.type=type||'square';o.frequency.setValueAtTime(freq,ctx.currentTime);if(slide)o.frequency.linearRampToValueAtTime(freq+slide,ctx.currentTime+dur);g.gain.setValueAtTime(vol||0.12,ctx.currentTime);g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+dur);o.connect(g);g.connect(ctx.destination);o.start();o.stop(ctx.currentTime+dur);}catch(e){}}
 function noiseBurst(dur,vol){try{const ctx=ensureAudio();const n=ctx.createBufferSource();const buf=ctx.createBuffer(1,ctx.sampleRate*dur,ctx.sampleRate);const data=buf.getChannelData(0);for(let i=0;i<data.length;i++)data[i]=(Math.random()*2-1)*(1-i/data.length);n.buffer=buf;const g=ctx.createGain();g.gain.value=vol||0.15;n.connect(g);g.connect(ctx.destination);n.start();}catch(e){}}
+let musicGain;
+function startMusic(){
+  try{
+    const ctx=ensureAudio();
+    if(musicGain)return;
+    musicGain=ctx.createGain();musicGain.gain.value=0.04;musicGain.connect(ctx.destination);
+    const o=ctx.createOscillator();o.type='sine';o.frequency.value=110;
+    const o2=ctx.createOscillator();o2.type='triangle';o2.frequency.value=165;
+    o.connect(musicGain);o2.connect(musicGain);o.start();o2.start();
+  }catch(e){}
+}
 const SFX={shoot:()=>{noiseBurst(0.06,0.18);beep(180,0.05,'square',0.06,-80)},hit:()=>beep(600,0.06,'square',0.1,-200),hurt:()=>beep(120,0.15,'sawtooth',0.14,-40),kill:()=>{beep(400,0.08,'square',0.1);setTimeout(()=>beep(280,0.12,'square',0.08),60)},reload:()=>beep(220,0.08,'triangle',0.08),win:()=>{[523,659,784].forEach((f,i)=>setTimeout(()=>beep(f,0.2,'square',0.1),i*120))},lose:()=>{beep(200,0.25,'sawtooth',0.12,-100)}};
 
 const WEAPONS={
@@ -105,7 +127,7 @@ const WEAPONS={
   2:{name:'SMG',dmg:12,rate:90,ammo:30,spread:0.04},
   3:{name:'SHOTGUN',dmg:10,rate:650,ammo:6,spread:0.12,pellets:6}
 };
-const state={health:100,score:0,ammo:12,maxAmmo:12,enemiesAlive:0,totalEnemies:0,gameActive:false,isReloading:false,keys:{},velocity:new THREE.Vector3(),lastShot:0,weapon:1,mission:1,objective:'kill',surviveTime:0,extract:null,lookYaw:0,lookPitch:0,moveX:0,moveZ:0,invulnUntil:0};
+const state={health:100,score:0,ammo:12,maxAmmo:12,enemiesAlive:0,totalEnemies:0,gameActive:false,isReloading:false,keys:{},velocity:new THREE.Vector3(),lastShot:0,weapon:1,mission:1,difficulty:1,objective:'kill',upgrades:{health:0,damage:0,speed:0},best:JSON.parse(localStorage.getItem('ao_best')||'{}'),surviveTime:0,extract:null,lookYaw:0,lookPitch:0,moveX:0,moveZ:0,invulnUntil:0};
 const walls=[],enemies=[],bullets=[];
 const wallMat=new THREE.MeshStandardMaterial({color:0x1e293b,roughness:0.8});
 const floorMat=new THREE.MeshStandardMaterial({color:0x111827,roughness:0.9});
@@ -113,14 +135,14 @@ const floor=new THREE.Mesh(new THREE.PlaneGeometry(50,50),floorMat);floor.rotati
 
 function addBox(w,h,d,x,y,z){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),wallMat);m.position.set(x,y,z);scene.add(m);walls.push(m);return m;}
 function clearLevel(){walls.forEach(w=>scene.remove(w));walls.length=0;enemies.forEach(e=>scene.remove(e));enemies.length=0;bullets.forEach(b=>scene.remove(b));bullets.length=0;}
-function createEnemy(x,z,hp,spd){
+function createEnemy(x,z,hp,spd){hp=(hp||40)*(0.7+state.difficulty*0.3);spd=(spd||1.4)*(0.8+state.difficulty*0.2);
   const g=new THREE.Group();
   const body=new THREE.Mesh(new THREE.CapsuleGeometry(0.32,0.85,4,8),new THREE.MeshStandardMaterial({color:0xef4444}));
   body.position.y=0.95;g.add(body);
   const head=new THREE.Mesh(new THREE.SphereGeometry(0.26,10,10),new THREE.MeshStandardMaterial({color:0xfca5a5}));
   head.position.y=1.75;g.add(head);
   g.position.set(x,0,z);
-  g.userData={health:hp||40,speed:spd||1.4,alive:true,shootCooldown:1};
+  g.userData={health:hp,speed:spd,alive:true,shootCooldown:1};
   scene.add(g);enemies.push(g);
 }
 function buildMission(n){
@@ -147,7 +169,7 @@ function buildMission(n){
     const bhead=new THREE.Mesh(new THREE.SphereGeometry(0.38,12,12),new THREE.MeshStandardMaterial({color:0xffaa66}));
     bhead.position.y=2.2;boss.add(bhead);
     boss.position.set(0,0,12);
-    boss.userData={health:180,speed:1.1,alive:true,shootCooldown:0.8,boss:true};
+    boss.userData={health:180*(0.7+state.difficulty*0.3),speed:1.1*(0.8+state.difficulty*0.2),alive:true,shootCooldown:0.8,boss:true};
     scene.add(boss);enemies.push(boss);
     const mark=new THREE.Mesh(new THREE.CylinderGeometry(1.2,1.2,0.2,16),new THREE.MeshStandardMaterial({color:0x22c55e,emissive:0x22c55e,emissiveIntensity:0.6}));
     mark.position.set(0,0.1,-16);scene.add(mark);
@@ -199,7 +221,7 @@ function shoot(){
       if(enemy.userData?.alive){
         const enemyPos=enemy.position.clone().setY(1.2);
         if(hasLineOfSight(camera.position,enemyPos)){
-          enemy.userData.health-=w.dmg;SFX.hit();
+          enemy.userData.health-=w.dmg*(1+state.upgrades.damage*0.25);SFX.hit();
           if(enemy.userData.health<=0)killEnemy(enemy);
         }
       }
@@ -211,8 +233,8 @@ function shoot(){
 }
 function killEnemy(enemy){enemy.userData.alive=false;state.enemiesAlive--;state.score+=enemy.userData.boss?300:100;enemy.rotation.x=-Math.PI/2;enemy.position.y=0.2;SFX.kill();updateHUD();updateObjective();if(state.objective==='kill'&&state.enemiesAlive<=0)endGame(true);}
 function reload(){if(state.isReloading||state.ammo===state.maxAmmo)return;state.isReloading=true;SFX.reload();document.getElementById('ammo').textContent='RELOAD...';setTimeout(()=>{state.ammo=state.maxAmmo;state.isReloading=false;updateHUD();},1000);}
-function takeDamage(amt){if(performance.now()<state.invulnUntil)return;state.health=Math.max(0,state.health-amt);SFX.hurt();updateHUD();const f=document.getElementById('damage-flash');f.style.opacity='1';setTimeout(()=>f.style.opacity='0',140);if(state.health<=0)endGame(false);}
-function updateHUD(){document.getElementById('health-fill').style.width=state.health+'%';document.getElementById('score').textContent='SCORE: '+state.score;if(!state.isReloading)document.getElementById('ammo').textContent=state.ammo+' / '+state.maxAmmo;document.getElementById('weapon-hud').textContent=WEAPONS[state.weapon].name+' ['+state.weapon+']';}
+function takeDamage(amt){if(performance.now()<state.invulnUntil)return;if(state.keys['KeyC'])amt*=0.6;state.health=Math.max(0,state.health-amt);SFX.hurt();updateHUD();const f=document.getElementById('damage-flash');f.style.opacity='1';setTimeout(()=>f.style.opacity='0',140);if(state.health<=0)endGame(false);}
+function updateHUD(){document.getElementById('health-fill').style.width=Math.min(100,state.health)+'%';document.getElementById('score').textContent='SCORE: '+state.score;if(!state.isReloading)document.getElementById('ammo').textContent=state.ammo+' / '+state.maxAmmo;document.getElementById('weapon-hud').textContent=WEAPONS[state.weapon].name+' ['+state.weapon+']';}
 function updateObjective(){
   if(state.objective==='survive'){
     const left=Math.max(0,45-state.surviveTime);
@@ -231,7 +253,7 @@ function startGame(){
   document.getElementById('startScreen').style.display='none';
   document.getElementById('endScreen').style.display='none';
   document.getElementById('hud').style.display='block';
-  state.gameActive=true;state.health=100;state.score=0;
+  state.gameActive=true;state.health=100+state.upgrades.health*25;state.score=0;startMusic();
   switchWeapon(state.weapon);
   state.lookYaw=0;state.lookPitch=0;
   state.invulnUntil=performance.now()+2000;
@@ -245,7 +267,9 @@ function endGame(win){
   state.gameActive=false;
   if(win)SFX.win();else SFX.lose();
   document.getElementById('endTitle').textContent=win?'MISSION COMPLETE':'MISSION FAILED';
-  document.getElementById('endText').textContent='Score: '+state.score+' · Mission '+state.mission;
+  const key='m'+state.mission+'d'+state.difficulty;
+  if(win&&(!state.best[key]||state.score>state.best[key])){state.best[key]=state.score;localStorage.setItem('ao_best',JSON.stringify(state.best));}
+  document.getElementById('endText').textContent='Score: '+state.score+' · Mission '+state.mission+(state.best[key]?' · Best: '+state.best[key]:'');
   document.getElementById('endScreen').style.display='flex';
   document.getElementById('mobile-controls').classList.remove('show');
   if(controls.isLocked)controls.unlock();
@@ -335,7 +359,7 @@ function animate(){
     if(state.objective==='survive'){state.surviveTime+=dt;updateObjective();if(state.surviveTime>=45)endGame(true);}
     if(state.objective==='extract'&&state.enemiesAlive<=0&&state.extract){const d=camera.position.distanceTo(state.extract.position);if(d<2.2)endGame(true);}
     if(isTouch&&!controls.isLocked){camera.rotation.order='YXZ';camera.rotation.y=state.lookYaw;camera.rotation.x=state.lookPitch;}
-    const speed=(state.keys['ShiftLeft']||state.keys['ShiftRight'])?6.5:4.2;
+    const speed=((state.keys['ShiftLeft']||state.keys['ShiftRight'])?6.5:4.2)*(1+state.upgrades.speed*0.15)*(state.keys['KeyC']?0.55:1);
     state.velocity.x*=(1-12*dt);state.velocity.z*=(1-12*dt);
     let inputX=0,inputZ=0;
     if(isTouch){inputX=state.moveX;inputZ=state.moveZ;}
@@ -351,7 +375,7 @@ function animate(){
     const old=camera.position.clone();
     camera.position.x+=state.velocity.x*dt;
     camera.position.z+=state.velocity.z*dt;
-    camera.position.y=1.6;
+    camera.position.y=state.keys['KeyC']?1.0:1.6;
     if(collides(camera.position)){camera.position.copy(old);state.velocity.set(0,0,0);}
     enemies.forEach(e=>{
       if(!e.userData.alive)return;
@@ -382,8 +406,19 @@ animate();
 document.getElementById('m1').onclick=()=>{state.mission=1;flashMission(1);};
 document.getElementById('m2').onclick=()=>{state.mission=2;flashMission(2);};
 document.getElementById('m3').onclick=()=>{state.mission=3;flashMission(3);};
-function flashMission(n){document.querySelectorAll('#startScreen .btn').forEach(b=>b.classList.add('secondary'));document.getElementById('m'+n).classList.remove('secondary');document.getElementById('startBtn').textContent='START MISSION '+n;}
+function flashMission(n){document.querySelectorAll('#startScreen .btn').forEach(b=>b.classList.add('secondary'));document.getElementById('m'+n).classList.remove('secondary');document.getElementById('startBtn').textContent='START MISSION '+n;showBest();}
+document.getElementById('dEasy').onclick=()=>{state.difficulty=0.7;setDiff(0);showBest();};
+document.getElementById('dNorm').onclick=()=>{state.difficulty=1;setDiff(1);showBest();};
+document.getElementById('dHard').onclick=()=>{state.difficulty=1.4;setDiff(2);showBest();};
+function setDiff(i){['dEasy','dNorm','dHard'].forEach((id,n)=>document.getElementById(id).classList.toggle('secondary',n!==i));}
+function showBest(){const b=state.best['m'+state.mission+'d'+state.difficulty];document.getElementById('bestLine').textContent=b?'Best score: '+b:'No best yet';}
+showBest();
 document.getElementById('startBtn').onclick=startGame;
+function buy(key,cost){if(state.score>=cost){state.score-=cost;state.upgrades[key]++;localStorage.setItem('ao_up',JSON.stringify(state.upgrades));document.getElementById('endText').textContent='Score: '+state.score+' · Upgraded '+key;}}
+document.getElementById('upH').onclick=()=>buy('health',100);
+document.getElementById('upD').onclick=()=>buy('damage',150);
+document.getElementById('upS').onclick=()=>buy('speed',120);
+const savedUp=localStorage.getItem('ao_up');if(savedUp)state.upgrades=JSON.parse(savedUp);
 document.getElementById('retryBtn').onclick=()=>{document.getElementById('endScreen').style.display='none';document.getElementById('startScreen').style.display='flex';};
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
 if(isTouch)document.getElementById('controlsHint').innerHTML='🕹️ Left stick = Move<br>👆 Drag screen = Look<br>🔴 FIRE = Shoot<br>Arrow keys also look';
