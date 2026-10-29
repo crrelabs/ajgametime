@@ -35,6 +35,11 @@ button:active{transform:scale(.96)}
   <p>Parkour across rooftops. Wall-run, grapple, and reach the finish.<br>
   <b>WASD</b> move · <b>Space</b> jump · <b>Shift</b> slide · <b>E</b> grapple<br>
   Touch: joystick + JUMP + GRAPPLE</p>
+  <div style="margin:8px 0">
+    <button id="lvl1">LEVEL 1</button>
+    <button id="lvl2">LEVEL 2</button>
+    <button id="lvl3">LEVEL 3</button>
+  </div>
   <button id="startNormal">NORMAL RUN</button>
   <button id="startGhost" style="background:#fff">TIME ATTACK GHOST</button>
   <button id="openShop" style="background:#ffaa00;color:#000">SHOP / CUSTOMIZE</button>
@@ -173,46 +178,80 @@ function addRoof(x,y,z,w,d,color){
   addBox(x,y+1.2,z+d/2-0.15,w,0.5,0.3,0x3a3a4a);
   if(Math.random()>0.45)addBox(x+(Math.random()-0.5)*w*0.4,y+1.2,z+(Math.random()-0.5)*d*0.3,1.1,0.65,1.1,0x555566);
 }
-function buildLevel(){
+function clearLevel(){
+  for(const m of pieces)scene.remove(m);
+  pieces.length=0;
+  movers.length=0;
+  for(const c of coins)scene.remove(c.mesh);
+  coins.length=0;
+}
+function buildLevel(lvl){
+  clearLevel();
+  p.level=lvl;
   addRoof(0,2,0,10,12,0x2a2a3e);
-  for(let i=0;i<15;i++){
-    const z=14+i*9.2;
-    const x=(i%5-2)*4.6;
-    const y=2+Math.sin(i*0.55)*2.1;
-    addRoof(x,y,z,6+Math.random()*2.5,5+Math.random()*1.5,i%2?0x2a3344:0x332a44);
-    if(i%3===0)addCoin(x,y+1.2,z);
+  if(lvl===1){
+    for(let i=0;i<14;i++){
+      const z=14+i*9;
+      const x=(i%5-2)*4.2;
+      const y=2+Math.sin(i*0.5)*1.6;
+      addRoof(x,y,z,6.5,5,i%2?0x2a3344:0x332a44);
+      if(i%3===0)addCoin(x,y+1.2,z);
+    }
+    for(let i=0;i<3;i++){
+      const z=150+i*12;
+      const elev=addBox(0,3,z,4.5,0.4,3.5,0x00aacc,0x00ffff);
+      movers.push({mesh:elev,base:3,amp:1.8,speed:0.7+i*0.1,phase:i});
+    }
+    addRoof(0,4,200,8,6,0x00ff66);
+  }else if(lvl===2){
+    for(let i=0;i<16;i++){
+      const z=12+i*8.5;
+      const x=(i%4-1.5)*5.5;
+      const y=2.5+Math.sin(i*0.7)*2.4;
+      addRoof(x,y,z,5.5,4.5,i%2?0x3a2a44:0x2a3a44);
+      if(i%2===0)addCoin(x,y+1.2,z);
+    }
+    for(let i=0;i<4;i++){
+      const z=155+i*11;
+      addBox(-5.2,0,z,1.2,10,7,0x223355,0x112244);
+      addBox(5.2,0,z,1.2,10,7,0x223355,0x112244);
+    }
+    for(let i=0;i<3;i++){
+      const z=160+i*10;
+      const elev=addBox((i%2?2:-2),4,z,3.5,0.35,3,0xff3366,0xff0044);
+      movers.push({mesh:elev,base:4,amp:2.5,speed:1+i*0.2,phase:i*1.5});
+    }
+    addRoof(0,5,210,7,5,0x00ff66);
+  }else{
+    for(let i=0;i<18;i++){
+      const z=10+i*8;
+      const x=(i%6-2.5)*4.8;
+      const y=3+Math.sin(i*0.85)*3;
+      addRoof(x,y,z,5,4,i%3?0x2a3344:0x442a33);
+      if(i%2===1)addCoin(x,y+1.2,z);
+    }
+    for(let i=0;i<5;i++){
+      const z=160+i*9;
+      const elev=addBox(0,5,z,3.5,0.3,2.8,0x00ffaa,0x00ff88);
+      movers.push({mesh:elev,base:5,amp:3,speed:1.2+i*0.15,phase:i});
+    }
+    for(let i=0;i<3;i++){
+      const z=170+i*12;
+      addBox(-6,0,z,1.4,12,6,0x112233,0x004488);
+      addBox(6,0,z,1.4,12,6,0x112233,0x004488);
+    }
+    addRoof(0,6,220,8,6,0x00ff66);
   }
-  for(let i=0;i<4;i++){
-    const z=155+i*14;
-    const elev=addBox(0,3,z,4.5,0.4,3.5,0x00aacc,0x00ffff);
-    movers.push({mesh:elev,base:3,amp:2.2,speed:0.8+i*0.15,phase:i});
-  }
-  for(let i=0;i<4;i++){
-    const z=160+i*12;
-    addBox(-4.8,0,z,1.1,9,7,0x223355,0x112244);
-    addBox(4.8,0,z,1.1,9,7,0x223355,0x112244);
-  }
-  addRoof(0,4,218,7,5,0x00aacc);
-  addRoof(7,6.2,232,5,4,0xff3366);
-  addRoof(-6,7.8,246,6,4,0x00ffaa);
-  addRoof(0,5,266,10,8,0x00ff66);
-  for(let i=0;i<12;i++){
-    const z=i*22-18;
+  for(let i=0;i<10;i++){
+    const z=i*22-15;
     const side=i%2?-1:1;
-    const h=12+Math.random()*16;
+    const h=10+Math.random()*14;
     addBox(side*18,0,z,5,h,6,0x1a1a2a,Math.random()>0.5?0x004488:0x440066);
   }
-  for(let i=0;i<6;i++){
-    const z=28+i*36;
-    const ring=new THREE.Mesh(new THREE.TorusGeometry(1.25,0.07,8,16),
-      new THREE.MeshStandardMaterial({color:0x00ffcc,emissive:0x00ffaa,emissiveIntensity:0.7}));
-    ring.position.set((i%3-1)*3,5.2+Math.sin(i),z);
-    ring.rotation.x=Math.PI/2;scene.add(ring);
-  }
 }
-buildLevel();
+buildLevel(1);
 
-const p={pos:new THREE.Vector3(0,4,0),vel:new THREE.Vector3(),onGround:false,wallRun:0,coyote:0,jumpBuf:0,speed:0,time:0,running:false,finished:false,grappling:false};
+const p={pos:new THREE.Vector3(0,4,0),vel:new THREE.Vector3(),onGround:false,wallRun:0,coyote:0,jumpBuf:0,speed:0,time:0,running:false,finished:false,grappling:false,grappleCd:0,level:1};
 const keys={};
 addEventListener('keydown',e=>{keys[e.code]=true;if(e.code==='Space')p.jumpBuf=0.16;if(e.code==='KeyE')doGrapple();});
 addEventListener('keyup',e=>keys[e.code]=false);
@@ -237,8 +276,9 @@ document.getElementById('jumpBtn').addEventListener('pointerdown',e=>{e.preventD
 document.getElementById('grappleBtn').addEventListener('pointerdown',e=>{e.preventDefault();doGrapple();});
 
 function doGrapple(){
-  if(!p.running||p.grappling)return;
+  if(!p.running||p.grappling||p.grappleCd>0)return;
   p.grappling=true;
+  p.grappleCd=2.5;
   p.vel.y=Math.max(p.vel.y,12);
   p.vel.z+=8;
   flash('GRAPPLE');
@@ -274,8 +314,9 @@ function collide(){
 function update(dt){
   if(!p.running||p.finished)return;
   p.time+=dt;
+  if(p.grappleCd>0)p.grappleCd-=dt;
   document.getElementById('time').textContent=p.time.toFixed(1)+'s';
-  document.getElementById('coins').textContent=state.coins+' coins';
+  document.getElementById('coins').textContent=state.coins+' coins'+(p.grappleCd>0?' | HOOK '+p.grappleCd.toFixed(1):'');
 
   for(const mv of movers){
     const y=mv.base+Math.sin(p.time*mv.speed+mv.phase)*mv.amp;
@@ -345,7 +386,8 @@ function update(dt){
     ghost.position.set(best.x,best.y,best.z);
   }else ghost.visible=false;
 
-  if(p.pos.z>262&&!p.finished){
+  const finishZ=p.level===1?195:p.level===2?205:215;
+  if(p.pos.z>finishZ&&!p.finished){
     p.finished=true;p.running=false;
     if(state.mode==='ghost'&&recording.length){
       const prev=ghostPath.length?ghostPath[ghostPath.length-1].t:9999;
@@ -379,6 +421,7 @@ function flash(t){
 
 function startRun(mode){
   state.mode=mode;save();
+  buildLevel(p.level||1);
   document.getElementById('overlay').style.display='none';
   p.pos.set(0,5,0);p.vel.set(0,0,0);p.time=0;p.running=true;p.finished=false;
   recording=[];
@@ -388,6 +431,9 @@ function startRun(mode){
   document.getElementById('msg').classList.remove('show');
   applySky();
 }
+document.getElementById('lvl1').onclick=()=>{p.level=1;flash('LEVEL 1');};
+document.getElementById('lvl2').onclick=()=>{p.level=2;flash('LEVEL 2');};
+document.getElementById('lvl3').onclick=()=>{p.level=3;flash('LEVEL 3');};
 document.getElementById('startNormal').onclick=()=>startRun('normal');
 document.getElementById('startGhost').onclick=()=>startRun('ghost');
 document.getElementById('openShop').onclick=()=>{
