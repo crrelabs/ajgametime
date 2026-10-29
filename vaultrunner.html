@@ -147,6 +147,42 @@ function rebuildPlayer(){
 rebuildPlayer();
 scene.add(player);
 
+const audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+function beep(freq,dur,type,vol){
+  if(audioCtx.state==='suspended')audioCtx.resume();
+  const o=audioCtx.createOscillator();
+  const g=audioCtx.createGain();
+  o.type=type||'sine';
+  o.frequency.value=freq;
+  g.gain.setValueAtTime(vol||0.15,audioCtx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+dur);
+  o.connect(g);g.connect(audioCtx.destination);
+  o.start();o.stop(audioCtx.currentTime+dur);
+}
+function playJump(){beep(520,0.12,'square',0.1);beep(780,0.08,'sine',0.08);}
+function playGrapple(){beep(180,0.25,'sawtooth',0.12);beep(420,0.15,'square',0.08);}
+function playCoin(){beep(880,0.08,'sine',0.1);beep(1320,0.1,'sine',0.08);}
+function playFinish(){beep(523,0.15,'sine',0.12);beep(659,0.15,'sine',0.12);beep(784,0.3,'sine',0.14);}
+function playWall(){beep(340,0.1,'square',0.08);}
+let musicGain,musicOsc;
+function startMusic(){
+  if(audioCtx.state==='suspended')audioCtx.resume();
+  if(musicOsc)return;
+  musicGain=audioCtx.createGain();
+  musicGain.gain.value=0.04;
+  musicGain.connect(audioCtx.destination);
+  musicOsc=audioCtx.createOscillator();
+  musicOsc.type='triangle';
+  musicOsc.frequency.value=110;
+  musicOsc.connect(musicGain);
+  musicOsc.start();
+  setInterval(()=>{
+    if(!musicOsc)return;
+    const notes=[110,146,164,196,220];
+    musicOsc.frequency.setValueAtTime(notes[Math.floor(Math.random()*notes.length)],audioCtx.currentTime);
+  },800);
+}
+
 const ghost=new THREE.Group();
 ghost.visible=false;
 const gBody=new THREE.Mesh(new THREE.CapsuleGeometry(0.3,0.8,4,8),
@@ -249,9 +285,9 @@ function buildLevel(lvl){
     addBox(side*18,0,z,5,h,6,0x1a1a2a,Math.random()>0.5?0x004488:0x440066);
   }
 }
+const p={pos:new THREE.Vector3(0,4,0),vel:new THREE.Vector3(),onGround:false,wallRun:0,coyote:0,jumpBuf:0,speed:0,time:0,running:false,finished:false,grappling:false,grappleCd:0,level:1};
 buildLevel(1);
 
-const p={pos:new THREE.Vector3(0,4,0),vel:new THREE.Vector3(),onGround:false,wallRun:0,coyote:0,jumpBuf:0,speed:0,time:0,running:false,finished:false,grappling:false,grappleCd:0,level:1};
 const keys={};
 addEventListener('keydown',e=>{keys[e.code]=true;if(e.code==='Space')p.jumpBuf=0.16;if(e.code==='KeyE')doGrapple();});
 addEventListener('keyup',e=>keys[e.code]=false);
@@ -281,7 +317,7 @@ function doGrapple(){
   p.grappleCd=2.5;
   p.vel.y=Math.max(p.vel.y,12);
   p.vel.z+=8;
-  flash('GRAPPLE');
+  flash('GRAPPLE');playGrapple();
   setTimeout(()=>p.grappling=false,420);
 }
 
@@ -355,13 +391,13 @@ function update(dt){
   if(p.wallRun!==0){
     p.vel.y=Math.max(p.vel.y,-1.4);
     p.vel.z=Math.max(p.vel.z,15);
-    if(p.jumpBuf>0){p.vel.y=10.5;p.vel.x=p.wallRun*-9.5;p.wallRun=0;p.jumpBuf=0;flash('WALL JUMP');}
+    if(p.jumpBuf>0){p.vel.y=10.5;p.vel.x=p.wallRun*-9.5;p.wallRun=0;p.jumpBuf=0;flash('WALL JUMP');playWall();}
   }
 
   if(!p.onGround)p.vel.y-=24*dt;else p.vel.y=Math.max(0,p.vel.y);
   if(p.onGround)p.coyote=0.13;else p.coyote-=dt;
   if(p.jumpBuf>0)p.jumpBuf-=dt;
-  if(p.jumpBuf>0&&(p.onGround||p.coyote>0)){p.vel.y=10.2;p.onGround=false;p.jumpBuf=0;}
+  if(p.jumpBuf>0&&(p.onGround||p.coyote>0)){p.vel.y=10.2;p.onGround=false;p.jumpBuf=0;playJump();}
 
   p.pos.addScaledVector(p.vel,dt);
   collide();
@@ -369,7 +405,7 @@ function update(dt){
   for(const c of coins){
     if(c.got)continue;
     if(p.pos.distanceTo(c.mesh.position)<1.3){
-      c.got=true;c.mesh.visible=false;state.coins+=5;save();flash('+5');
+      c.got=true;c.mesh.visible=false;state.coins+=5;save();flash('+5');playCoin();
     }
     c.mesh.rotation.z+=dt*3;
   }
@@ -393,7 +429,7 @@ function update(dt){
       const prev=ghostPath.length?ghostPath[ghostPath.length-1].t:9999;
       if(p.time<prev){ghostPath=recording.slice();localStorage.setItem(SAVE+'_ghost',JSON.stringify(ghostPath));flash('NEW GHOST!');}
     }
-    document.getElementById('msg').textContent='FINISH  '+p.time.toFixed(2)+'s';
+    playFinish();document.getElementById('msg').textContent='FINISH  '+p.time.toFixed(2)+'s';
     document.getElementById('msg').classList.add('show');
     setTimeout(()=>document.getElementById('overlay').style.display='flex',1400);
     document.querySelector('#overlay h1').textContent='RUN COMPLETE';
@@ -420,6 +456,7 @@ function flash(t){
 }
 
 function startRun(mode){
+  startMusic();
   state.mode=mode;save();
   buildLevel(p.level||1);
   document.getElementById('overlay').style.display='none';
