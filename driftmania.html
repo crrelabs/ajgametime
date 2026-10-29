@@ -8,11 +8,11 @@
 <script>
 (async()=>{
   try {
-    const base = 'https://cdn.jsdelivr.net/gh/crrelabs/ajgametime@main/';
+    const base = 'https://cdn.jsdelivr.net/gh/crrelabs/ajgametime@e08134d30a1cb5d33501bf353a119ce26df891c4/';
     const files = ['p0.txt','p1.txt','p2.txt','p3.txt','p4.txt','p5.txt','p6.txt','p7.txt','p8.txt','p9.txt','p10.txt','p11.txt','p12.txt','p13.txt'];
     let b64 = '';
     for (const f of files) {
-      const r = await fetch(base + f + '?t=' + Date.now());
+      const r = await fetch(base + f);
       if (!r.ok) throw new Error(f + ' missing');
       b64 += (await r.text()).trim();
     }
