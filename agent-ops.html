@@ -68,7 +68,8 @@ canvas{display:block;width:100%;height:100%}
   </div>
   <button class="btn" id="startBtn">START MISSION</button>
   <div class="controls-hint" id="controlsHint">
-    <b>Keyboard:</b> WASD move · Mouse look · Click or Space shoot · R reload · 1/2/3 weapons · Shift sprint
+    <b>Keyboard:</b> WASD move · Mouse look (click to lock) · Space shoot · R reload · 1/2/3 weapons · Arrow keys look<br>
+    <b>Touch:</b> Drag screen to look · Left stick move · FIRE button
   </div>
 </div>
 <div class="overlay" id="endScreen" style="display:none">
@@ -159,13 +160,12 @@ function buildMission(n){
 const raycaster=new THREE.Raycaster();
 const bulletMat=new THREE.MeshBasicMaterial({color:0xffff88});
 function getLookDirection(){
-  if(isTouch){
-    const dir=new THREE.Vector3(0,0,-1);
-    dir.applyEuler(new THREE.Euler(state.lookPitch,state.lookYaw,0,'YXZ'));
-    return dir;
-  }
   const dir=new THREE.Vector3(0,0,-1);
-  dir.applyQuaternion(camera.quaternion);
+  if(isTouch&&!controls.isLocked){
+    dir.applyEuler(new THREE.Euler(state.lookPitch,state.lookYaw,0,'YXZ'));
+  }else{
+    dir.applyQuaternion(camera.quaternion);
+  }
   return dir;
 }
 function hasLineOfSight(from,to){
@@ -239,7 +239,7 @@ function startGame(){
   buildMission(state.mission);
   updateHUD();updateObjective();
   if(isTouch)document.getElementById('mobile-controls').classList.add('show');
-  else controls.lock();
+  if(!isTouch)controls.lock();
 }
 function endGame(win){
   state.gameActive=false;
@@ -253,11 +253,13 @@ function endGame(win){
 
 const controls={locked:false,lock(){canvas.requestPointerLock();},unlock(){document.exitPointerLock();},get isLocked(){return document.pointerLockElement===canvas;}};
 document.addEventListener('mousemove',e=>{
-  if(!state.gameActive||isTouch||!controls.isLocked)return;
-  camera.rotation.order='YXZ';
-  camera.rotation.y-=e.movementX*0.002;
-  camera.rotation.x-=e.movementY*0.002;
-  camera.rotation.x=Math.max(-1.4,Math.min(1.4,camera.rotation.x));
+  if(!state.gameActive)return;
+  if(controls.isLocked){
+    camera.rotation.order='YXZ';
+    camera.rotation.y-=e.movementX*0.0022;
+    camera.rotation.x-=e.movementY*0.0022;
+    camera.rotation.x=Math.max(-1.4,Math.min(1.4,camera.rotation.x));
+  }
 });
 document.addEventListener('keydown',e=>{
   state.keys[e.code]=true;
@@ -266,6 +268,10 @@ document.addEventListener('keydown',e=>{
   if(e.code==='Digit1')switchWeapon(1);
   if(e.code==='Digit2')switchWeapon(2);
   if(e.code==='Digit3')switchWeapon(3);
+  if(e.code==='ArrowLeft')state.lookYaw+=0.1;
+  if(e.code==='ArrowRight')state.lookYaw-=0.1;
+  if(e.code==='ArrowUp')state.lookPitch+=0.08;
+  if(e.code==='ArrowDown')state.lookPitch-=0.08;
 });
 document.addEventListener('keyup',e=>state.keys[e.code]=false);
 canvas.addEventListener('click',()=>{if(state.gameActive&&!isTouch){if(!controls.isLocked)controls.lock();else shoot();}});
@@ -278,19 +284,28 @@ function moveJoy(t){const r=joy.getBoundingClientRect();const dx=t.clientX-(r.le
 function endJoy(){joyId=null;state.moveX=0;state.moveZ=0;stick.style.transform='translate(0,0)';}
 joy.addEventListener('touchend',endJoy);joy.addEventListener('touchcancel',endJoy);
 document.getElementById('fireBtn').addEventListener('touchstart',e=>{e.preventDefault();shoot();},{passive:false});
-let lookTouch=null;
-canvas.addEventListener('touchstart',e=>{if(e.target===canvas&&state.gameActive){lookTouch=e.changedTouches[0].identifier;}},{passive:false});
-canvas.addEventListener('touchmove',e=>{
+let lookTouch=null,lastLookX=0,lastLookY=0;
+canvas.addEventListener('touchstart',e=>{
   if(!state.gameActive)return;
   for(const t of e.changedTouches){
-    if(t.identifier===lookTouch){
-      state.lookYaw-=(t.clientX-(t._lx||t.clientX))*0.004;
-      state.lookPitch-=(t.clientY-(t._ly||t.clientY))*0.004;
-      state.lookPitch=Math.max(-1.2,Math.min(1.2,state.lookPitch));
-      t._lx=t.clientX;t._ly=t.clientY;
-    }
+    if(t.clientX<160&&t.clientY>innerHeight-180)continue;
+    if(t.clientX>innerWidth-140&&t.clientY>innerHeight-180)continue;
+    lookTouch=t.identifier;lastLookX=t.clientX;lastLookY=t.clientY;
   }
 },{passive:false});
+canvas.addEventListener('touchmove',e=>{
+  if(!state.gameActive||lookTouch===null)return;
+  for(const t of e.changedTouches){
+    if(t.identifier!==lookTouch)continue;
+    const dx=t.clientX-lastLookX;
+    const dy=t.clientY-lastLookY;
+    state.lookYaw-=dx*0.005;
+    state.lookPitch-=dy*0.004;
+    state.lookPitch=Math.max(-1.2,Math.min(1.2,state.lookPitch));
+    lastLookX=t.clientX;lastLookY=t.clientY;
+  }
+},{passive:false});
+canvas.addEventListener('touchend',e=>{for(const t of e.changedTouches){if(t.identifier===lookTouch)lookTouch=null;}});
 
 function collides(pos){const r=0.45;for(const w of walls){const b=new THREE.Box3().setFromObject(w);b.expandByScalar(r);b.min.y=0;b.max.y=4;if(b.containsPoint(pos))return true;}if(Math.abs(pos.x)>22||Math.abs(pos.z)>22)return true;return false;}
 
@@ -319,7 +334,7 @@ function animate(){
     }
     if(state.objective==='survive'){state.surviveTime+=dt;updateObjective();if(state.surviveTime>=45)endGame(true);}
     if(state.objective==='extract'&&state.enemiesAlive<=0&&state.extract){const d=camera.position.distanceTo(state.extract.position);if(d<2.2)endGame(true);}
-    if(isTouch){camera.rotation.order='YXZ';camera.rotation.y=state.lookYaw;camera.rotation.x=state.lookPitch;}
+    if(isTouch&&!controls.isLocked){camera.rotation.order='YXZ';camera.rotation.y=state.lookYaw;camera.rotation.x=state.lookPitch;}
     const speed=(state.keys['ShiftLeft']||state.keys['ShiftRight'])?6.5:4.2;
     state.velocity.x*=(1-12*dt);state.velocity.z*=(1-12*dt);
     let inputX=0,inputZ=0;
@@ -327,7 +342,7 @@ function animate(){
     else{inputZ=Number(state.keys['KeyW'])-Number(state.keys['KeyS']);inputX=Number(state.keys['KeyD'])-Number(state.keys['KeyA']);}
     if(inputX||inputZ){
       const len=Math.hypot(inputX,inputZ)||1;inputX/=len;inputZ/=len;
-      const yaw=isTouch?state.lookYaw:camera.rotation.y;
+      const yaw=isTouch&&!controls.isLocked?state.lookYaw:camera.rotation.y;
       const forward=new THREE.Vector3(0,0,-1).applyAxisAngle(new THREE.Vector3(0,1,0),yaw);
       const right=new THREE.Vector3(1,0,0).applyAxisAngle(new THREE.Vector3(0,1,0),yaw);
       state.velocity.add(forward.multiplyScalar(inputZ*speed*14*dt));
@@ -371,7 +386,7 @@ function flashMission(n){document.querySelectorAll('#startScreen .btn').forEach(
 document.getElementById('startBtn').onclick=startGame;
 document.getElementById('retryBtn').onclick=()=>{document.getElementById('endScreen').style.display='none';document.getElementById('startScreen').style.display='flex';};
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
-if(isTouch)document.getElementById('controlsHint').innerHTML='🕹️ Left stick = Move<br>👆 Drag screen = Look<br>🔴 FIRE = Shoot';
+if(isTouch)document.getElementById('controlsHint').innerHTML='🕹️ Left stick = Move<br>👆 Drag screen = Look<br>🔴 FIRE = Shoot<br>Arrow keys also look';
 </script>
 </body>
 </html>
