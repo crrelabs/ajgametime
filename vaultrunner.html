@@ -227,7 +227,7 @@ function joyPos(e){
   const max=48;const len=Math.hypot(dx,dy);
   if(len>max){dx=dx/len*max;dy=dy/len*max;}
   knob.style.left=(34+dx)+'px';knob.style.top=(34+dy)+'px';
-  joyX=dx/max;joyY=-dy/max;
+  joyX=-dx/max;joyY=-dy/max;
 }
 joy.addEventListener('pointerdown',e=>{joyActive=true;joy.setPointerCapture(e.pointerId);joyPos(e);});
 joy.addEventListener('pointermove',e=>{if(joyActive)joyPos(e);});
