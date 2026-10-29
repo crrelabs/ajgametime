@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Vault Runner — AJ GameTime</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{background:#05050a;color:#fff;font-family:system-ui,sans-serif;overflow:hidden;touch-action:none}
+#c{display:block;width:100vw;height:100vh}
+#hud{position:fixed;top:0;left:0;right:0;padding:14px 18px;display:flex;justify-content:space-between;pointer-events:none;z-index:5;font-weight:700}
+#hud span{text-shadow:0 0 12px #0ff}
+#msg{position:fixed;top:38%;left:50%;transform:translate(-50%,-50%);font-size:2.4rem;font-weight:900;color:#0ff;text-shadow:0 0 30px #0ff;opacity:0;pointer-events:none;z-index:6;transition:opacity .15s}
+#msg.show{opacity:1}
+#overlay{position:fixed;inset:0;background:rgba(5,5,15,.92);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:10;text-align:center;padding:20px}
+#overlay h1{font-size:3.2rem;color:#0ff;text-shadow:0 0 40px #0ff;margin-bottom:8px;letter-spacing:2px}
+#overlay p{max-width:480px;margin:10px 0 24px;opacity:.85;line-height:1.4}
+button{background:#0ff;color:#000;border:none;padding:14px 36px;font-size:1.1rem;font-weight:800;border-radius:8px;cursor:pointer;margin:6px;box-shadow:0 0 20px #0ff}
+button:active{transform:scale(.96)}
+#touch{position:fixed;bottom:18px;left:0;right:0;display:flex;justify-content:space-between;padding:0 18px;z-index:8;pointer-events:none}
+.tb{width:72px;height:72px;border-radius:50%;background:rgba(0,255,255,.15);border:2px solid #0ff;color:#0ff;font-size:1.6rem;font-weight:900;pointer-events:auto;display:flex;align-items:center;justify-content:center}
+.tb:active{background:rgba(0,255,255,.35)}
+@media(min-width:900px){#touch{display:none}}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="hud"><span id="spd">0</span><span id="time">0.0s</span></div>
+<div id="msg"></div>
+<div id="overlay">
+  <h1>VAULT RUNNER</h1>
+  <p>Neon parkour. Wall-run, jump, and chain speed through the rooftops.<br><br>
+  <b>WASD / Arrows</b> move · <b>Space</b> jump · <b>Shift</b> slide<br>
+  Touch: use the on-screen buttons</p>
+  <button id="start">START RUN</button>
+</div>
+<div id="touch">
+  <button class="tb" id="left">◀</button>
+  <button class="tb" id="jump">▲</button>
+  <button class="tb" id="right">▶</button>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+<script>
+const canvas=document.getElementById('c');
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:'high-performance'});
+renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));
+renderer.setSize(innerWidth,innerHeight);
+renderer.shadowMap.enabled=true;
+renderer.shadowMap.type=THREE.BasicShadowMap;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure=1.15;
+
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0x0a0a18);
+scene.fog=new THREE.FogExp2(0x0a0a18,0.008);
+
+const camera=new THREE.PerspectiveCamera(70,innerWidth/innerHeight,0.1,400);
+camera.position.set(0,4,-8);
+
+scene.add(new THREE.AmbientLight(0x334466,0.6));
+scene.add(new THREE.HemisphereLight(0x4466aa,0x111122,0.4));
+const sun=new THREE.DirectionalLight(0xffeedd,1.1);
+sun.position.set(30,50,20);
+sun.castShadow=true;
+sun.shadow.mapSize.set(1024,1024);
+sun.shadow.camera.near=5;sun.shadow.camera.far=120;
+sun.shadow.camera.left=-40;sun.shadow.camera.right=40;
+sun.shadow.camera.top=40;sun.shadow.camera.bottom=-40;
+scene.add(sun);
+
+const player=new THREE.Group();
+const body=new THREE.Mesh(
+  new THREE.CapsuleGeometry(0.35,0.9,6,12),
+  new THREE.MeshStandardMaterial({color:0x00f0ff,emissive:0x00aacc,emissiveIntensity:0.3,metalness:0.4,roughness:0.3})
+);
+body.castShadow=true;
+body.position.y=0.9;
+player.add(body);
+const visor=new THREE.Mesh(
+  new THREE.BoxGeometry(0.5,0.18,0.15),
+  new THREE.MeshStandardMaterial({color:0x111122,emissive:0x00ffff,emissiveIntensity:0.8})
+);
+visor.position.set(0,1.15,0.25);
+player.add(visor);
+scene.add(player);
+
+const p={
+  pos:new THREE.Vector3(0,2,0),
+  vel:new THREE.Vector3(),
+  onGround:false,
+  wallRun:0,
+  coyote:0,
+  jumpBuf:0,
+  speed:0,
+  time:0,
+  running:false,
+  finished:false
+};
+
+const keys={};
+addEventListener('keydown',e=>{keys[e.code]=true;if(e.code==='Space')p.jumpBuf=0.15});
+addEventListener('keyup',e=>keys[e.code]=false);
+
+const leftBtn=document.getElementById('left'),rightBtn=document.getElementById('right'),jumpBtn=document.getElementById('jump');
+function bindTouch(el,code){
+  el.addEventListener('pointerdown',e=>{e.preventDefault();keys[code]=true;if(code==='Space')p.jumpBuf=0.18});
+  el.addEventListener('pointerup',()=>keys[code]=false);
+  el.addEventListener('pointerleave',()=>keys[code]=false);
+}
+bindTouch(leftBtn,'KeyA');
+bindTouch(rightBtn,'KeyD');
+bindTouch(jumpBtn,'Space');
+
+const pieces=[];
+function addBox(x,y,z,w,h,d,color,emissive){
+  const m=new THREE.Mesh(
+    new THREE.BoxGeometry(w,h,d),
+    new THREE.MeshStandardMaterial({color,emissive:emissive||0x000000,emissiveIntensity:emissive?0.4:0,roughness:0.6,metalness:0.2})
+  );
+  m.position.set(x,y+h/2,z);
+  m.castShadow=true;m.receiveShadow=true;
+  m.userData={type:'solid',min:new THREE.Vector3(x-w/2,y,z-d/2),max:new THREE.Vector3(x+w/2,y+h,z+d/2)};
+  scene.add(m);pieces.push(m);
+  return m;
+}
+function addWall(x,y,z,w,h,d,color){
+  return addBox(x,y,z,w,h,d,color||0x222244,0x112244);
+}
+
+function buildLevel(){
+  addBox(0,0,0,8,0.5,12,0x1a1a2e);
+  for(let i=0;i<18;i++){
+    const z=8+i*7;
+    const x=(i%4-1.5)*3.2;
+    const y=Math.sin(i*0.4)*1.5+0.2;
+    addBox(x,y,z,4.5,0.4,3.2,i%2?0x1a2a3e:0x2a1a3e,i%3?0x004466:0x440066);
+  }
+  for(let i=0;i<6;i++){
+    const z=140+i*10;
+    addWall(-3.2,0,z,0.6,6,8,0x223366);
+    addWall(3.2,0,z,0.6,6,8,0x223366);
+    if(i%2===0) addBox(0,0.2,z+4,2.5,0.3,2,0x334455);
+  }
+  addBox(0,1,210,5,0.5,4,0x00aacc,0x00ffff);
+  addBox(6,2.5,224,4,0.5,3,0xff3366,0xff0044);
+  addBox(-5,4,238,4.5,0.5,3.5,0x00ffaa,0x00ff88);
+  addBox(0,3,255,6,0.5,5,0x1a1a2e);
+  addBox(0,2,275,8,0.6,6,0x00ff66,0x00ff88);
+  for(let i=0;i<12;i++){
+    const z=i*22-10;
+    const side=i%2?-1:1;
+    const h=8+Math.random()*14;
+    addBox(side*14,0,z,4,h,6,0x111122,Math.random()>0.5?0x00aaff:0xff00aa);
+  }
+  for(let i=0;i<8;i++){
+    const z=20+i*30;
+    const ring=new THREE.Mesh(
+      new THREE.TorusGeometry(1.2,0.08,8,20),
+      new THREE.MeshStandardMaterial({color:0x00ffcc,emissive:0x00ffaa,emissiveIntensity:0.7})
+    );
+    ring.position.set((i%3-1)*2,2.2+Math.sin(i)*0.5,z);
+    ring.rotation.x=Math.PI/2;
+    scene.add(ring);
+  }
+}
+
+buildLevel();
+
+function collide(){
+  p.onGround=false;
+  const px=p.pos.x,py=p.pos.y,pz=p.pos.z;
+  const r=0.35,h=1.7;
+  for(const m of pieces){
+    const b=m.userData;
+    if(!b)continue;
+    const min=b.min,max=b.max;
+    if(px+r>min.x&&px-r<max.x&&pz+r>min.z&&pz-r<max.z&&py+h>min.y&&py<max.y+0.05){
+      if(p.vel.y<=0&&py>max.y-0.4&&py<max.y+0.3){
+        p.pos.y=max.y;
+        p.vel.y=0;
+        p.onGround=true;
+        p.wallRun=0;
+      }
+    }
+  }
+  p.wallRun=0;
+  if(!p.onGround){
+    for(const m of pieces){
+      const b=m.userData;if(!b)continue;
+      const min=b.min,max=b.max;
+      if(Math.abs(max.y-min.y)<3)continue;
+      const closeL=Math.abs(px-(min.x))-r<0.25&&pz>min.z-0.5&&pz<max.z+0.5&&py>min.y&&py<max.y;
+      const closeR=Math.abs(px-(max.x))-r<0.25&&pz>min.z-0.5&&pz<max.z+0.5&&py>min.y&&py<max.y;
+      if(closeL&&(keys['KeyA']||keys['ArrowLeft']))p.wallRun=-1;
+      if(closeR&&(keys['KeyD']||keys['ArrowRight']))p.wallRun=1;
+    }
+  }
+}
+
+function update(dt){
+  if(!p.running||p.finished)return;
+  p.time+=dt;
+  document.getElementById('time').textContent=p.time.toFixed(1)+'s';
+
+  const left=keys['KeyA']||keys['ArrowLeft'];
+  const right=keys['KeyD']||keys['ArrowRight'];
+  const up=keys['KeyW']||keys['ArrowUp'];
+  const down=keys['KeyS']||keys['ArrowDown'];
+  const slide=keys['ShiftLeft']||keys['ShiftRight'];
+
+  let wish=new THREE.Vector3();
+  if(up)wish.z+=1;
+  if(down)wish.z-=1;
+  if(left)wish.x-=1;
+  if(right)wish.x+=1;
+  if(wish.lengthSq()>0)wish.normalize();
+
+  const accel=p.onGround?42:18;
+  const maxSpd=p.onGround?(slide?22:16):20;
+  p.vel.x=THREE.MathUtils.lerp(p.vel.x,wish.x*maxSpd,accel*dt*0.15);
+  p.vel.z=THREE.MathUtils.lerp(p.vel.z,wish.z*maxSpd,accel*dt*0.15);
+
+  if(p.wallRun!==0){
+    p.vel.y=Math.max(p.vel.y,-2);
+    p.vel.z=Math.max(p.vel.z,14);
+    if(p.jumpBuf>0){
+      p.vel.y=9;
+      p.vel.x=p.wallRun*-8;
+      p.wallRun=0;
+      p.jumpBuf=0;
+      flash('WALL JUMP');
+    }
+  }
+
+  if(!p.onGround)p.vel.y-=22*dt;
+  else p.vel.y=Math.max(0,p.vel.y);
+
+  if(p.onGround)p.coyote=0.12;else p.coyote-=dt;
+  if(p.jumpBuf>0)p.jumpBuf-=dt;
+  if(p.jumpBuf>0&&(p.onGround||p.coyote>0)){
+    p.vel.y=9.2;
+    p.onGround=false;
+    p.jumpBuf=0;
+  }
+
+  p.pos.addScaledVector(p.vel,dt);
+  collide();
+
+  if(p.pos.y<-8){
+    p.pos.set(0,3,0);
+    p.vel.set(0,0,0);
+    flash('RESET');
+  }
+
+  if(p.pos.z>272&&!p.finished){
+    p.finished=true;
+    p.running=false;
+    document.getElementById('msg').textContent='FINISH  '+p.time.toFixed(2)+'s';
+    document.getElementById('msg').classList.add('show');
+    setTimeout(()=>document.getElementById('overlay').style.display='flex',1400);
+    document.querySelector('#overlay h1').textContent='RUN COMPLETE';
+    document.querySelector('#overlay p').textContent='Time: '+p.time.toFixed(2)+'s';
+    document.getElementById('start').textContent='RUN AGAIN';
+  }
+
+  p.speed=Math.hypot(p.vel.x,p.vel.z);
+  document.getElementById('spd').textContent=Math.round(p.speed*3.6)+' km/h';
+
+  player.position.copy(p.pos);
+  player.position.y+=0.05;
+  const lean=THREE.MathUtils.clamp(-p.vel.x*0.04, -0.4,0.4);
+  player.rotation.z=THREE.MathUtils.lerp(player.rotation.z,lean,8*dt);
+  player.rotation.x=THREE.MathUtils.lerp(player.rotation.x,p.vel.z*0.01,6*dt);
+
+  const camTarget=p.pos.clone().add(new THREE.Vector3(0,3.2,-7));
+  camera.position.lerp(camTarget,1-Math.pow(0.05,dt));
+  camera.lookAt(p.pos.x,p.pos.y+1.2,p.pos.z+4);
+}
+
+function flash(t){
+  const m=document.getElementById('msg');
+  m.textContent=t;
+  m.classList.add('show');
+  setTimeout(()=>m.classList.remove('show'),600);
+}
+
+document.getElementById('start').onclick=()=>{
+  document.getElementById('overlay').style.display='none';
+  p.pos.set(0,2,0);
+  p.vel.set(0,0,0);
+  p.time=0;
+  p.running=true;
+  p.finished=false;
+  document.getElementById('msg').classList.remove('show');
+};
+
+addEventListener('resize',()=>{
+  camera.aspect=innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth,innerHeight);
+});
+
+let last=performance.now();
+function loop(now){
+  const dt=Math.min(0.05,(now-last)/1000);
+  last=now;
+  update(dt);
+  renderer.render(scene,camera);
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
