@@ -302,7 +302,7 @@ function update(dt){
   const slide=keys['ShiftLeft']||keys['ShiftRight'];
 
   let wish=new THREE.Vector3();
-  if(up)wish.z+=1;if(down)wish.z-=1;if(left)wish.x-=1;if(right)wish.x+=1;
+  if(up)wish.z+=1;if(down)wish.z-=1;if(left)wish.x+=1;if(right)wish.x-=1;
   if(wish.lengthSq()>0)wish.normalize();
 
   const baseSpd=state.shoes?20:16;
