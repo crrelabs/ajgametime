@@ -9,7 +9,7 @@
 (async()=>{
   try {
     const base = 'https://cdn.jsdelivr.net/gh/crrelabs/ajgametime@main/';
-    const files = ['dm_a.txt','dm_b.txt'];
+    const files = ['p0.txt','p1.txt','p2.txt','p3.txt','p4.txt','p5.txt','p6.txt','p7.txt','p8.txt','p9.txt','p10.txt','p11.txt','p12.txt','p13.txt'];
     let b64 = '';
     for (const f of files) {
       const r = await fetch(base + f + '?t=' + Date.now());
