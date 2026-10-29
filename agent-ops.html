@@ -139,7 +139,15 @@ function buildMission(n){
     state.objective='extract';
     addBox(3,3,3,-10,1.5,-8);addBox(3,3,3,10,1.5,-8);addBox(3,3,3,-10,1.5,8);addBox(3,3,3,10,1.5,8);
     addBox(14,3,1,0,1.5,0);
-    createEnemy(-8,-10,60,1.8);createEnemy(8,-10,60,1.8);createEnemy(-8,10,55,1.6);createEnemy(8,10,55,1.6);createEnemy(0,-14,80,1.4);createEnemy(0,12,70,1.5);
+    createEnemy(-8,-10,60,1.8);createEnemy(8,-10,60,1.8);createEnemy(-8,10,55,1.6);createEnemy(8,10,55,1.6);createEnemy(0,-14,80,1.4);
+    const boss=new THREE.Group();
+    const bbody=new THREE.Mesh(new THREE.CapsuleGeometry(0.5,1.2,4,8),new THREE.MeshStandardMaterial({color:0xff6600,emissive:0xff2200,emissiveIntensity:0.3}));
+    bbody.position.y=1.2;boss.add(bbody);
+    const bhead=new THREE.Mesh(new THREE.SphereGeometry(0.38,12,12),new THREE.MeshStandardMaterial({color:0xffaa66}));
+    bhead.position.y=2.2;boss.add(bhead);
+    boss.position.set(0,0,12);
+    boss.userData={health:180,speed:1.1,alive:true,shootCooldown:0.8,boss:true};
+    scene.add(boss);enemies.push(boss);
     const mark=new THREE.Mesh(new THREE.CylinderGeometry(1.2,1.2,0.2,16),new THREE.MeshStandardMaterial({color:0x22c55e,emissive:0x22c55e,emissiveIntensity:0.6}));
     mark.position.set(0,0.1,-16);scene.add(mark);
     state.extract=mark;
@@ -201,7 +209,7 @@ function shoot(){
     b.userData={dir:dir.clone(),life:0.3};scene.add(b);bullets.push(b);
   }
 }
-function killEnemy(enemy){enemy.userData.alive=false;state.enemiesAlive--;state.score+=100;enemy.rotation.x=-Math.PI/2;enemy.position.y=0.2;SFX.kill();updateHUD();updateObjective();if(state.objective==='kill'&&state.enemiesAlive<=0)endGame(true);}
+function killEnemy(enemy){enemy.userData.alive=false;state.enemiesAlive--;state.score+=enemy.userData.boss?300:100;enemy.rotation.x=-Math.PI/2;enemy.position.y=0.2;SFX.kill();updateHUD();updateObjective();if(state.objective==='kill'&&state.enemiesAlive<=0)endGame(true);}
 function reload(){if(state.isReloading||state.ammo===state.maxAmmo)return;state.isReloading=true;SFX.reload();document.getElementById('ammo').textContent='RELOAD...';setTimeout(()=>{state.ammo=state.maxAmmo;state.isReloading=false;updateHUD();},1000);}
 function takeDamage(amt){if(performance.now()<state.invulnUntil)return;state.health=Math.max(0,state.health-amt);SFX.hurt();updateHUD();const f=document.getElementById('damage-flash');f.style.opacity='1';setTimeout(()=>f.style.opacity='0',140);if(state.health<=0)endGame(false);}
 function updateHUD(){document.getElementById('health-fill').style.width=state.health+'%';document.getElementById('score').textContent='SCORE: '+state.score;if(!state.isReloading)document.getElementById('ammo').textContent=state.ammo+' / '+state.maxAmmo;document.getElementById('weapon-hud').textContent=WEAPONS[state.weapon].name+' ['+state.weapon+']';}
@@ -301,7 +309,7 @@ function animate(){
         if(!e.userData.alive)return;
         const dx=(e.position.x-camera.position.x)*scale;
         const dz=(e.position.z-camera.position.z)*scale;
-        if(Math.abs(dx)<55&&Math.abs(dz)<55){ctx.fillStyle='#ef4444';ctx.fillRect(cx+dx-2,cy+dz-2,4,4);}
+        if(Math.abs(dx)<55&&Math.abs(dz)<55){ctx.fillStyle=e.userData.boss?'#ff6600':'#ef4444';ctx.fillRect(cx+dx-2,cy+dz-2,e.userData.boss?6:4,e.userData.boss?6:4);}
       });
       if(state.extract){
         const dx=(state.extract.position.x-camera.position.x)*scale;
@@ -341,8 +349,8 @@ function animate(){
         if(dist<12&&e.userData.shootCooldown<=0){
           const from=e.position.clone().setY(1.4);
           if(hasLineOfSight(from,camera.position.clone())){
-            e.userData.shootCooldown=1.3+Math.random()*0.7;
-            if(Math.random()>0.4)takeDamage(6+Math.random()*4);
+            e.userData.shootCooldown=e.userData.boss?0.9:1.3+Math.random()*0.7;
+            if(Math.random()>0.4)takeDamage(e.userData.boss?14+Math.random()*6:6+Math.random()*4);
           }else e.userData.shootCooldown=0.5;
         }
       }
