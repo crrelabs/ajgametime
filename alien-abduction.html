@@ -7,28 +7,32 @@
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&family=Nunito:wght@600;700&display=swap');
 *{margin:0;padding:0;box-sizing:border-box}
-html,body{width:100%;height:100%;overflow:hidden;background:#020617;font-family:Nunito,sans-serif;color:#e2e8f0;touch-action:none}
+html,body{width:100%;height:100%;overflow:hidden;background:#87ceeb;font-family:Nunito,sans-serif;color:#e2e8f0;touch-action:none}
 #c{display:block;width:100%;height:100%}
 #hud{position:absolute;inset:0;pointer-events:none;z-index:10}
 #top{position:absolute;top:12px;left:12px;display:flex;gap:8px;flex-wrap:wrap}
 .stat{background:rgba(15,23,42,.85);padding:8px 14px;border-radius:10px;font-family:Orbitron,sans-serif;font-size:.8rem;border:1px solid #22d3ee;color:#67e8f9}
 .stat span{color:#fff}
-#beamBar{position:absolute;bottom:80px;left:50%;transform:translateX(-50%);width:180px;height:10px;background:#1e293b;border-radius:6px;border:1px solid #22d3ee;overflow:hidden;pointer-events:none}
-#beamFill{height:100%;width:0%;background:linear-gradient(90deg,#22d3ee,#a855f7);transition:width .1s}
-#hint{position:absolute;bottom:16px;left:16px;font-size:.75rem;color:#94a3b8;background:rgba(15,23,42,.8);padding:6px 10px;border-radius:8px}
-#upgradeBtn{position:absolute;top:16px;right:16px;pointer-events:auto;padding:10px 16px;font-family:Orbitron,sans-serif;background:linear-gradient(135deg,#7c3aed,#22d3ee);border:none;border-radius:12px;color:#fff;cursor:pointer;font-size:.85rem}
+#beamBar{position:absolute;bottom:100px;left:50%;transform:translateX(-50%);width:160px;height:8px;background:#1e293b;border-radius:4px;border:1px solid #22d3ee;overflow:hidden}
+#beamFill{height:100%;width:0%;background:linear-gradient(90deg,#22d3ee,#a855f7)}
+#hint{position:absolute;bottom:16px;left:16px;font-size:.7rem;color:#94a3b8;background:rgba(15,23,42,.75);padding:5px 8px;border-radius:6px}
+#upgradeBtn{position:absolute;top:16px;right:16px;pointer-events:auto;padding:10px 16px;font-family:Orbitron,sans-serif;background:linear-gradient(135deg,#7c3aed,#22d3ee);border:none;border-radius:12px;color:#fff;cursor:pointer;font-size:.8rem}
+#joy{position:absolute;bottom:30px;left:30px;width:120px;height:120px;pointer-events:auto;z-index:20;display:none}
+#joyBase{width:120px;height:120px;border-radius:50%;background:rgba(15,23,42,.6);border:2px solid #22d3ee;position:relative}
+#joyStick{width:50px;height:50px;border-radius:50%;background:#22d3ee;position:absolute;left:35px;top:35px;box-shadow:0 0 15px #22d3ee}
 .overlay{position:absolute;inset:0;background:rgba(2,6,23,.92);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:30;text-align:center;padding:20px}
-.overlay h1{font-family:Orbitron,sans-serif;font-size:clamp(2rem,8vw,3.5rem);background:linear-gradient(135deg,#22d3ee,#a855f7,#f472b6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:.5rem}
-.overlay p{max-width:540px;margin:.5rem 0 1.2rem;line-height:1.5;color:#94a3b8}
-.btn{display:inline-block;padding:14px 28px;margin:6px;font-family:Orbitron,sans-serif;font-size:1rem;color:#fff;background:linear-gradient(135deg,#7c3aed,#22d3ee);border:none;border-radius:14px;cursor:pointer}
-#shop{position:absolute;inset:0;background:rgba(2,6,23,.94);z-index:40;display:none;flex-direction:column;align-items:center;padding:20px;overflow-y:auto}
-#shop h2{font-family:Orbitron,sans-serif;margin-bottom:12px;color:#22d3ee}
-.upgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;max-width:900px;width:100%}
-.upcard{background:#0f172a;border:1px solid #334155;border-radius:12px;padding:12px;text-align:left}
-.upcard h4{font-family:Orbitron,sans-serif;font-size:.85rem;color:#67e8f9;margin-bottom:4px}
-.upcard p{font-size:.75rem;color:#94a3b8;margin-bottom:8px}
-.upcard button{width:100%;padding:8px;font-family:Orbitron,sans-serif;background:#22d3ee;color:#020617;border:none;border-radius:8px;cursor:pointer;font-weight:700}
-.upcard button:disabled{background:#334155;color:#64748b;cursor:default}
+.overlay h1{font-family:Orbitron,sans-serif;font-size:clamp(1.8rem,7vw,3.2rem);background:linear-gradient(135deg,#22d3ee,#a855f7,#f472b6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:.4rem}
+.overlay p{max-width:520px;margin:.4rem 0 1rem;line-height:1.45;color:#94a3b8;font-size:.9rem}
+.btn{display:inline-block;padding:12px 24px;margin:6px;font-family:Orbitron,sans-serif;font-size:.95rem;color:#fff;background:linear-gradient(135deg,#7c3aed,#22d3ee);border:none;border-radius:12px;cursor:pointer}
+#shop{position:absolute;inset:0;background:rgba(2,6,23,.94);z-index:40;display:none;flex-direction:column;align-items:center;padding:16px;overflow-y:auto}
+#shop h2{font-family:Orbitron,sans-serif;margin-bottom:10px;color:#22d3ee}
+.upgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;max-width:880px;width:100%}
+.upcard{background:#0f172a;border:1px solid #334155;border-radius:10px;padding:10px}
+.upcard h4{font-family:Orbitron,sans-serif;font-size:.75rem;color:#67e8f9;margin-bottom:3px}
+.upcard p{font-size:.7rem;color:#94a3b8;margin-bottom:6px}
+.upcard button{width:100%;padding:6px;font-family:Orbitron,sans-serif;background:#22d3ee;color:#020617;border:none;border-radius:6px;cursor:pointer;font-size:.75rem;font-weight:700}
+.upcard button:disabled{background:#334155;color:#64748b}
+#time{position:absolute;top:16px;left:50%;transform:translateX(-50%);font-family:Orbitron,sans-serif;font-size:.8rem;background:rgba(15,23,42,.8);padding:6px 12px;border-radius:8px;border:1px solid #22d3ee}
 </style>
 </head>
 <body>
@@ -40,25 +44,27 @@ html,body{width:100%;height:100%;overflow:hidden;background:#020617;font-family:
     <div class="stat">ABDUCTED <span id="abducted">0</span></div>
     <div class="stat">HP <span id="hp">100</span></div>
   </div>
+  <div id="time">DAY 12:00</div>
   <button id="upgradeBtn">UPGRADES</button>
   <div id="beamBar"><div id="beamFill"></div></div>
-  <div id="hint">WASD / Arrows move · Hold SPACE or Click to beam · Avoid helicopters & missiles</div>
+  <div id="hint">WASD or Joystick · Hold SPACE / Beam button to abduct</div>
+  <div id="joy"><div id="joyBase"><div id="joyStick"></div></div></div>
 </div>
 <div class="overlay" id="startScreen">
   <h1>ALIEN ABDUCTION</h1>
-  <p>Hover over the city in your UFO. Activate the tractor beam to abduct humans, cars, and animals. Dodge police helicopters and missiles. Upgrade your ship between waves!</p>
-  <button class="btn" id="startBtn">START ABDUCTION</button>
+  <p>Day & night city. Beam up people & cars. Dodge helicopters. Mobile joystick + tons of upgrades.</p>
+  <button class="btn" id="startBtn">START</button>
 </div>
 <div class="overlay" id="endScreen" style="display:none">
-  <h1 id="endTitle">SHIP DESTROYED</h1>
+  <h1>SHIP DESTROYED</h1>
   <p id="endText">Score: 0</p>
-  <button class="btn" id="retryBtn">TRY AGAIN</button>
+  <button class="btn" id="retryBtn">RETRY</button>
 </div>
 <div id="shop">
-  <h2>SHIP UPGRADES</h2>
-  <p style="margin-bottom:12px">Credits: <span id="shopCredits">0</span></p>
+  <h2>UPGRADES</h2>
+  <p style="margin-bottom:8px">Credits: <span id="shopCredits">0</span></p>
   <div class="upgrid" id="upgrid"></div>
-  <button class="btn" id="closeShop" style="margin-top:16px">BACK TO MISSION</button>
+  <button class="btn" id="closeShop">RESUME</button>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <script>
@@ -66,116 +72,152 @@ const canvas=document.getElementById('c');
 const renderer=new THREE.WebGLRenderer({canvas,antialias:true});
 renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));
 renderer.setSize(innerWidth,innerHeight);
+renderer.shadowMap.enabled=true;
 const scene=new THREE.Scene();
-scene.background=new THREE.Color(0x020617);
-scene.fog=new THREE.Fog(0x020617,40,120);
-const camera=new THREE.PerspectiveCamera(55,innerWidth/innerHeight,0.1,200);
-camera.position.set(0,28,18);
+const camera=new THREE.PerspectiveCamera(52,innerWidth/innerHeight,0.1,180);
+camera.position.set(0,32,20);
 camera.lookAt(0,0,0);
 const clock=new THREE.Clock();
-scene.add(new THREE.AmbientLight(0x334155,0.6));
-const moon=new THREE.DirectionalLight(0x93c5fd,0.9);moon.position.set(20,40,10);scene.add(moon);
-const cityLight=new THREE.PointLight(0xfbbf24,0.4,30);cityLight.position.set(0,8,0);scene.add(cityLight);
+
+const ambient=new THREE.AmbientLight(0xffffff,0.55);
+scene.add(ambient);
+const sun=new THREE.DirectionalLight(0xfff5e0,1.1);
+sun.position.set(30,40,15);sun.castShadow=true;scene.add(sun);
+const moon=new THREE.DirectionalLight(0x93c5fd,0.15);
+moon.position.set(-20,30,-10);scene.add(moon);
 
 let audioCtx;
 function ensureAudio(){if(!audioCtx)audioCtx=new (window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();return audioCtx;}
-function beep(freq,dur,type,vol,slide){try{const ctx=ensureAudio();const o=ctx.createOscillator();const g=ctx.createGain();o.type=type||'sine';o.frequency.setValueAtTime(freq,ctx.currentTime);if(slide)o.frequency.linearRampToValueAtTime(freq+slide,ctx.currentTime+dur);g.gain.setValueAtTime(vol||0.08,ctx.currentTime);g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+dur);o.connect(g);g.connect(ctx.destination);o.start();o.stop(ctx.currentTime+dur);}catch(e){}}
-function scream(){try{const ctx=ensureAudio();const o=ctx.createOscillator();const g=ctx.createGain();o.type='sawtooth';o.frequency.setValueAtTime(180+Math.random()*80,ctx.currentTime);o.frequency.linearRampToValueAtTime(420+Math.random()*120,ctx.currentTime+0.15);o.frequency.linearRampToValueAtTime(90,ctx.currentTime+0.45);g.gain.setValueAtTime(0.12,ctx.currentTime);g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.5);o.connect(g);g.connect(ctx.destination);o.start();o.stop(ctx.currentTime+0.5);}catch(e){}}
-function noise(dur,vol){try{const ctx=ensureAudio();const n=ctx.createBufferSource();const buf=ctx.createBuffer(1,ctx.sampleRate*dur,ctx.sampleRate);const d=buf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*(1-i/d.length);n.buffer=buf;const g=ctx.createGain();g.gain.value=vol||0.08;n.connect(g);g.connect(ctx.destination);n.start();}catch(e){}}
+function beep(f,d,t,v,s){try{const c=ensureAudio();const o=c.createOscillator();const g=c.createGain();o.type=t||'sine';o.frequency.setValueAtTime(f,c.currentTime);if(s)o.frequency.linearRampToValueAtTime(f+s,c.currentTime+d);g.gain.setValueAtTime(v||0.07,c.currentTime);g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+d);o.connect(g);g.connect(c.destination);o.start();o.stop(c.currentTime+d);}catch(e){}}
+function scream(){try{const c=ensureAudio();const o=c.createOscillator();const g=c.createGain();o.type='sawtooth';o.frequency.setValueAtTime(160+Math.random()*60,c.currentTime);o.frequency.linearRampToValueAtTime(380+Math.random()*100,c.currentTime+0.12);o.frequency.linearRampToValueAtTime(70,c.currentTime+0.4);g.gain.setValueAtTime(0.1,c.currentTime);g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+0.45);o.connect(g);g.connect(c.destination);o.start();o.stop(c.currentTime+0.45);}catch(e){}}
+function noise(d,v){try{const c=ensureAudio();const n=c.createBufferSource();const b=c.createBuffer(1,c.sampleRate*d,c.sampleRate);const dat=b.getChannelData(0);for(let i=0;i<dat.length;i++)dat[i]=(Math.random()*2-1)*(1-i/dat.length);n.buffer=b;const g=c.createGain();g.gain.value=v||0.07;n.connect(g);g.connect(c.destination);n.start();}catch(e){}}
 let musicOn=false;
-function startMusic(){if(musicOn)return;musicOn=true;try{const ctx=ensureAudio();const g=ctx.createGain();g.gain.value=0.035;g.connect(ctx.destination);const bass=[55,55,73,65];let t=ctx.currentTime;function loop(){bass.forEach((f,i)=>{const o=ctx.createOscillator();o.type='sawtooth';o.frequency.value=f;const gg=ctx.createGain();gg.gain.setValueAtTime(0.04,t+i*0.6);gg.gain.exponentialRampToValueAtTime(0.001,t+i*0.6+0.55);o.connect(gg);gg.connect(g);o.start(t+i*0.6);o.stop(t+i*0.6+0.6);const hi=ctx.createOscillator();hi.type='square';hi.frequency.value=f*4;const hg=ctx.createGain();hg.gain.setValueAtTime(0.015,t+i*0.6+0.2);hg.gain.exponentialRampToValueAtTime(0.001,t+i*0.6+0.35);hi.connect(hg);hg.connect(g);hi.start(t+i*0.6+0.2);hi.stop(t+i*0.6+0.4);});t+=bass.length*0.6;if(state.running)setTimeout(loop,bass.length*600);}loop();}catch(e){}}
-const SFX={abduct:()=>{scream();beep(320,0.2,'sine',0.06,-40)},hit:()=>noise(0.08,0.1),shoot:()=>beep(180,0.06,'square',0.05),upgrade:()=>beep(660,0.12,'sine',0.07),wave:()=>beep(440,0.2,'sine',0.08)};
+function startMusic(){if(musicOn)return;musicOn=true;try{const c=ensureAudio();const g=c.createGain();g.gain.value=0.03;g.connect(c.destination);const notes=[55,65,73,82];let t=c.currentTime;function loop(){notes.forEach((f,i)=>{const o=c.createOscillator();o.type='sawtooth';o.frequency.value=f;const gg=c.createGain();gg.gain.setValueAtTime(0.035,t+i*0.55);gg.gain.exponentialRampToValueAtTime(0.001,t+i*0.55+0.5);o.connect(gg);gg.connect(g);o.start(t+i*0.55);o.stop(t+i*0.55+0.55);});t+=notes.length*0.55;if(state.running)setTimeout(loop,notes.length*550);}loop();}catch(e){}}
+const SFX={abduct:()=>{scream();beep(280,0.18,'sine',0.05,-30)},hit:()=>noise(0.07,0.09),shoot:()=>beep(160,0.05,'square',0.04),upgrade:()=>beep(620,0.1,'sine',0.06)};
 
 const upgrades={
-  speed:{name:'Faster Ship',desc:'Increase UFO movement speed',cost:40,level:0,max:5,apply:()=>{state.shipSpeed+=0.8}},
-  beam:{name:'Faster Beam',desc:'Abduct targets quicker',cost:50,level:0,max:5,apply:()=>{state.beamPower+=0.35}},
-  range:{name:'Longer Beam',desc:'Reach higher / farther targets',cost:45,level:0,max:4,apply:()=>{state.beamRange+=1.2}},
-  width:{name:'Wider Beam',desc:'Catch more things at once',cost:55,level:0,max:4,apply:()=>{state.beamWidth+=0.35}},
-  shield:{name:'Energy Shield',desc:'Absorb one hit (recharges)',cost:70,level:0,max:3,apply:()=>{state.maxShield+=1;state.shield=state.maxShield}},
-  cloak:{name:'Cloaking Field',desc:'Temporarily hard to hit',cost:80,level:0,max:3,apply:()=>{state.cloakTime+=1.5}},
-  multi:{name:'Dual Beam',desc:'Beam two targets at once',cost:90,level:0,max:2,apply:()=>{state.multiBeam+=1}},
-  magnet:{name:'Gravity Magnet',desc:'Auto-pull nearby small items',cost:60,level:0,max:3,apply:()=>{state.magnet+=0.6}},
-  laser:{name:'Defense Laser',desc:'Auto-shoot nearby threats',cost:85,level:0,max:3,apply:()=>{state.laser+=1}},
-  emp:{name:'EMP Pulse',desc:'Stun all enemies briefly',cost:100,level:0,max:2,apply:()=>{state.empReady=true}},
-  dash:{name:'Boost Thrusters',desc:'Quick dash ability',cost:65,level:0,max:3,apply:()=>{state.dashPower+=1}},
-  multiScore:{name:'Score Multiplier',desc:'More points per abduction',cost:75,level:0,max:4,apply:()=>{state.scoreMult+=0.25}}
+  speed:{name:'Faster Ship',desc:'Move quicker',cost:35,level:0,max:5,apply:()=>state.shipSpeed+=0.7},
+  beam:{name:'Faster Beam',desc:'Abduct faster',cost:45,level:0,max:5,apply:()=>state.beamPower+=0.3},
+  range:{name:'Longer Beam',desc:'Reach farther',cost:40,level:0,max:4,apply:()=>state.beamRange+=1},
+  width:{name:'Wider Beam',desc:'Bigger catch area',cost:50,level:0,max:4,apply:()=>state.beamWidth+=0.3},
+  shield:{name:'Shield',desc:'Extra hit protection',cost:65,level:0,max:3,apply:()=>{state.maxShield++;state.shield=state.maxShield}},
+  cloak:{name:'Cloak',desc:'Harder to hit',cost:75,level:0,max:3,apply:()=>state.cloakTime+=1.2},
+  multi:{name:'Dual Beam',desc:'Two targets',cost:85,level:0,max:2,apply:()=>state.multiBeam++},
+  magnet:{name:'Magnet',desc:'Pull nearby items',cost:55,level:0,max:3,apply:()=>state.magnet+=0.5},
+  laser:{name:'Laser',desc:'Auto defense',cost:80,level:0,max:3,apply:()=>state.laser++},
+  score:{name:'Score x',desc:'More points',cost:70,level:0,max:4,apply:()=>state.scoreMult+=0.2},
+  night:{name:'Night Vision',desc:'See better at night',cost:50,level:0,max:2,apply:()=>state.nightVision+=0.3},
+  cargo:{name:'Bigger Hold',desc:'Bonus credits',cost:60,level:0,max:3,apply:()=>state.cargoBonus+=0.15}
 };
-const state={running:false,score:0,credits:0,abducted:0,hp:100,wave:1,shipSpeed:4.2,beamPower:1,beamRange:6,beamWidth:1.1,shield:0,maxShield:0,cloakTime:0,multiBeam:0,magnet:0,laser:0,empReady:false,dashPower:0,scoreMult:1,beamActive:false,cloakLeft:0,empCd:0,dashCd:0};
-let ufo,beam,targets=[],enemies=[],projectiles=[],fx=[];
+const state={running:false,score:0,credits:0,abducted:0,hp:100,wave:1,shipSpeed:4,beamPower:1,beamRange:5.5,beamWidth:1,shield:0,maxShield:0,cloakTime:0,multiBeam:0,magnet:0,laser:0,scoreMult:1,nightVision:0,cargoBonus:0,time:0.35,beamActive:false};
+let ufo,beam,targets=[],cars=[],people=[],enemies=[],projectiles=[],streetLights=[],windows=[];
 const keys={};
+let joyX=0,joyY=0,joyActive=false;
 
-const ground=new THREE.Mesh(new THREE.PlaneGeometry(80,60),new THREE.MeshStandardMaterial({color:0x1e293b,roughness:0.9}));
-ground.rotation.x=-Math.PI/2;scene.add(ground);
-const buildings=[];
-for(let i=0;i<28;i++){
-  const w=1.5+Math.random()*2.5,h=2+Math.random()*8,d=1.5+Math.random()*2.5;
-  const b=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),new THREE.MeshStandardMaterial({color:Math.random()>0.5?0x334155:0x1e3a5f}));
-  b.position.set((Math.random()-0.5)*70,h/2,(Math.random()-0.5)*50);
-  scene.add(b);buildings.push(b);
-  for(let y=1;y<h;y+=1.2){
-    if(Math.random()>0.4){
-      const win=new THREE.Mesh(new THREE.PlaneGeometry(0.3,0.4),new THREE.MeshBasicMaterial({color:0xfbbf24}));
-      win.position.set(b.position.x+(Math.random()-0.5)*w*0.6,y,b.position.z+d/2+0.01);
-      scene.add(win);
-    }
+const ground=new THREE.Mesh(new THREE.PlaneGeometry(90,70),new THREE.MeshStandardMaterial({color:0x4a7c3a,roughness:0.95}));
+ground.rotation.x=-Math.PI/2;ground.receiveShadow=true;scene.add(ground);
+
+const streetMat=new THREE.MeshStandardMaterial({color:0x2d3748,roughness:0.9});
+for(let z=-24;z<=24;z+=10){
+  const r=new THREE.Mesh(new THREE.PlaneGeometry(80,2.2),streetMat);
+  r.rotation.x=-Math.PI/2;r.position.set(0,0.02,z);scene.add(r);
+  for(let x=-35;x<35;x+=4){
+    const line=new THREE.Mesh(new THREE.PlaneGeometry(1.5,0.15),new THREE.MeshBasicMaterial({color:0xfbbf24}));
+    line.rotation.x=-Math.PI/2;line.position.set(x,0.03,z);scene.add(line);
   }
 }
-for(let z=-20;z<=20;z+=8){
-  const road=new THREE.Mesh(new THREE.PlaneGeometry(70,1.2),new THREE.MeshStandardMaterial({color:0x0f172a}));
-  road.rotation.x=-Math.PI/2;road.position.set(0,0.02,z);scene.add(road);
+for(let x=-30;x<=30;x+=12){
+  const r=new THREE.Mesh(new THREE.PlaneGeometry(2.2,50),streetMat);
+  r.rotation.x=-Math.PI/2;r.position.set(x,0.02,0);scene.add(r);
+}
+
+function makeBuilding(x,z){
+  const w=2+Math.random()*3,h=3+Math.random()*12,d=2+Math.random()*3;
+  const col=Math.random()>0.5?0x475569:0x334155;
+  const b=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),new THREE.MeshStandardMaterial({color:col,roughness:0.8}));
+  b.position.set(x,h/2,z);b.castShadow=true;b.receiveShadow=true;scene.add(b);
+  const roof=new THREE.Mesh(new THREE.BoxGeometry(w+0.3,0.3,d+0.3),new THREE.MeshStandardMaterial({color:0x1e293b}));
+  roof.position.set(x,h+0.15,z);scene.add(roof);
+  const wins=[];
+  for(let wy=1.2;wy<h-0.5;wy+=1.4){
+    for(let side of [-1,1]){
+      if(Math.random()>0.35){
+        const win=new THREE.Mesh(new THREE.PlaneGeometry(0.35,0.5),new THREE.MeshBasicMaterial({color:0x1e293b}));
+        win.position.set(x+side*(w/2+0.01),wy,z+(Math.random()-0.5)*d*0.6);
+        win.rotation.y=side>0?0:Math.PI;
+        scene.add(win);wins.push(win);
+      }
+    }
+  }
+  windows.push(...wins);
+  return {mesh:b,wins,h};
+}
+const buildings=[];
+for(let i=0;i<22;i++){
+  const x=(Math.random()-0.5)*70,z=(Math.random()-0.5)*50;
+  if(Math.abs(x)<4||Math.abs(z%10)<2)continue;
+  buildings.push(makeBuilding(x,z));
+}
+
+for(let z=-20;z<=20;z+=10){
+  for(let x=-32;x<=32;x+=8){
+    if(Math.abs(x)<3)continue;
+    const pole=new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.08,3.5,6),new THREE.MeshStandardMaterial({color:0x64748b}));
+    pole.position.set(x,1.75,z+1.4);scene.add(pole);
+    const lamp=new THREE.Mesh(new THREE.SphereGeometry(0.18,8,8),new THREE.MeshBasicMaterial({color:0x334155}));
+    lamp.position.set(x,3.4,z+1.4);scene.add(lamp);
+    const light=new THREE.PointLight(0xfbbf24,0,8);
+    light.position.copy(lamp.position);scene.add(light);
+    streetLights.push({lamp,light});
+  }
 }
 
 function makeUFO(){
   const g=new THREE.Group();
-  const saucer=new THREE.Mesh(new THREE.CylinderGeometry(1.8,2.2,0.5,16),new THREE.MeshStandardMaterial({color:0x64748b,metalness:0.6,roughness:0.3}));
-  g.add(saucer);
-  const dome=new THREE.Mesh(new THREE.SphereGeometry(0.9,16,12,0,Math.PI*2,0,Math.PI/2),new THREE.MeshStandardMaterial({color:0x22d3ee,emissive:0x22d3ee,emissiveIntensity:0.4,transparent:true,opacity:0.85}));
-  dome.position.y=0.35;g.add(dome);
-  const ring=new THREE.Mesh(new THREE.TorusGeometry(1.6,0.08,8,24),new THREE.MeshBasicMaterial({color:0xa855f7}));
+  const base=new THREE.Mesh(new THREE.CylinderGeometry(1.6,2.1,0.45,20),new THREE.MeshStandardMaterial({color:0x94a3b8,metalness:0.7,roughness:0.25}));
+  g.add(base);
+  const dome=new THREE.Mesh(new THREE.SphereGeometry(0.85,16,12,0,Math.PI*2,0,Math.PI/2),new THREE.MeshStandardMaterial({color:0x22d3ee,emissive:0x22d3ee,emissiveIntensity:0.35,transparent:true,opacity:0.8}));
+  dome.position.y=0.3;g.add(dome);
+  const ring=new THREE.Mesh(new THREE.TorusGeometry(1.55,0.07,8,28),new THREE.MeshBasicMaterial({color:0xa855f7}));
   ring.rotation.x=Math.PI/2;g.add(ring);
-  const light=new THREE.PointLight(0x22d3ee,1.2,12);light.position.y=-0.3;g.add(light);
-  g.position.set(0,12,0);scene.add(g);
+  const under=new THREE.PointLight(0x22d3ee,1.4,14);under.position.y=-0.4;g.add(under);
+  g.position.set(0,14,0);g.castShadow=true;scene.add(g);
   return g;
 }
 ufo=makeUFO();
 
-function makeTarget(type){
+function makePerson(){
   const g=new THREE.Group();
-  if(type==='human'){
-    const body=new THREE.Mesh(new THREE.CapsuleGeometry(0.18,0.4,4,6),new THREE.MeshStandardMaterial({color:0xf472b6}));
-    body.position.y=0.4;g.add(body);
-    const head=new THREE.Mesh(new THREE.SphereGeometry(0.15,8,8),new THREE.MeshStandardMaterial({color:0xfcd34d}));
-    head.position.y=0.75;g.add(head);
-  }else if(type==='car'){
-    const body=new THREE.Mesh(new THREE.BoxGeometry(1.2,0.4,0.6),new THREE.MeshStandardMaterial({color:0xef4444}));
-    body.position.y=0.3;g.add(body);
-    const top=new THREE.Mesh(new THREE.BoxGeometry(0.7,0.3,0.5),new THREE.MeshStandardMaterial({color:0xfbbf24}));
-    top.position.y=0.55;g.add(top);
-  }else{
-    const body=new THREE.Mesh(new THREE.SphereGeometry(0.35,8,6),new THREE.MeshStandardMaterial({color:0x22c55e}));
-    body.position.y=0.35;body.scale.set(1,0.7,1.2);g.add(body);
-  }
+  const body=new THREE.Mesh(new THREE.CapsuleGeometry(0.16,0.35,4,6),new THREE.MeshStandardMaterial({color:0xf472b6}));
+  body.position.y=0.38;g.add(body);
+  const head=new THREE.Mesh(new THREE.SphereGeometry(0.13,8,8),new THREE.MeshStandardMaterial({color:0xfcd34d}));
+  head.position.y=0.72;g.add(head);
   g.position.set((Math.random()-0.5)*60,0,(Math.random()-0.5)*40);
-  g.userData={type,progress:0,value:type==='human'?15:type==='car'?25:10};
-  scene.add(g);targets.push(g);
+  g.userData={type:'human',progress:0,value:12,speed:0.4+Math.random()*0.3,dir:Math.random()*Math.PI*2};
+  scene.add(g);people.push(g);targets.push(g);
+}
+function makeCar(){
+  const g=new THREE.Group();
+  const body=new THREE.Mesh(new THREE.BoxGeometry(1.4,0.45,0.7),new THREE.MeshStandardMaterial({color:Math.random()>0.5?0xef4444:0x3b82f6}));
+  body.position.y=0.35;g.add(body);
+  const cabin=new THREE.Mesh(new THREE.BoxGeometry(0.7,0.3,0.6),new THREE.MeshStandardMaterial({color:0x1e293b}));
+  cabin.position.y=0.6;g.add(cabin);
+  g.position.set((Math.random()-0.5)*50,0,(Math.random()-0.5)*35);
+  g.userData={type:'car',progress:0,value:22,speed:1.2+Math.random()*0.8,dir:Math.random()>0.5?0:Math.PI};
+  scene.add(g);cars.push(g);targets.push(g);
 }
 function spawnWave(){
-  const count=6+state.wave*2;
-  for(let i=0;i<count;i++){
-    const r=Math.random();
-    makeTarget(r<0.5?'human':r<0.8?'car':'animal');
+  for(let i=0;i<5+state.wave;i++)makePerson();
+  for(let i=0;i<3+Math.floor(state.wave/2);i++)makeCar();
+  if(state.wave%4===0){
+    const h=new THREE.Group();
+    const body=new THREE.Mesh(new THREE.BoxGeometry(1.3,0.4,0.55),new THREE.MeshStandardMaterial({color:0x1e40af}));
+    h.add(body);
+    const rotor=new THREE.Mesh(new THREE.BoxGeometry(2.4,0.04,0.12),new THREE.MeshStandardMaterial({color:0xcbd5e1}));
+    rotor.position.y=0.35;h.add(rotor);
+    h.position.set((Math.random()-0.5)*40,9,(Math.random()-0.5)*30);
+    h.userData={rotor,cd:2};scene.add(h);enemies.push(h);
   }
-  if(state.wave%3===0){
-    const heli=new THREE.Group();
-    const body=new THREE.Mesh(new THREE.BoxGeometry(1.2,0.4,0.5),new THREE.MeshStandardMaterial({color:0x1e40af}));
-    heli.add(body);
-    const rotor=new THREE.Mesh(new THREE.BoxGeometry(2.2,0.05,0.15),new THREE.MeshStandardMaterial({color:0x94a3b8}));
-    rotor.position.y=0.4;heli.add(rotor);
-    heli.position.set((Math.random()-0.5)*40,8+Math.random()*4,(Math.random()-0.5)*30);
-    heli.userData={rotor,shootCd:2+Math.random()*2,hp:3};
-    scene.add(heli);enemies.push(heli);
-  }
-  SFX.wave();
 }
 
 function updateHUD(){
@@ -184,53 +226,54 @@ function updateHUD(){
   document.getElementById('abducted').textContent=state.abducted;
   document.getElementById('hp').textContent=Math.max(0,Math.ceil(state.hp));
   document.getElementById('shopCredits').textContent=state.credits;
+  const hour=Math.floor(state.time*24);
+  const isDay=hour>=6&&hour<18;
+  document.getElementById('time').textContent=(isDay?'DAY':'NIGHT')+' '+String(hour).padStart(2,'0')+':00';
 }
-
 function buildShop(){
-  const grid=document.getElementById('upgrid');grid.innerHTML='';
+  const g=document.getElementById('upgrid');g.innerHTML='';
   Object.keys(upgrades).forEach(k=>{
-    const u=upgrades[k];
-    const cost=Math.floor(u.cost*(1+u.level*0.6));
-    const card=document.createElement('div');card.className='upcard';
-    card.innerHTML=`<h4>${u.name} (${u.level}/${u.max})</h4><p>${u.desc}</p><button ${u.level>=u.max||state.credits<cost?'disabled':''}>${u.level>=u.max?'MAXED':'BUY $'+cost}</button>`;
-    card.querySelector('button').onclick=()=>{
-      if(state.credits>=cost&&u.level<u.max){
-        state.credits-=cost;u.level++;u.apply();SFX.upgrade();buildShop();updateHUD();
-      }
-    };
-    grid.appendChild(card);
+    const u=upgrades[k];const cost=Math.floor(u.cost*(1+u.level*0.55));
+    const c=document.createElement('div');c.className='upcard';
+    c.innerHTML=`<h4>${u.name} ${u.level}/${u.max}</h4><p>${u.desc}</p><button ${u.level>=u.max||state.credits<cost?'disabled':''}>${u.level>=u.max?'MAX':'BUY '+cost}</button>`;
+    c.querySelector('button').onclick=()=>{if(state.credits>=cost&&u.level<u.max){state.credits-=cost;u.level++;u.apply();SFX.upgrade();buildShop();updateHUD();}};
+    g.appendChild(c);
   });
 }
-
-function endGame(){
-  state.running=false;
-  document.getElementById('endTitle').textContent='SHIP DESTROYED';
-  document.getElementById('endText').textContent='Score: '+state.score+' · Abducted: '+state.abducted;
-  document.getElementById('endScreen').style.display='flex';
-  document.getElementById('hud').style.display='none';
-}
-
+function endGame(){state.running=false;document.getElementById('endText').textContent='Score: '+state.score+' · Abducted: '+state.abducted;document.getElementById('endScreen').style.display='flex';document.getElementById('hud').style.display='none';}
 function startGame(){
   ensureAudio();startMusic();
-  state.running=true;state.score=0;state.credits=0;state.abducted=0;state.hp=100;state.wave=1;
-  state.beamActive=false;
-  targets.forEach(t=>scene.remove(t));targets=[];
+  state.running=true;state.score=0;state.credits=40;state.abducted=0;state.hp=100;state.wave=1;state.time=0.4;
+  targets.forEach(t=>scene.remove(t));targets=[];cars=[];people=[];
   enemies.forEach(e=>scene.remove(e));enemies=[];
-  projectiles.forEach(p=>scene.remove(p));projectiles=[];
+  projectiles.forEach(p=>scene.remove(p.mesh));projectiles=[];
   spawnWave();
   document.getElementById('startScreen').style.display='none';
   document.getElementById('endScreen').style.display='none';
   document.getElementById('hud').style.display='block';
-  document.getElementById('shop').style.display='none';
+  document.getElementById('joy').style.display='block';
   updateHUD();
 }
-
 document.getElementById('startBtn').onclick=startGame;
 document.getElementById('retryBtn').onclick=()=>{document.getElementById('endScreen').style.display='none';document.getElementById('startScreen').style.display='flex';};
 document.getElementById('upgradeBtn').onclick=()=>{document.getElementById('shop').style.display='flex';buildShop();};
-document.getElementById('closeShop').onclick=()=>{document.getElementById('shop').style.display='none';};
+document.getElementById('closeShop').onclick=()=>document.getElementById('shop').style.display='none';
 
-addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if(e.key===' ')e.preventDefault();});
+const joy=document.getElementById('joyBase'),stick=document.getElementById('joyStick');
+let joyId=null;
+joy.addEventListener('pointerdown',e=>{joyId=e.pointerId;joy.setPointerCapture(e.pointerId);joyActive=true;});
+joy.addEventListener('pointermove',e=>{
+  if(e.pointerId!==joyId)return;
+  const r=joy.getBoundingClientRect();
+  const cx=r.left+60,cy=r.top+60;
+  let dx=e.clientX-cx,dy=e.clientY-cy;
+  const d=Math.hypot(dx,dy);
+  if(d>45){dx=dx/d*45;dy=dy/d*45;}
+  stick.style.left=(35+dx)+'px';stick.style.top=(35+dy)+'px';
+  joyX=dx/45;joyY=dy/45;
+});
+joy.addEventListener('pointerup',e=>{if(e.pointerId===joyId){joyId=null;joyActive=false;joyX=0;joyY=0;stick.style.left='35px';stick.style.top='35px';}});
+addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if(e.code==='Space')e.preventDefault();});
 addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
 canvas.addEventListener('pointerdown',()=>state.beamActive=true);
 canvas.addEventListener('pointerup',()=>state.beamActive=false);
@@ -240,74 +283,101 @@ function animate(){
   const dt=Math.min(clock.getDelta(),0.05);
   if(!state.running){renderer.render(scene,camera);return;}
 
-  let mx=0,mz=0;
+  state.time=(state.time+dt*0.015)%1;
+  const hour=state.time*24;
+  const isDay=hour>=6&&hour<18;
+  const dayAmt=isDay?Math.sin((hour-6)/12*Math.PI):0;
+  ambient.intensity=0.25+dayAmt*0.5;
+  sun.intensity=dayAmt*1.2;
+  moon.intensity=isDay?0.05:0.35;
+  scene.background=new THREE.Color().setHSL(0.6,0.5,isDay?0.55+dayAmt*0.15:0.05);
+  scene.fog=new THREE.Fog(scene.background.getHex(),50,110);
+  streetLights.forEach(s=>{
+    const on=!isDay;
+    s.light.intensity=on?1.8:0;
+    s.lamp.material.color.setHex(on?0xfbbf24:0x334155);
+  });
+  windows.forEach(w=>{
+    if(!isDay&&Math.random()<0.002)w.material.color.setHex(Math.random()>0.3?0xfbbf24:0x1e293b);
+    if(isDay)w.material.color.setHex(0x1e293b);
+  });
+
+  let mx=joyX,mz=joyY;
   if(keys['w']||keys['arrowup'])mz-=1;
   if(keys['s']||keys['arrowdown'])mz+=1;
   if(keys['a']||keys['arrowleft'])mx-=1;
   if(keys['d']||keys['arrowright'])mx+=1;
   if(mx||mz){
-    const len=Math.hypot(mx,mz);
-    ufo.position.x=Math.max(-35,Math.min(35,ufo.position.x+mx/len*state.shipSpeed*dt));
-    ufo.position.z=Math.max(-25,Math.min(25,ufo.position.z+mz/len*state.shipSpeed*dt));
+    const l=Math.hypot(mx,mz)||1;
+    ufo.position.x=Math.max(-38,Math.min(38,ufo.position.x+mx/l*state.shipSpeed*dt*1.4));
+    ufo.position.z=Math.max(-28,Math.min(28,ufo.position.z+mz/l*state.shipSpeed*dt*1.4));
   }
-  ufo.rotation.y+=dt*0.4;
-  ufo.position.y=12+Math.sin(clock.elapsedTime*1.5)*0.3;
+  ufo.rotation.y+=dt*0.5;
+  ufo.position.y=14+Math.sin(clock.elapsedTime*1.4)*0.25;
+
+  people.forEach(p=>{
+    if(p.userData.progress>0)return;
+    p.userData.dir+= (Math.random()-0.5)*dt*2;
+    p.position.x+=Math.cos(p.userData.dir)*p.userData.speed*dt;
+    p.position.z+=Math.sin(p.userData.dir)*p.userData.speed*dt;
+    p.position.x=Math.max(-40,Math.min(40,p.position.x));
+    p.position.z=Math.max(-30,Math.min(30,p.position.z));
+  });
+  cars.forEach(c=>{
+    if(c.userData.progress>0)return;
+    c.position.x+=Math.cos(c.userData.dir)*c.userData.speed*dt*2;
+    c.position.z+=Math.sin(c.userData.dir)*c.userData.speed*dt*0.3;
+    if(Math.abs(c.position.x)>42)c.userData.dir+=Math.PI;
+  });
 
   const beaming=state.beamActive||keys[' '];
   document.getElementById('beamFill').style.width=beaming?'100%':'0%';
   if(beaming){
     if(!beam){
-      beam=new THREE.Mesh(new THREE.CylinderGeometry(state.beamWidth*0.4,state.beamWidth,state.beamRange,12,1,true),new THREE.MeshBasicMaterial({color:0x22d3ee,transparent:true,opacity:0.35,side:THREE.DoubleSide}));
-      beam.position.y=-state.beamRange/2-0.3;ufo.add(beam);
+      beam=new THREE.Mesh(new THREE.CylinderGeometry(state.beamWidth*0.35,state.beamWidth*0.9,state.beamRange,14,1,true),new THREE.MeshBasicMaterial({color:0x22d3ee,transparent:true,opacity:0.32,side:THREE.DoubleSide}));
+      beam.position.y=-state.beamRange/2-0.2;ufo.add(beam);
     }
-    beam.scale.set(1,1,1);
     targets.forEach(t=>{
-      const dx=t.position.x-ufo.position.x,dz=t.position.z-ufo.position.z;
-      const dist=Math.hypot(dx,dz);
-      if(dist<state.beamWidth+0.5&&t.position.y<ufo.position.y-1){
-        t.userData.progress+=state.beamPower*dt*1.8;
-        t.position.y+=state.beamPower*dt*2.2;
-        if(t.userData.progress>1||t.position.y>10){
-          state.score+=Math.floor(t.userData.value*state.scoreMult);
-          state.credits+=Math.floor(t.userData.value*0.6);
-          state.abducted++;
-          SFX.abduct();
-          scene.remove(t);targets.splice(targets.indexOf(t),1);
+      const dx=t.position.x-ufo.position.x,dz=t.position.z-ufo.position.z,dist=Math.hypot(dx,dz);
+      if(dist<state.beamWidth+0.6&&t.position.y<12){
+        t.userData.progress+=state.beamPower*dt*1.6;
+        t.position.y+=state.beamPower*dt*2;
+        if(t.userData.progress>1||t.position.y>11){
+          const bonus=1+state.cargoBonus;
+          state.score+=Math.floor(t.userData.value*state.scoreMult*bonus);
+          state.credits+=Math.floor(t.userData.value*0.55*bonus);
+          state.abducted++;SFX.abduct();
+          scene.remove(t);
+          targets.splice(targets.indexOf(t),1);
+          if(t.userData.type==='human')people.splice(people.indexOf(t),1);
+          else cars.splice(cars.indexOf(t),1);
         }
       }
     });
   }else if(beam){ufo.remove(beam);beam=null;}
 
   enemies.forEach(e=>{
-    e.userData.rotor.rotation.y+=dt*12;
-    e.position.x+=Math.sin(clock.elapsedTime+e.position.z)*dt*2;
+    e.userData.rotor.rotation.y+=dt*14;
+    e.position.x+=Math.sin(clock.elapsedTime+e.position.z)*dt*1.8;
     e.lookAt(ufo.position);
-    e.userData.shootCd-=dt;
-    if(e.userData.shootCd<=0){
-      e.userData.shootCd=2.2;
-      const p=new THREE.Mesh(new THREE.SphereGeometry(0.12,6,6),new THREE.MeshBasicMaterial({color:0xfbbf24}));
+    e.userData.cd-=dt;
+    if(e.userData.cd<=0){
+      e.userData.cd=2.4;
+      const p=new THREE.Mesh(new THREE.SphereGeometry(0.1,6,6),new THREE.MeshBasicMaterial({color:0xfbbf24}));
       p.position.copy(e.position);scene.add(p);
-      projectiles.push({mesh:p,vel:new THREE.Vector3().subVectors(ufo.position,e.position).normalize().multiplyScalar(8),life:3});
+      projectiles.push({mesh:p,vel:new THREE.Vector3().subVectors(ufo.position,e.position).normalize().multiplyScalar(7)});
       SFX.shoot();
     }
   });
-
   for(let i=projectiles.length-1;i>=0;i--){
-    const p=projectiles[i];
-    p.mesh.position.addScaledVector(p.vel,dt);
-    p.life-=dt;
-    if(p.mesh.position.distanceTo(ufo.position)<1.2){
-      state.hp-=12;SFX.hit();scene.remove(p.mesh);projectiles.splice(i,1);
-      if(state.hp<=0)endGame();
-      updateHUD();
-    }else if(p.life<=0){scene.remove(p.mesh);projectiles.splice(i,1);}
+    const p=projectiles[i];p.mesh.position.addScaledVector(p.vel,dt);
+    if(p.mesh.position.distanceTo(ufo.position)<1.1){
+      state.hp-=10;SFX.hit();scene.remove(p.mesh);projectiles.splice(i,1);
+      if(state.hp<=0)endGame();updateHUD();
+    }else if(p.mesh.position.y<0||p.mesh.position.distanceTo(ufo.position)>40){scene.remove(p.mesh);projectiles.splice(i,1);}
   }
 
-  if(targets.length===0&&enemies.length===0){
-    state.wave++;state.credits+=20+state.wave*5;
-    spawnWave();updateHUD();
-  }
-
+  if(targets.length===0){state.wave++;state.credits+=15+state.wave*4;spawnWave();updateHUD();}
   renderer.render(scene,camera);
 }
 animate();
