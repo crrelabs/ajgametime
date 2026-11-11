@@ -1,1 +1,233 @@
-PLACEHOLDER
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Gravity Flip — AJ GameTime</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&family=Nunito:wght@600;700&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#0f172a;font-family:Nunito,sans-serif;color:#e2e8f0;touch-action:none}
+#c{display:block;width:100%;height:100%}
+#hud{position:absolute;inset:0;pointer-events:none;z-index:10}
+#top{position:absolute;top:12px;left:12px;display:flex;gap:8px}
+.stat{background:rgba(15,23,42,.9);padding:8px 12px;border-radius:8px;font-family:Orbitron,sans-serif;font-size:.8rem;border:1px solid #22d3ee;color:#67e8f9}
+#hint{position:absolute;bottom:16px;left:16px;font-size:.75rem;color:#94a3b8;background:rgba(15,23,42,.8);padding:6px 10px;border-radius:8px}
+#flipBtn{position:absolute;bottom:30px;right:30px;pointer-events:auto;width:70px;height:70px;border-radius:50%;background:linear-gradient(135deg,#7c3aed,#22d3ee);border:none;color:#fff;font-family:Orbitron,sans-serif;font-size:.7rem;cursor:pointer;box-shadow:0 0 20px rgba(34,211,238,.5)}
+.overlay{position:absolute;inset:0;background:rgba(2,6,23,.94);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:30;text-align:center;padding:20px}
+.overlay h1{font-family:Orbitron,sans-serif;font-size:clamp(1.8rem,7vw,3rem);background:linear-gradient(135deg,#22d3ee,#a855f7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:.5rem}
+.overlay p{max-width:480px;margin:.4rem 0 1rem;line-height:1.45;color:#94a3b8}
+.btn{display:inline-block;padding:12px 26px;margin:6px;font-family:Orbitron,sans-serif;font-size:1rem;color:#fff;background:linear-gradient(135deg,#7c3aed,#22d3ee);border:none;border-radius:12px;cursor:pointer}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="hud" style="display:none">
+  <div id="top">
+    <div class="stat">LEVEL <span id="level">1</span></div>
+    <div class="stat">DEATHS <span id="deaths">0</span></div>
+  </div>
+  <div id="hint">A/D or Arrows move · Space / Button to flip gravity</div>
+  <button id="flipBtn">FLIP</button>
+</div>
+<div class="overlay" id="startScreen">
+  <h1>GRAVITY FLIP</h1>
+  <p>Walk on the floor or ceiling. Flip gravity to avoid spikes and reach the portal. Multiple levels!</p>
+  <button class="btn" id="startBtn">START</button>
+</div>
+<div class="overlay" id="winScreen" style="display:none">
+  <h1>LEVEL COMPLETE</h1>
+  <p id="winText">Nice!</p>
+  <button class="btn" id="nextBtn">NEXT LEVEL</button>
+</div>
+<div class="overlay" id="endScreen" style="display:none">
+  <h1>GAME OVER</h1>
+  <p>You fell too many times.</p>
+  <button class="btn" id="retryBtn">RETRY</button>
+</div>
+<script>
+const canvas=document.getElementById('c');
+const ctx=canvas.getContext('2d');
+function resize(){canvas.width=innerWidth;canvas.height=innerHeight;}
+resize();addEventListener('resize',resize);
+
+let audioCtx;
+function ensureAudio(){if(!audioCtx)audioCtx=new (window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();return audioCtx;}
+function beep(f,d,t,v){try{const c=ensureAudio();const o=c.createOscillator();const g=c.createGain();o.type=t||'sine';o.frequency.value=f;g.gain.setValueAtTime(v||0.06,c.currentTime);g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+d);o.connect(g);g.connect(c.destination);o.start();o.stop(c.currentTime+d);}catch(e){}}
+const SFX={flip:()=>beep(440,0.08,'square',0.05),die:()=>beep(120,0.2,'sawtooth',0.08),win:()=>beep(660,0.15,'sine',0.07),jump:()=>beep(320,0.05,'sine',0.04)};
+
+const levels=[
+  {
+    platforms:[{x:0,y:0,w:400,h:20},{x:500,y:0,w:300,h:20},{x:200,y:180,w:200,h:20},{x:600,y:180,w:250,h:20},{x:100,y:-180,w:300,h:20},{x:500,y:-180,w:200,h:20}],
+    spikes:[{x:420,y:0,w:60,h:20},{x:450,y:-180,w:40,h:20}],
+    start:{x:50,y:40},goal:{x:750,y:-160}
+  },
+  {
+    platforms:[{x:0,y:0,w:200,h:20},{x:300,y:0,w:150,h:20},{x:550,y:0,w:200,h:20},{x:150,y:160,w:250,h:20},{x:500,y:160,w:200,h:20},{x:50,y:-160,w:300,h:20},{x:450,y:-160,w:250,h:20}],
+    spikes:[{x:220,y:0,w:60,h:20},{x:470,y:160,w:40,h:20},{x:380,y:-160,w:50,h:20}],
+    start:{x:40,y:40},goal:{x:680,y:-140}
+  },
+  {
+    platforms:[{x:0,y:0,w:180,h:20},{x:280,y:0,w:120,h:20},{x:480,y:0,w:150,h:20},{x:700,y:0,w:150,h:20},{x:100,y:140,w:200,h:20},{x:400,y:140,w:180,h:20},{x:600,y:140,w:150,h:20},{x:50,y:-140,w:250,h:20},{x:400,y:-140,w:200,h:20},{x:650,y:-140,w:150,h:20}],
+    spikes:[{x:200,y:0,w:60,h:20},{x:420,y:0,w:50,h:20},{x:330,y:140,w:50,h:20},{x:330,y:-140,w:50,h:20}],
+    start:{x:30,y:40},goal:{x:780,y:-120}
+  }
+];
+
+const state={running:false,level:0,deaths:0,gravity:1,player:{x:50,y:40,vx:0,vy:0,w:22,h:28,onGround:false},keys:{}};
+let camX=0;
+
+function resetLevel(){
+  const L=levels[state.level];
+  state.player.x=L.start.x;state.player.y=L.start.y;state.player.vx=0;state.player.vy=0;state.gravity=1;state.player.onGround=false;
+  camX=0;
+}
+function startGame(){
+  ensureAudio();
+  state.running=true;state.level=0;state.deaths=0;
+  resetLevel();
+  document.getElementById('startScreen').style.display='none';
+  document.getElementById('winScreen').style.display='none';
+  document.getElementById('endScreen').style.display='none';
+  document.getElementById('hud').style.display='block';
+  document.getElementById('level').textContent=state.level+1;
+  document.getElementById('deaths').textContent=state.deaths;
+}
+function nextLevel(){
+  state.level++;
+  if(state.level>=levels.length){
+    document.getElementById('winText').textContent='You beat all levels! Deaths: '+state.deaths;
+    document.getElementById('nextBtn').textContent='PLAY AGAIN';
+    document.getElementById('nextBtn').onclick=()=>{state.level=0;document.getElementById('winScreen').style.display='none';resetLevel();};
+  }
+  resetLevel();
+  document.getElementById('winScreen').style.display='none';
+  document.getElementById('level').textContent=state.level+1;
+}
+function die(){
+  state.deaths++;SFX.die();
+  document.getElementById('deaths').textContent=state.deaths;
+  if(state.deaths>15){state.running=false;document.getElementById('endScreen').style.display='flex';document.getElementById('hud').style.display='none';return;}
+  resetLevel();
+}
+function flip(){
+  state.gravity*=-1;
+  state.player.vy=0;
+  SFX.flip();
+}
+
+document.getElementById('startBtn').onclick=startGame;
+document.getElementById('nextBtn').onclick=nextLevel;
+document.getElementById('retryBtn').onclick=()=>{document.getElementById('endScreen').style.display='none';startGame();};
+document.getElementById('flipBtn').onclick=flip;
+addEventListener('keydown',e=>{state.keys[e.key.toLowerCase()]=true;if(e.key===' '||e.code==='Space'){e.preventDefault();flip();}});
+addEventListener('keyup',e=>state.keys[e.key.toLowerCase()]=false);
+
+function collides(a,b){return a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y;}
+
+function update(dt){
+  if(!state.running)return;
+  const p=state.player;
+  const L=levels[state.level];
+
+  if(state.keys['a']||state.keys['arrowleft'])p.vx=-180;
+  else if(state.keys['d']||state.keys['arrowright'])p.vx=180;
+  else p.vx*=0.7;
+
+  p.vy+=980*state.gravity*dt;
+  p.x+=p.vx*dt;
+  p.y+=p.vy*dt;
+
+  p.onGround=false;
+  L.platforms.forEach(plat=>{
+    if(collides(p,plat)){
+      if(state.gravity>0&&p.vy>0&&p.y+p.h-plat.y<20){
+        p.y=plat.y-p.h;p.vy=0;p.onGround=true;
+      }else if(state.gravity<0&&p.vy<0&&plat.y+plat.h-p.y<20){
+        p.y=plat.y+plat.h;p.vy=0;p.onGround=true;
+      }
+    }
+  });
+
+  L.spikes.forEach(s=>{
+    if(collides(p,s))die();
+  });
+
+  const g=L.goal;
+  if(Math.hypot(p.x-g.x,p.y-g.y)<30){
+    SFX.win();
+    state.running=false;
+    document.getElementById('winScreen').style.display='flex';
+  }
+
+  if(p.y>400||p.y<-400)die();
+
+  camX=Math.max(0,p.x-canvas.width/3);
+}
+
+function draw(){
+  ctx.fillStyle='#0f172a';
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+
+  ctx.strokeStyle='rgba(34,211,238,0.08)';
+  ctx.lineWidth=1;
+  for(let x=-camX%40;x<canvas.width;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,canvas.height);ctx.stroke();}
+  for(let y=0;y<canvas.height;y+=40){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(canvas.width,y);ctx.stroke();}
+
+  ctx.save();
+  ctx.translate(-camX,canvas.height/2);
+
+  const L=levels[state.level];
+  ctx.fillStyle='#1e293b';
+  ctx.strokeStyle='#22d3ee';
+  ctx.lineWidth=2;
+  L.platforms.forEach(p=>{
+    ctx.fillRect(p.x,p.y,p.w,p.h);
+    ctx.strokeRect(p.x,p.y,p.w,p.h);
+  });
+
+  ctx.fillStyle='#ef4444';
+  L.spikes.forEach(s=>{
+    ctx.beginPath();
+    const steps=Math.floor(s.w/12);
+    for(let i=0;i<steps;i++){
+      const x=s.x+i*12;
+      ctx.moveTo(x,s.y+s.h);
+      ctx.lineTo(x+6,s.y);
+      ctx.lineTo(x+12,s.y+s.h);
+    }
+    ctx.fill();
+  });
+
+  const g=L.goal;
+  ctx.fillStyle='#a855f7';
+  ctx.beginPath();ctx.arc(g.x,g.y,18,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#fff';
+  ctx.font='12px Orbitron';
+  ctx.textAlign='center';
+  ctx.fillText('EXIT',g.x,g.y+4);
+
+  const p=state.player;
+  ctx.save();
+  ctx.translate(p.x+p.w/2,p.y+p.h/2);
+  if(state.gravity<0)ctx.scale(1,-1);
+  ctx.fillStyle='#22d3ee';
+  ctx.fillRect(-p.w/2,-p.h/2,p.w,p.h);
+  ctx.fillStyle='#0f172a';
+  ctx.fillRect(-4,-6,8,6);
+  ctx.restore();
+
+  ctx.restore();
+
+  requestAnimationFrame(()=>{
+    const now=performance.now();
+    const dt=Math.min((now-(draw.last||now))/1000,0.05);
+    draw.last=now;
+    update(dt);
+    draw();
+  });
+}
+draw();
+</script>
+</body>
+</html>
