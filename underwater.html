@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Underwater Explorer — AJ GameTime</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&family=Nunito:wght@600;700&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#0c4a6e;font-family:Nunito,sans-serif;color:#e0f2fe;touch-action:none}
+#c{display:block;width:100%;height:100%}
+#hud{position:absolute;inset:0;pointer-events:none;z-index:10}
+#top{position:absolute;top:10px;left:10px;display:flex;gap:6px;flex-wrap:wrap}
+.stat{background:rgba(12,74,110,.9);padding:6px 10px;border-radius:8px;font-family:Orbitron,sans-serif;font-size:.75rem;border:1px solid #22d3ee;color:#67e8f9}
+#oxyBar{position:absolute;top:50px;left:12px;width:120px;height:8px;background:#1e293b;border-radius:4px;border:1px solid #22d3ee;overflow:hidden}
+#oxyFill{height:100%;width:100%;background:linear-gradient(90deg,#22c55e,#fbbf24,#ef4444)}
+#hint{position:absolute;bottom:12px;left:12px;font-size:.65rem;color:#94a3b8;background:rgba(12,74,110,.75);padding:4px 8px;border-radius:6px}
+#controls{position:absolute;bottom:20px;left:20px;display:flex;flex-direction:column;gap:8px;pointer-events:auto;z-index:25}
+#moveRow{display:flex;gap:8px}
+#upBtn,#downBtn,#leftBtn,#rightBtn{width:58px;height:58px;border-radius:12px;background:rgba(12,74,110,.9);border:2px solid #22d3ee;color:#22d3ee;font-size:1.3rem;font-weight:bold;cursor:pointer;user-select:none}
+.overlay{position:absolute;inset:0;background:rgba(8,47,73,.95);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:30;text-align:center;padding:16px}
+.overlay h1{font-family:Orbitron,sans-serif;font-size:clamp(1.6rem,6vw,2.6rem);background:linear-gradient(135deg,#22d3ee,#06b6d4);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:.4rem}
+.overlay p{max-width:440px;margin:.3rem 0 .8rem;line-height:1.4;color:#94a3b8;font-size:.85rem}
+.btn{display:inline-block;padding:11px 22px;margin:5px;font-family:Orbitron,sans-serif;font-size:.9rem;color:#fff;background:linear-gradient(135deg,#0ea5e9,#22d3ee);border:none;border-radius:10px;cursor:pointer}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="hud" style="display:none">
+  <div id="top">
+    <div class="stat">SCORE <span id="score">0</span></div>
+    <div class="stat">TREASURE <span id="treasure">0</span></div>
+    <div class="stat">OXYGEN <span id="oxy">100</span></div>
+  </div>
+  <div id="oxyBar"><div id="oxyFill"></div></div>
+  <div id="hint">Buttons or WASD move · Collect gold · Avoid sharks · Watch oxygen</div>
+  <div id="controls">
+    <div id="moveRow">
+      <button id="upBtn">▲</button>
+    </div>
+    <div id="moveRow">
+      <button id="leftBtn">◀</button>
+      <button id="downBtn">▼</button>
+      <button id="rightBtn">▶</button>
+    </div>
+  </div>
+</div>
+<div class="overlay" id="startScreen">
+  <h1>UNDERWATER EXPLORER</h1>
+  <p>Pilot your sub through the reef. Collect treasure, dodge sharks, and manage your oxygen. Calm 3D diving.</p>
+  <button class="btn" id="startBtn">DIVE</button>
+</div>
+<div class="overlay" id="endScreen" style="display:none">
+  <h1>OUT OF OXYGEN</h1>
+  <p id="endText">Score: 0</p>
+  <button class="btn" id="retryBtn">DIVE AGAIN</button>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+<script>
+const canvas=document.getElementById('c');
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));
+renderer.setSize(innerWidth,innerHeight);
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0x0c4a6e);
+scene.fog=new THREE.FogExp2(0x0c4a6e,0.025);
+const camera=new THREE.PerspectiveCamera(55,innerWidth/innerHeight,0.1,80);
+const clock=new THREE.Clock();
+
+scene.add(new THREE.AmbientLight(0x67e8f9,0.5));
+const dir=new THREE.DirectionalLight(0xbae6fd,0.7);dir.position.set(10,20,5);scene.add(dir);
+
+let audioCtx;
+function ensureAudio(){if(!audioCtx)audioCtx=new (window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();return audioCtx;}
+function beep(f,d,t,v){try{const c=ensureAudio();const o=c.createOscillator();const g=c.createGain();o.type=t||'sine';o.frequency.value=f;g.gain.setValueAtTime(v||0.05,c.currentTime);g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+d);o.connect(g);g.connect(c.destination);o.start();o.stop(c.currentTime+d);}catch(e){}}
+let musicOn=false;
+function startMusic(){if(musicOn)return;musicOn=true;try{const c=ensureAudio();const g=c.createGain();g.gain.value=0.06;g.connect(c.destination);const notes=[110,130,147,165];let t=c.currentTime;function loop(){notes.forEach((f,i)=>{const o=c.createOscillator();o.type='sine';o.frequency.value=f;const gg=c.createGain();gg.gain.setValueAtTime(0.04,t+i*0.6);gg.gain.exponentialRampToValueAtTime(0.001,t+i*0.6+0.5);o.connect(gg);gg.connect(g);o.start(t+i*0.6);o.stop(t+i*0.6+0.55);});t+=notes.length*0.6;if(state.running)setTimeout(loop,notes.length*600);}loop();}catch(e){}}
+const SFX={collect:()=>beep(660,0.08,'sine',0.06),hit:()=>beep(80,0.12,'sawtooth',0.07),oxy:()=>beep(440,0.05,'sine',0.04)};
+
+const state={running:false,score:0,treasure:0,oxy:100,sub:null,treasures:[],sharks:[],corals:[],fish:[],keys:{},up:false,down:false,left:false,right:false};
+
+const floor=new THREE.Mesh(new THREE.PlaneGeometry(60,60),new THREE.MeshStandardMaterial({color:0x164e63,roughness:0.9}));
+floor.rotation.x=-Math.PI/2;floor.position.y=-8;scene.add(floor);
+
+function makeSub(){
+  const g=new THREE.Group();
+  const body=new THREE.Mesh(new THREE.CylinderGeometry(0.35,0.4,1.8,10),new THREE.MeshStandardMaterial({color:0xfbbf24,metalness:0.4,roughness:0.3}));
+  body.rotation.z=Math.PI/2;g.add(body);
+  const dome=new THREE.Mesh(new THREE.SphereGeometry(0.32,8,6),new THREE.MeshStandardMaterial({color:0x22d3ee,transparent:true,opacity:0.6}));
+  dome.position.y=0.15;g.add(dome);
+  const prop=new THREE.Mesh(new THREE.BoxGeometry(0.15,0.6,0.08),new THREE.MeshStandardMaterial({color:0x64748b}));
+  prop.position.x=-1;g.add(prop);
+  g.position.set(0,0,0);scene.add(g);state.sub=g;
+  state.sub.userData={prop};
+}
+function makeTreasure(x,y,z){
+  const m=new THREE.Mesh(new THREE.OctahedronGeometry(0.25),new THREE.MeshStandardMaterial({color:0xfbbf24,emissive:0xfbbf24,emissiveIntensity:0.4}));
+  m.position.set(x,y,z);scene.add(m);state.treasures.push(m);
+}
+function makeShark(){
+  const g=new THREE.Group();
+  const body=new THREE.Mesh(new THREE.ConeGeometry(0.35,1.6,6),new THREE.MeshStandardMaterial({color:0x475569}));
+  body.rotation.z=-Math.PI/2;g.add(body);
+  const fin=new THREE.Mesh(new THREE.ConeGeometry(0.15,0.4,4),new THREE.MeshStandardMaterial({color:0x334155}));
+  fin.position.set(0,0.3,0);g.add(fin);
+  g.position.set((Math.random()-0.5)*30,(Math.random()-0.5)*6-2,(Math.random()-0.5)*30);
+  g.userData={speed:1.5+Math.random()*1,dir:Math.random()*Math.PI*2};
+  scene.add(g);state.sharks.push(g);
+}
+function makeCoral(x,z){
+  const h=0.8+Math.random()*2;
+  const m=new THREE.Mesh(new THREE.CylinderGeometry(0.15,0.3,h,6),new THREE.MeshStandardMaterial({color:Math.random()>0.5?0xf472b6:0x22c55e}));
+  m.position.set(x,h/2-8,z);scene.add(m);state.corals.push(m);
+}
+function makeFish(){
+  const m=new THREE.Mesh(new THREE.SphereGeometry(0.12,6,5),new THREE.MeshStandardMaterial({color:Math.random()>0.5?0xfbbf24:0x60a5fa}));
+  m.position.set((Math.random()-0.5)*25,(Math.random()-0.5)*5-1,(Math.random()-0.5)*25);
+  m.userData={speed:0.8+Math.random()*0.6,dir:Math.random()*Math.PI*2};
+  scene.add(m);state.fish.push(m);
+}
+
+function buildWorld(){
+  makeSub();
+  for(let i=0;i<18;i++)makeTreasure((Math.random()-0.5)*28,(Math.random()-0.5)*5-2,(Math.random()-0.5)*28);
+  for(let i=0;i<4;i++)makeShark();
+  for(let i=0;i<25;i++)makeCoral((Math.random()-0.5)*35,(Math.random()-0.5)*35);
+  for(let i=0;i<12;i++)makeFish();
+}
+function clearWorld(){
+  if(state.sub)scene.remove(state.sub);
+  state.treasures.forEach(t=>scene.remove(t));
+  state.sharks.forEach(s=>scene.remove(s));
+  state.corals.forEach(c=>scene.remove(c));
+  state.fish.forEach(f=>scene.remove(f));
+  state.treasures=[];state.sharks=[];state.corals=[];state.fish=[];state.sub=null;
+}
+function updateHUD(){
+  document.getElementById('score').textContent=state.score;
+  document.getElementById('treasure').textContent=state.treasure;
+  document.getElementById('oxy').textContent=Math.max(0,Math.ceil(state.oxy));
+  document.getElementById('oxyFill').style.width=state.oxy+'%';
+  document.getElementById('oxyFill').style.background=state.oxy>50?'#22c55e':state.oxy>25?'#fbbf24':'#ef4444';
+}
+function startGame(){
+  ensureAudio();startMusic();
+  clearWorld();
+  state.running=true;state.score=0;state.treasure=0;state.oxy=100;
+  buildWorld();updateHUD();
+  document.getElementById('startScreen').style.display='none';
+  document.getElementById('endScreen').style.display='none';
+  document.getElementById('hud').style.display='block';
+}
+function endGame(){
+  state.running=false;
+  document.getElementById('endText').textContent='Score: '+state.score+' · Treasure: '+state.treasure;
+  document.getElementById('endScreen').style.display='flex';
+  document.getElementById('hud').style.display='none';
+}
+
+document.getElementById('startBtn').onclick=startGame;
+document.getElementById('retryBtn').onclick=()=>{document.getElementById('endScreen').style.display='none';startGame();};
+
+function bindHold(btn,setter){
+  ['pointerdown','touchstart'].forEach(e=>btn.addEventListener(e,ev=>{ev.preventDefault();setter(true);},{passive:false}));
+  ['pointerup','pointerleave','pointercancel','touchend','touchcancel'].forEach(e=>btn.addEventListener(e,()=>setter(false)));
+}
+bindHold(document.getElementById('upBtn'),v=>state.up=v);
+bindHold(document.getElementById('downBtn'),v=>state.down=v);
+bindHold(document.getElementById('leftBtn'),v=>state.left=v);
+bindHold(document.getElementById('rightBtn'),v=>state.right=v);
+
+addEventListener('keydown',e=>{
+  const k=e.key.toLowerCase();
+  if(k==='w'||k==='arrowup')state.up=true;
+  if(k==='s'||k==='arrowdown')state.down=true;
+  if(k==='a'||k==='arrowleft')state.left=true;
+  if(k==='d'||k==='arrowright')state.right=true;
+});
+addEventListener('keyup',e=>{
+  const k=e.key.toLowerCase();
+  if(k==='w'||k==='arrowup')state.up=false;
+  if(k==='s'||k==='arrowdown')state.down=false;
+  if(k==='a'||k==='arrowleft')state.left=false;
+  if(k==='d'||k==='arrowright')state.right=false;
+});
+
+function animate(){
+  requestAnimationFrame(animate);
+  const dt=Math.min(clock.getDelta(),0.04);
+  if(!state.running||!state.sub){renderer.render(scene,camera);return;}
+
+  const sub=state.sub;
+  let mx=0,my=0;
+  if(state.left)mx-=1;
+  if(state.right)mx+=1;
+  if(state.up)my+=1;
+  if(state.down)my-=1;
+
+  sub.position.x=Math.max(-22,Math.min(22,sub.position.x+mx*3.5*dt));
+  sub.position.y=Math.max(-6,Math.min(4,sub.position.y+my*2.8*dt));
+  sub.position.z=Math.max(-22,Math.min(22,sub.position.z+(mx?0:0.4)*dt));
+  if(mx)sub.rotation.y=mx>0?-0.3:0.3; else sub.rotation.y*=0.9;
+  sub.userData.prop.rotation.x+=dt*12;
+
+  state.oxy-=dt*1.8;
+  if(state.oxy<=0){endGame();return;}
+  if(state.oxy<30&&Math.random()<0.02)SFX.oxy();
+
+  for(let i=state.treasures.length-1;i>=0;i--){
+    const t=state.treasures[i];
+    t.rotation.y+=dt*2;
+    if(sub.position.distanceTo(t.position)<0.7){
+      state.treasure++;state.score+=20;state.oxy=Math.min(100,state.oxy+8);SFX.collect();
+      scene.remove(t);state.treasures.splice(i,1);
+      if(state.treasures.length<6)makeTreasure((Math.random()-0.5)*28,(Math.random()-0.5)*5-2,(Math.random()-0.5)*28);
+    }
+  }
+
+  state.sharks.forEach(s=>{
+    s.userData.dir+= (Math.random()-0.5)*dt*1.5;
+    s.position.x+=Math.cos(s.userData.dir)*s.userData.speed*dt;
+    s.position.z+=Math.sin(s.userData.dir)*s.userData.speed*dt;
+    s.position.x=Math.max(-25,Math.min(25,s.position.x));
+    s.position.z=Math.max(-25,Math.min(25,s.position.z));
+    s.lookAt(sub.position);
+    if(sub.position.distanceTo(s.position)<0.9){
+      state.oxy-=15;state.score=Math.max(0,state.score-5);SFX.hit();
+      s.position.x+= (Math.random()-0.5)*8;
+      s.position.z+= (Math.random()-0.5)*8;
+      if(state.oxy<=0){endGame();return;}
+    }
+  });
+
+  state.fish.forEach(f=>{
+    f.userData.dir+=(Math.random()-0.5)*dt*2;
+    f.position.x+=Math.cos(f.userData.dir)*f.userData.speed*dt;
+    f.position.z+=Math.sin(f.userData.dir)*f.userData.speed*dt;
+    f.position.x=Math.max(-20,Math.min(20,f.position.x));
+    f.position.z=Math.max(-20,Math.min(20,f.position.z));
+  });
+
+  camera.position.lerp(new THREE.Vector3(sub.position.x,sub.position.y+3.5,sub.position.z+8),0.08);
+  camera.lookAt(sub.position);
+
+  updateHUD();
+  renderer.render(scene,camera);
+}
+animate();
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
+</script>
+</body>
+</html>
