@@ -14,7 +14,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0f172a;font-family:
 .stat{background:rgba(15,23,42,.9);padding:6px 10px;border-radius:8px;font-family:Orbitron,sans-serif;font-size:.75rem;border:1px solid #22d3ee;color:#67e8f9}
 #hint{position:absolute;bottom:12px;left:12px;font-size:.65rem;color:#94a3b8;background:rgba(15,23,42,.75);padding:4px 8px;border-radius:6px}
 #controls{position:absolute;bottom:20px;left:20px;display:flex;gap:10px;pointer-events:auto;z-index:25}
-#leftBtn,#rightBtn{width:70px;height:70px;border-radius:14px;background:rgba(15,23,42,.9);border:2px solid #22d3ee;color:#22d3ee;font-size:1.6rem;font-weight:bold;cursor:pointer;user-select:none;-webkit-user-select:none}
+#leftBtn,#rightBtn,#jumpBtn{width:70px;height:70px;border-radius:14px;background:rgba(15,23,42,.9);border:2px solid #22d3ee;color:#22d3ee;font-size:1rem;font-weight:bold;cursor:pointer;user-select:none;-webkit-user-select:none;font-family:Orbitron,sans-serif}
 #flipBtn{position:absolute;bottom:20px;right:20px;pointer-events:auto;z-index:25;width:76px;height:76px;border-radius:50%;background:linear-gradient(135deg,#7c3aed,#22d3ee);border:none;color:#fff;font-family:Orbitron,sans-serif;font-size:.75rem;cursor:pointer;box-shadow:0 0 18px rgba(34,211,238,.5)}
 .overlay{position:absolute;inset:0;background:rgba(2,6,23,.94);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:30;text-align:center;padding:16px}
 .overlay h1{font-family:Orbitron,sans-serif;font-size:clamp(1.6rem,6vw,2.8rem);background:linear-gradient(135deg,#22d3ee,#a855f7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:.4rem}
@@ -31,16 +31,17 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0f172a;font-family:
     <div class="stat">COINS <span id="coins">0</span></div>
     <div class="stat">DEATHS <span id="deaths">0</span></div>
   </div>
-  <div id="hint">Hold Left/Right or A/D · Flip button or Space</div>
+  <div id="hint">Hold Left/Right or A/D · Jump button or W · Flip button or Space</div>
   <div id="controls">
     <button id="leftBtn">◀</button>
     <button id="rightBtn">▶</button>
+    <button id="jumpBtn">JUMP</button>
   </div>
   <button id="flipBtn">FLIP</button>
 </div>
 <div class="overlay" id="startScreen">
   <h1>GRAVITY FLIP 3D</h1>
-  <p>Fixed movement, completable levels, and music. Flip gravity, ride platforms, collect coins.</p>
+  <p>Jump button, fixed flip collision, and music. Flip gravity, ride platforms, collect coins.</p>
   <button class="btn" id="startBtn">START</button>
 </div>
 <div class="overlay" id="winScreen" style="display:none">
@@ -71,7 +72,7 @@ let audioCtx,musicGain;
 function ensureAudio(){if(!audioCtx)audioCtx=new (window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();return audioCtx;}
 function beep(f,d,t,v){try{const c=ensureAudio();const o=c.createOscillator();const g=c.createGain();o.type=t||'sine';o.frequency.value=f;g.gain.setValueAtTime(v||0.06,c.currentTime);g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+d);o.connect(g);g.connect(c.destination);o.start();o.stop(c.currentTime+d);}catch(e){}}
 let musicOn=false;
-function startMusic(){if(musicOn)return;musicOn=true;try{const c=ensureAudio();musicGain=c.createGain();musicGain.gain.value=0.04;musicGain.connect(c.destination);const notes=[220,262,294,330,294,262];let t=c.currentTime;function loop(){notes.forEach((f,i)=>{const o=c.createOscillator();o.type='triangle';o.frequency.value=f;const g=c.createGain();g.gain.setValueAtTime(0.03,t+i*0.4);g.gain.exponentialRampToValueAtTime(0.001,t+i*0.4+0.35);o.connect(g);g.connect(musicGain);o.start(t+i*0.4);o.stop(t+i*0.4+0.4);});t+=notes.length*0.4;if(state.running)setTimeout(loop,notes.length*400);}loop();}catch(e){}}
+function startMusic(){if(musicOn)return;musicOn=true;try{const c=ensureAudio();musicGain=c.createGain();musicGain.gain.value=0.12;musicGain.connect(c.destination);const notes=[196,247,294,330,294,247];let t=c.currentTime;function loop(){notes.forEach((f,i)=>{const o=c.createOscillator();o.type='square';o.frequency.value=f;const g=c.createGain();g.gain.setValueAtTime(0.08,t+i*0.35);g.gain.exponentialRampToValueAtTime(0.001,t+i*0.35+0.3);o.connect(g);g.connect(musicGain);o.start(t+i*0.35);o.stop(t+i*0.35+0.35);const b=c.createOscillator();b.type='triangle';b.frequency.value=f/2;const bg=c.createGain();bg.gain.setValueAtTime(0.05,t+i*0.35);bg.gain.exponentialRampToValueAtTime(0.001,t+i*0.35+0.3);b.connect(bg);bg.connect(musicGain);b.start(t+i*0.35);b.stop(t+i*0.35+0.35);});t+=notes.length*0.35;if(state.running)setTimeout(loop,notes.length*350);}loop();}catch(e){console.log(e);}}
 const SFX={flip:()=>beep(480,0.06,'square',0.05),die:()=>beep(90,0.16,'sawtooth',0.07),win:()=>beep(700,0.12,'sine',0.06),coin:()=>beep(900,0.05,'sine',0.045)};
 
 const state={running:false,level:1,score:0,coins:0,deaths:0,gravity:1,player:null,platforms:[],spikes:[],coinsArr:[],goal:null,left:false,right:false,particles:[]};
@@ -108,7 +109,7 @@ function makePlayer(){
   body.position.y=0.32;g.add(body);
   const head=new THREE.Mesh(new THREE.SphereGeometry(0.2,6,5),new THREE.MeshStandardMaterial({color:0xfcd34d}));
   head.position.y=0.78;g.add(head);
-  g.position.set(-5,1.2,0);scene.add(g);state.player=g;
+  g.position.set(-5,1.5,0);scene.add(g);state.player=g;
   state.player.userData={vy:0};
 }
 
@@ -157,9 +158,18 @@ function die(){
   if(state.deaths>10){state.running=false;document.getElementById('endScreen').style.display='flex';document.getElementById('hud').style.display='none';return;}
   generateLevel(state.level);
 }
+function jump(){
+  if(!state.player)return;
+  const ud=state.player.userData;
+  ud.vy=-9*state.gravity;
+  SFX.flip();
+}
 function flip(){
   state.gravity*=-1;
-  if(state.player)state.player.userData.vy=0;
+  if(state.player){
+    state.player.userData.vy=0;
+    state.player.position.y+=state.gravity*0.15;
+  }
   SFX.flip();
   for(let i=0;i<5;i++){
     const p=new THREE.Mesh(new THREE.SphereGeometry(0.07,4,4),new THREE.MeshBasicMaterial({color:0x22d3ee}));
@@ -172,6 +182,7 @@ document.getElementById('startBtn').onclick=startGame;
 document.getElementById('nextBtn').onclick=nextLevel;
 document.getElementById('retryBtn').onclick=()=>{document.getElementById('endScreen').style.display='none';startGame();};
 document.getElementById('flipBtn').onclick=flip;
+document.getElementById('jumpBtn').onclick=jump;
 
 const leftBtn=document.getElementById('leftBtn');
 const rightBtn=document.getElementById('rightBtn');
@@ -188,7 +199,7 @@ function setRight(v){state.right=v;}
 addEventListener('keydown',e=>{
   if(e.key==='a'||e.key==='ArrowLeft')state.left=true;
   if(e.key==='d'||e.key==='ArrowRight')state.right=true;
-  if(e.code==='Space'){e.preventDefault();flip();}
+  if(e.code==='Space'){e.preventDefault();flip();}if(e.key==='w'||e.key==='ArrowUp')jump();
 });
 addEventListener('keyup',e=>{
   if(e.key==='a'||e.key==='ArrowLeft')state.left=false;
